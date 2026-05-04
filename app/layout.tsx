@@ -40,11 +40,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={inter.variable} style={{ background: '#0A0A10', color: '#FAFAFA' }}>
       <head>
         <meta name="color-scheme" content="dark" />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased" style={{ background: '#0A0A10', color: '#FAFAFA' }}>{children}</body>
     </html>
   );
 }
