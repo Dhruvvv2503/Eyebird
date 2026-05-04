@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 
@@ -8,6 +8,10 @@ const inter = Inter({
   variable: '--font-inter',
   display: 'swap',
 });
+
+export const viewport: Viewport = {
+  themeColor: '#0A0A10',
+};
 
 export const metadata: Metadata = {
   title: 'Eyebird — Know exactly why your reels flop. Fix it in minutes.',
@@ -32,7 +36,6 @@ export const metadata: Metadata = {
     creator: '@eyebird_in',
   },
   robots: { index: true, follow: true },
-  themeColor: '#0A0A10',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
