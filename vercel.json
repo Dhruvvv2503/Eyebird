@@ -1,31 +1,32 @@
 {
+  "cleanUrls": true,
+  "trailingSlash": false,
   "headers": [
     {
-      "source": "/data-deletion",
+      "source": "/data-deletion(.*)",
       "headers": [
-        { "key": "X-Robots-Tag", "value": "all" },
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
+        { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=86400" },
+        { "key": "X-Robots-Tag", "value": "all" }
       ]
     },
     {
-      "source": "/data-deletion/",
+      "source": "/privacy(.*)",
       "headers": [
-        { "key": "X-Robots-Tag", "value": "all" },
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
+        { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=86400" },
+        { "key": "X-Robots-Tag", "value": "all" }
       ]
     },
     {
-      "source": "/privacy",
+      "source": "/terms(.*)",
       "headers": [
-        { "key": "X-Robots-Tag", "value": "all" },
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
+        { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=86400" },
+        { "key": "X-Robots-Tag", "value": "all" }
       ]
     },
     {
-      "source": "/terms",
+      "source": "/robots.txt",
       "headers": [
-        { "key": "X-Robots-Tag", "value": "all" },
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
       ]
     }
   ]
