@@ -26,9 +26,16 @@ function HeroMockup() {
         margin: '0 auto',
         width: '100%',
         opacity: 0,
-        animation: 'hero-entrance 0.7s cubic-bezier(0.16,1,0.3,1) 0.35s forwards, hero-float 5s ease-in-out 1.4s infinite',
+        animation: 'hero-entrance 0.8s cubic-bezier(0.16,1,0.3,1) 0.3s forwards',
       }}
     >
+      <div
+        style={{
+          willChange: 'transform',
+          transform: 'translateZ(0)',
+          animation: 'hero-float 4s cubic-bezier(0.37,0,0.63,1) 1.2s infinite',
+        }}
+      >
       {/* Glow behind card */}
       <div style={{
         position: 'absolute', inset: -16, borderRadius: 28,
@@ -139,6 +146,7 @@ function HeroMockup() {
           </div>
         </div>
       </div>
+      </div>
     </div>
   );
 }
@@ -148,12 +156,13 @@ export default function HeroSection() {
     <>
       <style>{`
         @keyframes hero-entrance {
-          from { opacity: 0; transform: translateY(40px); }
-          to   { opacity: 1; transform: translateY(0); }
+          from { opacity: 0; transform: translateY(36px); }
+          to   { opacity: 1; transform: translateY(0px); }
         }
         @keyframes hero-float {
-          0%, 100% { transform: translateY(0); }
-          50%      { transform: translateY(-6px); }
+          0%   { transform: translateY(0px); }
+          50%  { transform: translateY(-8px); }
+          100% { transform: translateY(0px); }
         }
         @keyframes hero-bg-fade {
           from { opacity: 0; }
