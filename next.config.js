@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Serve trailing-slash URLs directly (200) instead of 308-redirecting.
+  // Required so Meta's bot can crawl /data-deletion/ without a redirect.
+  trailingSlash: true,
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.cdninstagram.com' },

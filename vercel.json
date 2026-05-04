@@ -1,6 +1,4 @@
 {
-  "cleanUrls": true,
-  "trailingSlash": false,
   "headers": [
     {
       "source": "/data-deletion(.*)",
@@ -21,12 +19,6 @@
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=86400" },
         { "key": "X-Robots-Tag", "value": "all" }
-      ]
-    },
-    {
-      "source": "/robots.txt",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=86400" }
       ]
     }
   ]
