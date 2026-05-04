@@ -155,11 +155,15 @@ export default function HeroSection() {
           0%, 100% { transform: translateY(0); }
           50%      { transform: translateY(-6px); }
         }
+        @keyframes hero-bg-fade {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
       `}</style>
 
       <section style={{ position: 'relative', overflow: 'hidden', background: 'var(--bg-base)' }}>
-        {/* ── Gradient mesh ── */}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+        {/* ── Gradient mesh — fades in smoothly to prevent SSR flash ── */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', opacity: 0, animation: 'hero-bg-fade 0.6s ease-out 0.05s forwards' }}>
           <div style={{ position: 'absolute', top: '-15%', left: '50%', transform: 'translateX(-50%)', width: '110%', height: '80%', background: 'radial-gradient(ellipse 60% 70% at 50% 0%, rgba(100,50,220,0.65) 0%, rgba(168,85,247,0.35) 30%, transparent 65%)' }} />
           <div style={{ position: 'absolute', bottom: '-10%', left: '-5%', width: '55%', height: '65%', background: 'radial-gradient(ellipse at 15% 85%, rgba(255,62,128,0.5) 0%, rgba(255,62,128,0.18) 40%, transparent 65%)' }} />
           <div style={{ position: 'absolute', bottom: '-10%', right: '-5%', width: '50%', height: '60%', background: 'radial-gradient(ellipse at 85% 85%, rgba(59,130,246,0.35) 0%, rgba(59,130,246,0.12) 40%, transparent 65%)' }} />
