@@ -3,139 +3,152 @@
 import Link from 'next/link';
 import { ArrowRight, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 
 /*
-  FIX 1: Audit mockup card pulled INTO the hero viewport.
-  It appears below the CTA + trust line but WITHIN calc(100vh - 64px).
-  Uses Framer Motion fade-in with delay: 0.4 so headline loads first.
-  Also has a subtle floating CSS animation.
+  HeroMockup: Two-phase animation.
+  Phase 1 (0→1s): Fade in + slide up from y:40 to y:0.
+  Phase 2 (after entrance): Gentle float loop via CSS animation.
+  
+  Key fix: We use a state flag to only add the CSS float animation
+  AFTER Framer Motion's entrance is fully complete. This prevents
+  two animation systems fighting over `transform` simultaneously.
 */
 function HeroMockup() {
+  const [entranceDone, setEntranceDone] = useState(false);
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ delay: 0.35, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      onAnimationComplete={() => setEntranceDone(true)}
       style={{
         position: 'relative',
         maxWidth: 540,
         margin: '0 auto',
         width: '100%',
-        animation: 'hero-float 5s ease-in-out infinite',
       }}
     >
-      {/* Glow behind card */}
-      <div style={{
-        position: 'absolute', inset: -16, borderRadius: 28,
-        background: 'radial-gradient(ellipse, rgba(168,85,247,0.3) 0%, rgba(255,62,128,0.15) 50%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
-
-      {/* Card */}
-      <div style={{
-        position: 'relative', borderRadius: 16, overflow: 'hidden',
-        background: 'rgba(255,255,255,0.04)',
-        backdropFilter: 'blur(12px)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
-      }}>
-        {/* Window chrome */}
+      {/* This wrapper only gets the float animation after entrance completes */}
+      <div
+        style={{
+          animation: entranceDone ? 'hero-float 5s ease-in-out infinite' : 'none',
+        }}
+      >
+        {/* Glow behind card */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)',
-          background: 'rgba(255,255,255,0.02)',
+          position: 'absolute', inset: -16, borderRadius: 28,
+          background: 'radial-gradient(ellipse, rgba(168,85,247,0.3) 0%, rgba(255,62,128,0.15) 50%, transparent 70%)',
+          pointerEvents: 'none',
+        }} />
+
+        {/* Card */}
+        <div style={{
+          position: 'relative', borderRadius: 16, overflow: 'hidden',
+          background: 'rgba(255,255,255,0.04)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
         }}>
-          <div style={{ display: 'flex', gap: 5 }}>
-            {['#FF5F57','#FFBD2E','#28CA41'].map(c => (
-              <div key={c} style={{ width: 9, height: 9, borderRadius: '50%', background: c }} />
-            ))}
-          </div>
-          <span style={{ fontSize: 10, fontFamily: 'monospace', color: 'rgba(255,255,255,0.22)' }}>eyebird · audit results</span>
-          {/* Live badge */}
-          <span style={{
-            fontSize: 9, padding: '2px 7px', borderRadius: 999, fontWeight: 600,
-            background: 'rgba(34,197,94,0.12)', color: '#22C55E',
-            border: '1px solid rgba(34,197,94,0.2)',
-            display: 'inline-flex', alignItems: 'center', gap: 4,
+          {/* Window chrome */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+            background: 'rgba(255,255,255,0.02)',
           }}>
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#22C55E', display: 'inline-block' }} />
-            Live
-          </span>
-        </div>
-
-        {/* Card body */}
-        <div style={{ padding: '16px' }}>
-          {/* Profile row */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-              <div style={{
-                width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-                background: 'linear-gradient(135deg,#FF3E80,#7C3AED)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'white', fontSize: 12, fontWeight: 700,
-              }}>R</div>
-              <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.88)', margin: 0 }}>@fitlife.riya</p>
-                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.32)', margin: 0 }}>48.5K followers · Fitness</p>
-              </div>
+            <div style={{ display: 'flex', gap: 5 }}>
+              {['#FF5F57','#FFBD2E','#28CA41'].map(c => (
+                <div key={c} style={{ width: 9, height: 9, borderRadius: '50%', background: c }} />
+              ))}
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{
-                fontSize: 24, fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1,
-                background: 'linear-gradient(135deg,#FF3E80,#A855F7)',
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              }}>74</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)' }}>/ 100 score</div>
-            </div>
-          </div>
-
-          {/* Three metric cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginBottom: 12 }}>
-            {[
-              { label: 'Engagement', value: '3.1%', status: '↑ Above avg', good: true },
-              { label: 'Hook Score', value: '7.2/10', status: '↑ Above avg', good: true },
-              { label: 'Hashtags', value: '68/100', status: '↗ Fix this', good: false },
-            ].map(m => (
-              <div key={m.label} style={{
-                borderRadius: 10, padding: '8px 6px', textAlign: 'center',
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
-              }}>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.32)', marginBottom: 3 }}>{m.label}</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.88)', letterSpacing: '-0.02em' }}>{m.value}</div>
-                <div style={{ fontSize: 8, marginTop: 2, fontWeight: 600, color: m.good ? '#22C55E' : '#F59E0B' }}>{m.status}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Insight rows */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {/* Insight 1 */}
-            <div style={{ borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'flex-start', gap: 7, background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.15)' }}>
-              <Zap size={11} style={{ color: '#A855F7', flexShrink: 0, marginTop: 1 }} />
-              <p style={{ fontSize: 11, lineHeight: 1.5, color: 'rgba(255,255,255,0.52)', margin: 0 }}>
-                Post on <strong style={{ color: 'rgba(255,255,255,0.88)', fontWeight: 600 }}>Thursday 9 PM</strong> — your audience is 2.3× more active then.
-              </p>
-            </div>
-
-            {/* Insight 2 */}
-            <div style={{ borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'flex-start', gap: 7, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.13)' }}>
-              <span style={{ fontSize: 11, flexShrink: 0, marginTop: 0 }}>⚡</span>
-              <p style={{ fontSize: 11, lineHeight: 1.5, color: 'rgba(255,255,255,0.52)', margin: 0 }}>
-                Your <strong style={{ color: 'rgba(255,255,255,0.88)', fontWeight: 600 }}>Carousel posts</strong> get 2.4× more saves than your Reels.
-              </p>
-            </div>
-
-            {/* Insight 3 — locked/blurred */}
-            <div style={{
-              borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'flex-start', gap: 7,
-              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-              opacity: 0.5, filter: 'blur(2px)',
-              userSelect: 'none', pointerEvents: 'none',
+            <span style={{ fontSize: 10, fontFamily: 'monospace', color: 'rgba(255,255,255,0.22)' }}>eyebird · audit results</span>
+            {/* Live badge */}
+            <span style={{
+              fontSize: 9, padding: '2px 7px', borderRadius: 999, fontWeight: 600,
+              background: 'rgba(34,197,94,0.12)', color: '#22C55E',
+              border: '1px solid rgba(34,197,94,0.2)',
+              display: 'inline-flex', alignItems: 'center', gap: 4,
             }}>
-              <span style={{ fontSize: 11, flexShrink: 0 }}>🔒</span>
-              <p style={{ fontSize: 11, lineHeight: 1.5, color: 'rgba(255,255,255,0.5)', margin: 0 }}>
-                +19 more insights — unlock full report
-              </p>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#22C55E', display: 'inline-block' }} />
+              Live
+            </span>
+          </div>
+
+          {/* Card body */}
+          <div style={{ padding: '16px' }}>
+            {/* Profile row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                  background: 'linear-gradient(135deg,#FF3E80,#7C3AED)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'white', fontSize: 12, fontWeight: 700,
+                }}>R</div>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.88)', margin: 0 }}>@fitlife.riya</p>
+                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.32)', margin: 0 }}>48.5K followers · Fitness</p>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{
+                  fontSize: 24, fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1,
+                  background: 'linear-gradient(135deg,#FF3E80,#A855F7)',
+                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                }}>74</div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)' }}>/ 100 score</div>
+              </div>
+            </div>
+
+            {/* Three metric cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginBottom: 12 }}>
+              {[
+                { label: 'Engagement', value: '3.1%', status: '↑ Above avg', good: true },
+                { label: 'Hook Score', value: '7.2/10', status: '↑ Above avg', good: true },
+                { label: 'Hashtags', value: '68/100', status: '↗ Fix this', good: false },
+              ].map(m => (
+                <div key={m.label} style={{
+                  borderRadius: 10, padding: '8px 6px', textAlign: 'center',
+                  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
+                }}>
+                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.32)', marginBottom: 3 }}>{m.label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.88)', letterSpacing: '-0.02em' }}>{m.value}</div>
+                  <div style={{ fontSize: 8, marginTop: 2, fontWeight: 600, color: m.good ? '#22C55E' : '#F59E0B' }}>{m.status}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Insight rows */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {/* Insight 1 */}
+              <div style={{ borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'flex-start', gap: 7, background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.15)' }}>
+                <Zap size={11} style={{ color: '#A855F7', flexShrink: 0, marginTop: 1 }} />
+                <p style={{ fontSize: 11, lineHeight: 1.5, color: 'rgba(255,255,255,0.52)', margin: 0 }}>
+                  Post on <strong style={{ color: 'rgba(255,255,255,0.88)', fontWeight: 600 }}>Thursday 9 PM</strong> — your audience is 2.3× more active then.
+                </p>
+              </div>
+
+              {/* Insight 2 */}
+              <div style={{ borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'flex-start', gap: 7, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.13)' }}>
+                <span style={{ fontSize: 11, flexShrink: 0, marginTop: 0 }}>⚡</span>
+                <p style={{ fontSize: 11, lineHeight: 1.5, color: 'rgba(255,255,255,0.52)', margin: 0 }}>
+                  Your <strong style={{ color: 'rgba(255,255,255,0.88)', fontWeight: 600 }}>Carousel posts</strong> get 2.4× more saves than your Reels.
+                </p>
+              </div>
+
+              {/* Insight 3 — locked/blurred */}
+              <div style={{
+                borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'flex-start', gap: 7,
+                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+                opacity: 0.5, filter: 'blur(2px)',
+                userSelect: 'none', pointerEvents: 'none',
+              }}>
+                <span style={{ fontSize: 11, flexShrink: 0 }}>🔒</span>
+                <p style={{ fontSize: 11, lineHeight: 1.5, color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+                  +19 more insights — unlock full report
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -147,7 +160,7 @@ function HeroMockup() {
 export default function HeroSection() {
   return (
     <>
-      {/* Floating keyframe for mockup */}
+      {/* Float keyframe — only activates after entrance animation completes */}
       <style>{`
         @keyframes hero-float {
           0%, 100% { transform: translateY(0px); }
@@ -164,13 +177,10 @@ export default function HeroSection() {
           <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(rgba(255,255,255,0.055) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
         </div>
 
-        {/*
-          ZONE 1: Headline + sub + CTAs — vertically centered in viewport.
-          Reduced padding to leave room for the mockup.
-        */}
+        {/* ZONE 1: Headline + sub + CTAs */}
         <div style={{
           position: 'relative', zIndex: 1,
-          paddingTop: 'calc(64px + 48px)', // navbar height + breathing room
+          paddingTop: 'calc(64px + 48px)',
           paddingBottom: 36,
           paddingLeft: 24,
           paddingRight: 24,
@@ -231,16 +241,12 @@ export default function HeroSection() {
             </Link>
           </div>
 
-          {/* FIX 8: No fake user count */}
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.01em' }}>
             Be among the first creators to know what&apos;s really breaking their growth.
           </p>
         </div>
 
-        {/*
-          FIX 1: Mockup card IN the hero — visible without scrolling on 1280×800.
-          Max-width 540px, no scroll indicator needed — it's part of the hero.
-        */}
+        {/* Mockup card */}
         <div style={{
           position: 'relative', zIndex: 1,
           maxWidth: 540, width: '90%',
