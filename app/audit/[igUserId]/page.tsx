@@ -3,25 +3,20 @@
 import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import BlurGate from '@/components/ui/BlurGate';
-import ActionPlanCard from '@/components/audit/ActionPlanCard';
+import { motion } from 'framer-motion';
+import { AlertTriangle, RefreshCw, Lock } from 'lucide-react';
+import ScoreRing from '@/components/ui/ScoreRing';
 import PaymentModal from '@/components/audit/PaymentModal';
-import HeatmapGrid from '@/components/audit/HeatmapGrid';
 import PremiumLoadingScreen from '@/components/audit/PremiumLoadingScreen';
 import FreeMetricsSection from '@/components/audit/FreeMetricsSection';
-import PaywallTeaser from '@/components/audit/PaywallTeaser';
+import PaidReport from '@/components/audit/PaidReport';
 import { showToast } from '@/components/ui/Toast';
 import { formatDate } from '@/lib/utils';
-import {
-  AlertTriangle, Hash, Clock, TrendingUp, Search, Type, DollarSign, RefreshCw,
-} from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import ToastContainer from '@/components/ui/Toast';
-import ScoreRing from '@/components/ui/ScoreRing';
-import MetricCard from '@/components/ui/MetricCard';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────────
 interface AuditData {
   id: string;
   username: string;
@@ -53,10 +48,13 @@ interface AuditData {
     best_posting_time: string;
     best_posting_time_reason: string;
     hook_avg_score: number;
+    hook_scores?: Array<{ hook: string; score: number; verdict: string }>;
+    weakest_hook?: string;
     weakest_hook_rewrite: string;
     hashtag_score: number;
     hashtag_verdict: string;
     recommended_hashtags: string[];
+    recommended_hashtags_reason?: string;
     brand_readiness_score: number;
     brand_readiness_verdict: string;
     estimated_rates: {
@@ -78,34 +76,6 @@ interface AuditData {
   };
 }
 
-function SectionTitle({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 mb-6">
-      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)' }}>
-        <Icon size={17} style={{ color: '#c084fc' }} />
-      </div>
-      <h2 className="text-lg font-bold text-white" style={{ letterSpacing: '-0.02em' }}>{children}</h2>
-    </div>
-  );
-}
-
-function AnimatedScore({ score }: { score: number }) {
-  const [displayed, setDisplayed] = useState(0);
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const interval = setInterval(() => {
-        setDisplayed(prev => {
-          if (prev >= score) { clearInterval(interval); return score; }
-          return prev + 1;
-        });
-      }, 20);
-      return () => clearInterval(interval);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [score]);
-  return <>{displayed}</>;
-}
-
 const LOADING_STEPS = [
   'Connecting to Instagram…',
   'Fetching your last 20 posts…',
@@ -115,13 +85,85 @@ const LOADING_STEPS = [
   'Almost done…',
 ];
 
-function getScoreHeadline(score: number) {
-  if (score >= 80) return { emoji: '🔥', text: 'Elite Creator Level', color: '#4ade80' };
-  if (score >= 65) return { emoji: '⚡', text: 'Strong. Real upside ahead.', color: '#facc15' };
-  if (score >= 50) return { emoji: '📈', text: 'Solid foundation. Missing key levers.', color: '#fb923c' };
-  return { emoji: '🛠️', text: 'Growth is blocked. Fixable with the right data.', color: '#f87171' };
+// Placeholder blur cards shown when unpaid
+function BlurPlaceholder() {
+  return (
+    <div className="relative">
+      {/* Blurred fake content */}
+      <div style={{ filter: 'blur(6px)', pointerEvents: 'none', userSelect: 'none', opacity: 0.5 }}>
+        <div className="space-y-4">
+          {/* Fake heatmap card */}
+          <div className="card p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-2.5 rounded" style={{ background: 'var(--bg-overlay)' }} />
+              <div className="w-32 h-2.5 rounded" style={{ background: 'var(--bg-overlay)' }} />
+            </div>
+            <div className="space-y-1.5">
+              {Array.from({ length: 7 }, (_, i) => (
+                <div key={i} className="flex gap-px">
+                  {Array.from({ length: 18 }, (_, j) => (
+                    <div
+                      key={j}
+                      style={{
+                        flex: 1, height: 16, borderRadius: 2,
+                        background: `rgba(168,85,247,${Math.random() * 0.6 + 0.05})`,
+                      }}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Fake bar chart card */}
+          <div className="card p-6">
+            <div className="w-36 h-2.5 rounded mb-4" style={{ background: 'var(--bg-overlay)' }} />
+            <div className="flex items-end gap-3 h-28">
+              {[70, 45, 85, 30, 60].map((h, i) => (
+                <div key={i} className="flex-1 rounded-t" style={{ height: `${h}%`, background: `rgba(168,85,247,${0.3 + i * 0.1})` }} />
+              ))}
+            </div>
+          </div>
+          {/* Fake table card */}
+          <div className="card p-6">
+            <div className="w-32 h-2.5 rounded mb-4" style={{ background: 'var(--bg-overlay)' }} />
+            <div className="space-y-3">
+              {Array.from({ length: 4 }, (_, i) => (
+                <div key={i} className="flex items-center justify-between pb-3" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                  <div className="w-48 h-2 rounded" style={{ background: 'var(--bg-overlay)' }} />
+                  <div className="w-12 h-4 rounded" style={{ background: 'rgba(168,85,247,0.2)' }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Gradient fade */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(to bottom, transparent 0%, var(--bg-base) 65%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          paddingBottom: 40,
+        }}
+      >
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid var(--border-brand)' }}>
+            <Lock size={20} style={{ color: 'var(--brand-mid)' }} />
+          </div>
+          <p className="text-sm font-semibold text-center" style={{ color: 'var(--text-secondary)' }}>
+            Unlock to reveal your full report
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
+// ── Main Page ──────────────────────────────────────────────────────────────────
 export default function AuditReportPage({ params }: { params: { igUserId: string } }) {
   const router = useRouter();
   const { igUserId } = params;
@@ -172,6 +214,7 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
       if (!fetchAuditRes.ok) throw new Error('Audit data not found after generation');
 
       const { audit, account } = await fetchAuditRes.json();
+
       const mergedData: AuditData = {
         id: audit.id,
         username: audit.username,
@@ -184,9 +227,8 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
         },
         ai_analysis: {
           ...audit.ai_analysis,
-          heatmap_data: audit.ai_analysis.heatmap_data || Array(7).fill(null).map(() =>
-            Array.from({ length: 24 }, () => Math.floor(Math.random() * 100))
-          ),
+          heatmap_data: audit.ai_analysis.heatmap_data ||
+            Array(7).fill(null).map(() => Array.from({ length: 24 }, () => Math.floor(Math.random() * 100))),
           best_posting_times: audit.ai_analysis.best_posting_times || [{ day: 'Thursday', hour: 21, label: '9 PM' }],
         },
       };
@@ -200,18 +242,22 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
     }
   }
 
-  if (loading) return <PremiumLoadingScreen currentStepIndex={loadingStep} steps={LOADING_STEPS} />;
+  // ── Loading ────────────────────────────────────────────────────────────────
+  if (loading) {
+    return <PremiumLoadingScreen currentStepIndex={loadingStep} steps={LOADING_STEPS} username={data?.username} />;
+  }
 
+  // ── Error ──────────────────────────────────────────────────────────────────
   if (error || !data) {
     return (
       <>
         <Navbar />
-        <main className="min-h-screen flex items-center justify-center pt-14 px-5" style={{ background: '#080808' }}>
-          <div className="max-w-sm w-full rounded-2xl p-8 text-center" style={{ background: '#111', border: '1px solid rgba(239,68,68,0.2)' }}>
-            <AlertTriangle size={36} className="mx-auto mb-4 text-red-400" />
-            <h2 className="text-lg font-bold mb-2 text-white">Something went wrong</h2>
-            <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>{error || 'Could not generate your audit.'}</p>
-            <button onClick={() => router.push('/audit')} className="w-full h-11 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2" style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}>
+        <main className="min-h-screen flex items-center justify-center pt-16 px-5" style={{ background: 'var(--bg-base)' }}>
+          <div className="card p-10 text-center max-w-sm w-full">
+            <AlertTriangle size={36} className="mx-auto mb-4" style={{ color: 'var(--danger)' }} />
+            <h2 className="text-lg font-bold mb-2" style={{ letterSpacing: '-0.02em' }}>Something went wrong</h2>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{error || 'Could not generate your audit.'}</p>
+            <button onClick={() => router.push('/audit')} className="btn btn-primary w-full h-11 rounded-xl font-semibold flex items-center justify-center gap-2">
               <RefreshCw size={15} /> Try Again
             </button>
           </div>
@@ -220,69 +266,75 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
     );
   }
 
-  const { is_paid, overall_score, computed_metrics: m, ai_analysis: ai } = data;
-  const scoreInfo = getScoreHeadline(overall_score);
-  const benchmarkNum = parseFloat(m.benchmark);
-  const isEngagementHigh = m.engagementRate >= benchmarkNum;
+  const { is_paid, overall_score, computed_metrics: m, ai_analysis: ai, username } = data;
+  const benchmarkNum = parseFloat(m.benchmark) || 5.5;
+  const isEngHigh = m.engagementRate >= benchmarkNum;
 
   return (
     <>
       <Navbar />
-      <main className="min-h-screen pb-28 pt-16" style={{ background: '#080808' }}>
-        <div className="max-w-2xl mx-auto px-4 space-y-4">
+      <main className="min-h-screen pb-28 pt-20" style={{ background: 'var(--bg-base)' }}>
+        <div className="max-w-2xl mx-auto px-4 space-y-6">
 
-          {/* ── Hero Profile Card ────────────────────────────────────── */}
-          <section className="rounded-2xl overflow-hidden" style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.07)' }}>
-            {/* Top gradient accent */}
-            <div className="h-0.5 w-full" style={{ background: 'linear-gradient(90deg, #7C3AED, #A855F7, #EC4899)' }} />
-
-            <div className="p-6 md:p-8">
-              {/* Profile row */}
-              <div className="flex items-center gap-4 mb-8">
-                <div className="relative w-14 h-14 rounded-full overflow-hidden shrink-0" style={{ border: '2px solid rgba(168,85,247,0.4)' }}>
+          {/* ── REPORT HEADER ────────────────────────────────────────── */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="card p-6 md:p-8"
+            style={{ borderTop: '2px solid var(--border-brand)', boxShadow: 'var(--shadow-xl)' }}
+          >
+            {/* Profile + Score row */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 mb-6">
+              {/* Left: profile info */}
+              <div className="flex items-center gap-4">
+                <div
+                  className="relative w-16 h-16 rounded-full overflow-hidden shrink-0"
+                  style={{ border: '2px solid var(--border-brand)', boxShadow: 'var(--glow-sm)' }}
+                >
                   {m.profilePictureUrl ? (
-                    <Image src={m.profilePictureUrl} alt={`@${data.username}`} fill className="object-cover" />
+                    <Image src={m.profilePictureUrl} alt={`@${username}`} fill className="object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-2xl" style={{ background: 'rgba(168,85,247,0.1)' }}>👤</div>
+                    <div className="w-full h-full flex items-center justify-center text-2xl" style={{ background: 'var(--bg-elevated)' }}>👤</div>
                   )}
                 </div>
                 <div>
-                  <h1 className="text-xl font-black text-white tracking-tight">@{data.username}</h1>
-                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  <h1 className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+                    @{username}
+                  </h1>
+                  <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                     {(m.followers || 0).toLocaleString('en-IN')} followers · {m.mediaCount || 0} posts
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
                     Audited {formatDate(data.created_at)}
                   </p>
                 </div>
               </div>
-
-              {/* Score + Headline */}
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-                <div className="shrink-0">
-                  <ScoreRing score={overall_score} size={140} strokeWidth={10} label="Score" />
-                </div>
-                <div className="text-center sm:text-left flex flex-col justify-center">
-                  <p className="text-2xl font-black tracking-tight text-white mb-2" style={{ lineHeight: 1.2 }}>
-                    {scoreInfo.emoji} {scoreInfo.text}
-                  </p>
-                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)', maxWidth: 300 }}>
-                    {ai.engagement_verdict || `Your account scored ${overall_score}/100 across 22 Instagram growth signals.`}
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2 justify-center sm:justify-start">
-                    <span className="text-xs font-semibold px-3 py-1.5 rounded-full" style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', color: '#c084fc' }}>
-                      22 metrics analyzed
-                    </span>
-                    <span className="text-xs font-semibold px-3 py-1.5 rounded-full" style={{ background: isEngagementHigh ? 'rgba(74,222,128,0.08)' : 'rgba(248,113,113,0.08)', border: `1px solid ${isEngagementHigh ? 'rgba(74,222,128,0.2)' : 'rgba(248,113,113,0.2)'}`, color: isEngagementHigh ? '#4ade80' : '#f87171' }}>
-                      {isEngagementHigh ? `${m.engagementRate}% engagement — above avg` : `${m.engagementRate}% engagement — below avg`}
-                    </span>
-                  </div>
-                </div>
+              {/* Right: score ring */}
+              <div className="shrink-0">
+                <ScoreRing score={overall_score} size={160} strokeWidth={10} />
               </div>
             </div>
-          </section>
 
-          {/* ── Free Metrics Section ─────────────────────────────────── */}
+            {/* Summary sentence */}
+            {ai.engagement_verdict && (
+              <div
+                className="px-4 py-3 rounded-xl"
+                style={{
+                  background: 'var(--bg-elevated)',
+                  borderLeft: `3px solid ${isEngHigh ? 'var(--success)' : 'var(--danger)'}`,
+                  border: '1px solid var(--border)',
+                  borderLeftWidth: 3,
+                }}
+              >
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  {ai.engagement_verdict}
+                </p>
+              </div>
+            )}
+          </motion.section>
+
+          {/* ── FREE METRICS ─────────────────────────────────────────── */}
           <FreeMetricsSection
             engagementRate={m.engagementRate}
             benchmark={m.benchmark}
@@ -291,147 +343,38 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
             bestFormat={ai.best_format}
             bestFormatReason={ai.best_format_reason}
             formatBreakdown={m.formatBreakdown}
-            brandReadinessScore={ai.brand_readiness_score}
+            hookAvgScore={ai.hook_avg_score}
             estimatedReelMin={ai.estimated_rates?.reel?.min}
             estimatedReelMax={ai.estimated_rates?.reel?.max}
-            hookAvgScore={ai.hook_avg_score}
-            postsPerWeek={m.postsPerWeek}
           />
 
-          {/* ── Paywall Teaser ───────────────────────────────────────── */}
+          {/* ── PAYWALL ──────────────────────────────────────────────── */}
           {!is_paid && (
-            <PaywallTeaser
-              username={data.username}
-              followers={m.followers}
-              estimatedReelMin={ai.estimated_rates?.reel?.min}
-              estimatedReelMax={ai.estimated_rates?.reel?.max}
-              onUnlock={() => paywallRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-            />
+            <>
+              {/* Blur teaser */}
+              <BlurPlaceholder />
+              {/* Payment modal */}
+              <div ref={paywallRef}>
+                <PaymentModal
+                  igUserId={igUserId}
+                  auditId={data.id}
+                  username={username}
+                  onSuccess={() => setData({ ...data, is_paid: true })}
+                />
+              </div>
+            </>
           )}
 
-          {/* ── Payment Modal ────────────────────────────────────────── */}
-          {!is_paid && (
-            <div ref={paywallRef}>
-              <PaymentModal
-                igUserId={igUserId}
-                auditId={data.id}
-                username={data.username}
-                onSuccess={() => setData({ ...data, is_paid: true })}
-              />
-            </div>
+          {/* ── PAID REPORT ───────────────────────────────────────────── */}
+          {is_paid && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <PaidReport ai={ai} m={m} />
+            </motion.div>
           )}
-
-          {/* ── Paid Content (blurred gate) ──────────────────────────── */}
-          <BlurGate
-            isPaid={is_paid}
-            onUnlock={() => paywallRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-          >
-            <div className="space-y-4">
-
-              {/* Content Intelligence */}
-              <section className="rounded-2xl p-6 md:p-7" style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <SectionTitle icon={Clock}>Your Best Time to Post</SectionTitle>
-                <p className="text-xs mb-5" style={{ color: 'rgba(255,255,255,0.35)' }}>Based on your audience's real activity — not a generic guide</p>
-                <HeatmapGrid data={ai.heatmap_data || []} highlightSlots={ai.best_posting_times || []} />
-                <div className="mt-5 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                    <span className="font-semibold text-white">AI Recommendation: </span>
-                    {ai.best_posting_time} — {ai.best_posting_time_reason}
-                  </p>
-                </div>
-              </section>
-
-              {/* Scores grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <MetricCard title="Posting Frequency" icon={Clock} value={`${ai.posting_frequency_score}/100`} score={ai.posting_frequency_score} verdict={ai.posting_frequency_verdict} />
-                <MetricCard title="Brand Readiness" icon={TrendingUp} value={`${ai.brand_readiness_score}/100`} score={ai.brand_readiness_score} verdict={ai.brand_readiness_verdict} color="var(--success)" />
-              </div>
-
-              {/* Bio Optimization */}
-              <section className="rounded-2xl p-6 md:p-7" style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <SectionTitle icon={Search}>Profile & Bio Optimisation</SectionTitle>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div className="p-4 rounded-xl text-sm whitespace-pre-wrap" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.35)', textDecoration: 'line-through' }}>
-                    <div className="text-xs uppercase tracking-wider mb-2 font-semibold" style={{ textDecoration: 'none', color: 'rgba(255,255,255,0.3)' }}>Current Bio</div>
-                    {m.bio}
-                  </div>
-                  <div className="p-4 rounded-xl text-sm whitespace-pre-wrap" style={{ background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.2)', color: 'rgba(255,255,255,0.85)' }}>
-                    <div className="text-xs uppercase tracking-wider mb-2 font-bold" style={{ color: '#c084fc' }}>AI Rewrite</div>
-                    {ai.bio_rewrite}
-                  </div>
-                </div>
-                <p className="text-xs italic" style={{ color: 'rgba(255,255,255,0.3)' }}>Why: {ai.bio_rewrite_reason}</p>
-              </section>
-
-              {/* Hook + Hashtag */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <MetricCard title="Hook Quality Score" icon={Type} value={`${ai.hook_avg_score}/10`} score={ai.hook_avg_score * 10} verdict={`AI rewrite: "${ai.weakest_hook_rewrite}"`} />
-                <MetricCard title="Hashtag Strategy" icon={Hash} value={`${ai.hashtag_score}/100`} score={ai.hashtag_score} verdict={ai.hashtag_verdict} />
-              </div>
-
-              {/* Hashtags + Rate Card */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <section className="rounded-2xl p-6" style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  <h3 className="text-sm font-semibold mb-4 text-white">Your Niche Hashtags</h3>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {ai.recommended_hashtags.map((tag) => (
-                      <span key={tag} className="text-xs font-mono px-2.5 py-1 rounded-full" style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', color: '#c084fc' }}>{tag}</span>
-                    ))}
-                  </div>
-                  <p className="text-xs italic" style={{ color: 'rgba(255,255,255,0.3)' }}>{ai.hashtag_verdict}</p>
-                </section>
-
-                <section className="rounded-2xl p-6" style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  <h3 className="text-sm font-semibold mb-4 text-white">Your Brand Rate Card</h3>
-                  <div className="space-y-3">
-                    {[
-                      { label: 'Instagram Story', rates: ai.estimated_rates?.story },
-                      { label: 'Dedicated Reel', rates: ai.estimated_rates?.reel },
-                      { label: 'Carousel Post', rates: ai.estimated_rates?.carousel },
-                    ].filter(i => i.rates).map((item) => (
-                      <div key={item.label} className="flex justify-between items-center text-sm pb-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>{item.label}</span>
-                        <span className="font-bold font-mono text-white">₹{item.rates!.min.toLocaleString('en-IN')} – ₹{item.rates!.max.toLocaleString('en-IN')}</span>
-                      </div>
-                    ))}
-                    {ai.estimated_rates?.monthly_package && (
-                      <div className="flex justify-between items-center text-sm pt-1">
-                        <span className="font-semibold text-white">30-Day Retainer</span>
-                        <span className="font-black font-mono" style={{ background: 'linear-gradient(90deg, #c084fc, #f472b6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                          ₹{ai.estimated_rates.monthly_package.min.toLocaleString('en-IN')} – ₹{ai.estimated_rates.monthly_package.max.toLocaleString('en-IN')}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </section>
-              </div>
-
-              {/* Action Plan */}
-              <section className="rounded-2xl p-6 md:p-8" style={{ background: '#0f0f0f', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <div className="text-center mb-8">
-                  <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: 'rgba(168,85,247,0.7)' }}>Your Roadmap</p>
-                  <h2 className="text-2xl font-black text-white mb-3 tracking-tight">3 moves that will change your numbers</h2>
-                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)', maxWidth: 400, margin: '0 auto' }}>
-                    Not generic advice. Pulled directly from your account's data.
-                  </p>
-                </div>
-                <div className="space-y-4">
-                  {ai.action_plan.map((action) => (
-                    <ActionPlanCard
-                      key={action.rank}
-                      rank={action.rank}
-                      impact={action.impact}
-                      problem={action.problem}
-                      rootCause={action.root_cause}
-                      exactFix={action.exact_fix}
-                      expectedResult={action.expected_result}
-                    />
-                  ))}
-                </div>
-              </section>
-
-            </div>
-          </BlurGate>
 
         </div>
       </main>

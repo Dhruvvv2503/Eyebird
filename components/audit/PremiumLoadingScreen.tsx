@@ -1,180 +1,177 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CheckCircle2, Loader2, Circle } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 
-const ANALYSIS_PHASES = [
-  { step: 0, label: 'Connecting to Instagram', sub: 'Verifying account permissions…', pct: 5 },
-  { step: 1, label: 'Pulling your last 20 posts', sub: 'Fetching likes, comments, saves, and reach…', pct: 25 },
-  { step: 2, label: 'Crunching your numbers', sub: 'Calculating engagement rate, posting cadence, hook scores…', pct: 45 },
-  { step: 3, label: 'Running AI analysis', sub: 'Claude is reading your content strategy and finding patterns…', pct: 65 },
-  { step: 4, label: 'Writing your action plan', sub: 'Generating personalized recommendations for your niche…', pct: 82 },
-  { step: 5, label: 'Finalizing your report', sub: 'Almost there — polishing insights just for you…', pct: 97 },
+const STEPS = [
+  'Connected to Instagram',
+  'Fetching your last 20 posts...',
+  'Analysing engagement patterns...',
+  'Scoring your content...',
+  'Generating your action plan...',
 ];
 
-const VERIFIED_FACTS = [
-  { stat: '92%', copy: 'of Instagram users watch Reels with the sound off. If your captions are weak, you\'re invisible.' },
-  { stat: 'Saves > Likes', copy: 'Instagram\'s algorithm values saves and shares 4× more than likes when deciding who to show your content to.' },
-  { stat: '1.92%', copy: 'is the average engagement rate for carousels — the highest of any post type on Instagram.' },
-  { stat: '60 minutes', copy: 'The first hour after posting is critical. Replying to comments in this window signals high quality to the algorithm.' },
-  { stat: '3× a week', copy: 'Creators who post at least 3 times per week grow their following 40% faster over 6 months.' },
-  { stat: 'Top 8%', copy: 'Only 8% of Instagram accounts ever cross 10,000 followers. The gap between them and everyone else? Strategy.' },
-  { stat: 'First 3 sec', copy: 'You have 3 seconds to stop the scroll. After that, most viewers are gone — and the algorithm notices.' },
+const FACTS = [
+  { emoji: '⚡', stat: '34%', text: 'of Instagram reach is determined in the first 30 minutes after posting' },
+  { emoji: '🎯', stat: '3×', text: 'more saves = 3× more reach. Saves are Instagram\'s most powerful signal' },
+  { emoji: '📊', stat: '22', text: 'data points are being checked on your account right now' },
+  { emoji: '🕐', stat: '87%', text: 'of creators post at the wrong time for their specific audience' },
+  { emoji: '🏷️', stat: '#fitness', text: 'has 500M+ posts. We\'re finding the goldzone hashtags where you can actually rank' },
+  { emoji: '💰', stat: '₹8,000+', text: 'is what fitness creators with your engagement rate can charge per Reel' },
+  { emoji: '🔍', stat: '60s', text: 'is all it takes to analyse 22 things about your account' },
+  { emoji: '📈', stat: 'Top 5%', text: 'of creators use data to grow. The rest guess. You\'re about to join the top 5%' },
 ];
 
-interface PremiumLoadingScreenProps {
+interface Props {
   currentStepIndex: number;
   steps: string[];
+  username?: string;
 }
 
-export default function PremiumLoadingScreen({ currentStepIndex }: PremiumLoadingScreenProps) {
+export default function PremiumLoadingScreen({ currentStepIndex, username }: Props) {
+  const [activeStep, setActiveStep] = useState(0);
   const [factIndex, setFactIndex] = useState(0);
-  const [displayProgress, setDisplayProgress] = useState(0);
-  const [factVisible, setFactVisible] = useState(true);
 
-  const currentPhase = ANALYSIS_PHASES[Math.min(currentStepIndex, ANALYSIS_PHASES.length - 1)];
-  const targetPct = currentPhase.pct;
-
-  // Smooth progress animation
+  // Auto-advance steps every 10 seconds for visual effect
   useEffect(() => {
     const interval = setInterval(() => {
-      setDisplayProgress(prev => {
-        if (prev < targetPct) {
-          const diff = targetPct - prev;
-          return Math.min(prev + Math.max(diff * 0.06, 0.3), targetPct);
-        }
-        return prev;
+      setActiveStep(prev => {
+        const next = prev + 1;
+        if (next >= STEPS.length) { clearInterval(interval); return prev; }
+        return next;
       });
-    }, 60);
-    return () => clearInterval(interval);
-  }, [targetPct]);
-
-  // Rotate facts with fade
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFactVisible(false);
-      setTimeout(() => {
-        setFactIndex(p => (p + 1) % VERIFIED_FACTS.length);
-        setFactVisible(true);
-      }, 400);
-    }, 5500);
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
-  const radius = 80;
-  const stroke = 7;
-  const normalizedRadius = radius - stroke * 2;
-  const circumference = normalizedRadius * 2 * Math.PI;
-  const strokeDashoffset = circumference - (displayProgress / 100) * circumference;
-  const fact = VERIFIED_FACTS[factIndex];
+  // Sync with real API progress (jump ahead if API is faster)
+  useEffect(() => {
+    if (currentStepIndex > activeStep) setActiveStep(currentStepIndex);
+  }, [currentStepIndex, activeStep]);
+
+  // Rotate facts every 6 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFactIndex(prev => (prev + 1) % FACTS.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fact = FACTS[factIndex];
 
   return (
     <>
       <Navbar />
-      <main className="min-h-screen flex flex-col items-center justify-center px-5 pt-16 pb-10 overflow-hidden" style={{ background: '#080808' }}>
+      <main
+        className="min-h-screen flex flex-col items-center justify-center px-5 pt-16 pb-10"
+        style={{ background: 'var(--bg-base)' }}
+      >
+        <div className="w-full max-w-md">
 
-        {/* Background glow */}
-        <div className="fixed inset-0 pointer-events-none">
-          <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%,-50%)', width: 700, height: 700, background: 'radial-gradient(circle, rgba(124,58,237,0.07) 0%, transparent 70%)', borderRadius: '50%' }} />
-        </div>
-
-        <div className="relative z-10 w-full max-w-md flex flex-col items-center">
-
-          {/* Progress Ring */}
-          <div className="relative mb-8">
-            <svg height={radius * 2} width={radius * 2} className="transform -rotate-90">
-              <circle stroke="rgba(255,255,255,0.04)" fill="transparent" strokeWidth={stroke} r={normalizedRadius} cx={radius} cy={radius} />
-              <circle
-                stroke="url(#loadGrad)"
-                fill="transparent"
-                strokeWidth={stroke}
-                strokeDasharray={circumference}
-                style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.5s cubic-bezier(0.4,0,0.2,1)' }}
-                strokeLinecap="round"
-                r={normalizedRadius}
-                cx={radius}
-                cy={radius}
-                filter="drop-shadow(0 0 8px rgba(168,85,247,0.5))"
-              />
-              <defs>
-                <linearGradient id="loadGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#7C3AED" />
-                  <stop offset="100%" stopColor="#EC4899" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="font-black font-mono" style={{ fontSize: 32, letterSpacing: '-0.05em', color: 'white', lineHeight: 1 }}>
-                {Math.round(displayProgress)}<span style={{ fontSize: 18, color: 'rgba(255,255,255,0.4)' }}>%</span>
-              </span>
-            </div>
-          </div>
-
-          {/* Current Step */}
-          <div className="text-center mb-10 w-full">
-            <h2 className="text-xl font-bold mb-2 tracking-tight text-white">
-              {currentPhase.label}
-            </h2>
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              {currentPhase.sub}
-            </p>
-          </div>
-
-          {/* Steps visual */}
-          <div className="flex items-center gap-1.5 mb-10">
-            {ANALYSIS_PHASES.map((phase, i) => (
-              <div
-                key={i}
-                className="h-1 rounded-full transition-all duration-700"
-                style={{
-                  width: i === currentStepIndex ? 24 : i < currentStepIndex ? 16 : 8,
-                  background: i <= currentStepIndex
-                    ? 'linear-gradient(90deg, #7C3AED, #EC4899)'
-                    : 'rgba(255,255,255,0.1)',
-                }}
-              />
-            ))}
+          {/* Steps */}
+          <div className="mb-10 space-y-3">
+            {STEPS.map((label, i) => {
+              const isDone = i < activeStep;
+              const isActive = i === activeStep;
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.08, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex items-center gap-3"
+                >
+                  <div className="shrink-0 w-5 h-5 flex items-center justify-center">
+                    {isDone ? (
+                      <CheckCircle2 size={20} style={{ color: 'var(--success)' }} />
+                    ) : isActive ? (
+                      <Loader2 size={20} className="animate-spin" style={{ color: 'var(--brand-mid)' }} />
+                    ) : (
+                      <Circle size={20} style={{ color: 'var(--text-tertiary)' }} />
+                    )}
+                  </div>
+                  <span
+                    className="text-sm font-medium"
+                    style={{
+                      color: isDone
+                        ? 'var(--success)'
+                        : isActive
+                        ? 'var(--text-primary)'
+                        : 'var(--text-tertiary)',
+                      transition: 'color 0.3s ease',
+                    }}
+                  >
+                    {label}
+                  </span>
+                </motion.div>
+              );
+            })}
           </div>
 
           {/* Fact Card */}
           <div
-            className="w-full rounded-2xl overflow-hidden"
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+            className="rounded-2xl overflow-hidden"
+            style={{
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--glow-sm)',
+            }}
           >
-            <div className="flex items-center gap-2 px-5 pt-5 pb-3">
-              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#A855F7' }} />
-              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                Did you know?
-              </span>
-            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={factIndex}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.4, ease: 'easeInOut' }}
+                className="p-6"
+              >
+                <div className="flex gap-4 items-start">
+                  <span className="text-3xl shrink-0">{fact.emoji}</span>
+                  <div>
+                    <p
+                      className="text-2xl font-black tracking-tight mb-1"
+                      style={{
+                        background: 'var(--gradient-brand)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                      }}
+                    >
+                      {fact.stat}
+                    </p>
+                    <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                      {fact.text}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
 
-            <div
-              className="px-5 pb-5 transition-all duration-400"
-              style={{ opacity: factVisible ? 1 : 0, transform: factVisible ? 'translateY(0)' : 'translateY(8px)' }}
-            >
-              <p className="text-3xl font-black mb-2 tracking-tight" style={{ background: 'linear-gradient(135deg, #c084fc, #f472b6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                {fact.stat}
-              </p>
-              <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                {fact.copy}
-              </p>
-            </div>
-
-            {/* Dot indicators */}
+            {/* Dot indicator */}
             <div className="flex justify-center gap-1.5 pb-4">
-              {VERIFIED_FACTS.map((_, i) => (
+              {FACTS.map((_, i) => (
                 <div
                   key={i}
                   className="h-1 rounded-full transition-all duration-500"
                   style={{
-                    width: i === factIndex ? 16 : 6,
-                    background: i === factIndex
-                      ? 'linear-gradient(90deg, #A855F7, #EC4899)'
-                      : 'rgba(255,255,255,0.1)',
+                    width: i === factIndex ? 20 : 6,
+                    background: i === factIndex ? 'var(--brand-mid)' : 'var(--border-bright)',
                   }}
                 />
               ))}
             </div>
+          </div>
+
+          {/* Bottom label */}
+          <div className="text-center mt-8">
+            <p className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+              Analysing {username ? `@${username}` : 'your account'}...
+            </p>
+            <p className="text-xs mt-1.5" style={{ color: 'var(--text-tertiary)' }}>
+              This takes 30–60 seconds. Good things take time.
+            </p>
           </div>
 
         </div>

@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { ShieldCheck, Zap, Check, X, Tag } from 'lucide-react';
 import { isValidEmail } from '@/lib/utils';
 import { showToast } from '@/components/ui/Toast';
-import { ShieldCheck, Clock, Zap } from 'lucide-react';
 
 interface PaymentModalProps {
   igUserId: string;
@@ -12,21 +13,53 @@ interface PaymentModalProps {
   onSuccess: () => void;
 }
 
-const DISPLAY_PRICE = 99;
-const ORIGINAL_PRICE = 299;
-
 const LOCKED_ITEMS = [
-  'Your exact best time to post (we found the golden window)',
-  'Your 3 biggest growth leaks — and the exact fix for each',
-  '22 hashtags matched to your niche and audience',
-  'Your full brand rate card: Story, Reel, Carousel + retainer',
-  'AI-rewritten bio that turns visitors into followers',
-  'Your weakest hook — rewritten to stop the scroll',
+  { emoji: '⚡', title: 'Your exact best time to post', desc: "We analysed 90 days of data — it's not what you'd guess" },
+  { emoji: '📉', title: '3 growth leaks killing your reach', desc: 'With exact, week-by-week action steps to fix each one' },
+  { emoji: '#️⃣', title: '22 niche-matched hashtags', desc: 'Not generic. Pulled from accounts like yours that are growing' },
+  { emoji: '💰', title: 'Your full brand rate card', desc: 'Story, Reel, Carousel + monthly retainer in INR' },
+  { emoji: '✏️', title: 'AI-rewritten bio', desc: 'A version that converts visitors into followers' },
+  { emoji: '🔁', title: 'Your weakest hook — rewritten', desc: "The one caption that's losing you the most viewers" },
 ];
 
 export default function PaymentModal({ igUserId, auditId, username, onSuccess }: PaymentModalProps) {
   const [email, setEmail] = useState('');
+  const [promoCode, setPromoCode] = useState('LAUNCH');
+  const [promoApplied, setPromoApplied] = useState(false);
+  const [promoError, setPromoError] = useState(false);
+  const [promoShake, setPromoShake] = useState(false);
+  const [promoLoading, setPromoLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Always ₹99 — launch price. Promo kept as UX element.
+  const displayAmount = 99;
+  const originalAmount = 299;
+
+  const handleValidatePromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    setPromoError(false);
+    setPromoApplied(false);
+    try {
+      const res = await fetch('/api/payment/validate-promo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode.trim().toUpperCase(), baseAmount: originalAmount }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setPromoApplied(true);
+      } else {
+        setPromoError(true);
+        setPromoShake(true);
+        setTimeout(() => setPromoShake(false), 500);
+      }
+    } catch {
+      setPromoError(true);
+    } finally {
+      setPromoLoading(false);
+    }
+  };
 
   const loadRazorpay = (): Promise<boolean> => new Promise((resolve) => {
     if ((window as any).Razorpay) { resolve(true); return; }
@@ -49,24 +82,17 @@ export default function PaymentModal({ igUserId, auditId, username, onSuccess }:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ igUserId, email }),
       });
-
       if (!orderRes.ok) { showToast('Payment could not start. Please try again.', 'error'); setLoading(false); return; }
       const { orderId, keyId, amount } = await orderRes.json();
 
       const rzp = new (window as any).Razorpay({
-        key: keyId,
-        amount,
-        currency: 'INR',
-        order_id: orderId,
-        name: 'Eyebird',
-        description: `Full Audit Report — @${username}`,
-        prefill: { email },
-        theme: { color: '#A855F7' },
+        key: keyId, amount, currency: 'INR', order_id: orderId,
+        name: 'Eyebird', description: `Full Audit Report — @${username}`,
+        prefill: { email }, theme: { color: '#A855F7' },
         handler: async (response: any) => {
           try {
             const verifyRes = await fetch('/api/payment/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 orderId: response.razorpay_order_id,
                 paymentId: response.razorpay_payment_id,
@@ -74,111 +100,178 @@ export default function PaymentModal({ igUserId, auditId, username, onSuccess }:
                 igUserId, auditId, email,
               }),
             });
-            if (verifyRes.ok) {
-              showToast('🎉 Report unlocked! PDF sent to your email.', 'success');
-              onSuccess();
-            } else {
-              showToast("Couldn't verify payment. Email support@eyebird.in if charged.", 'error');
-            }
-          } catch {
-            showToast('Verification error. Contact support@eyebird.in if charged.', 'error');
-          } finally {
-            setLoading(false);
-          }
+            if (verifyRes.ok) { showToast('🎉 Report unlocked! Check your email for the PDF.', 'success'); onSuccess(); }
+            else showToast("Couldn't verify payment. Email support@eyebird.in if charged.", 'error');
+          } catch { showToast('Verification error. Contact support@eyebird.in if charged.', 'error'); }
+          finally { setLoading(false); }
         },
         modal: { ondismiss: () => setLoading(false) },
       });
       rzp.open();
-    } catch {
-      showToast('Something went wrong. Please try again.', 'error');
-      setLoading(false);
-    }
+    } catch { showToast('Something went wrong. Please try again.', 'error'); setLoading(false); }
   };
 
   return (
-    <div className="relative overflow-hidden rounded-3xl" style={{ background: '#0d0d0d', border: '1px solid rgba(168,85,247,0.3)', boxShadow: '0 0 80px rgba(168,85,247,0.15)' }}>
-      
-      {/* Top gradient bar */}
-      <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #7C3AED, #A855F7, #EC4899)' }} />
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="rounded-2xl overflow-hidden"
+      style={{
+        background: 'var(--bg-surface)',
+        border: '2px solid var(--border-brand)',
+        boxShadow: '0 0 40px rgba(168,85,247,0.18), var(--shadow-xl)',
+      }}
+    >
+      {/* Top accent bar */}
+      <div className="h-1" style={{ background: 'var(--gradient-brand)' }} />
 
-      <div className="p-7 md:p-9">
-        {/* Urgency Banner */}
-        <div className="flex items-center gap-2 mb-7 px-4 py-2.5 rounded-xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
-          <Clock size={14} className="text-red-400 shrink-0" />
-          <p className="text-sm font-semibold text-red-400">Launch Offer — Ends Soon. Price goes to ₹299.</p>
-        </div>
+      <div className="p-6 md:p-8">
+
+        {/* Header */}
+        <h2 className="text-xl font-black mb-1 tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+          Your full playbook is ready.
+        </h2>
+        <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+          Just needs one click. Brands in your niche pay ₹1,500–₹3,000 per Reel. Your exact rate card is inside.
+        </p>
 
         {/* Locked items */}
-        <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'rgba(168,85,247,0.8)' }}>What you unlock right now</p>
-        <div className="space-y-2.5 mb-8">
+        <div className="rounded-xl overflow-hidden mb-6" style={{ border: '1px solid var(--border)' }}>
           {LOCKED_ITEMS.map((item, i) => (
-            <div key={i} className="flex items-start gap-3">
-              <Zap size={14} className="mt-0.5 shrink-0 text-purple-400" />
-              <p className="text-sm leading-snug" style={{ color: 'rgba(255,255,255,0.75)' }}>{item}</p>
+            <div
+              key={i}
+              className="flex items-start gap-3 px-4 py-3"
+              style={{ borderBottom: i < LOCKED_ITEMS.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}
+            >
+              <span className="text-lg shrink-0 mt-0.5">{item.emoji}</span>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{item.title}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{item.desc}</p>
+              </div>
             </div>
           ))}
         </div>
 
-        {/* Pricing */}
-        <div className="flex items-end gap-4 mb-1">
-          <span className="text-lg line-through font-medium" style={{ color: 'rgba(255,255,255,0.3)' }}>₹{ORIGINAL_PRICE}</span>
-          <div className="flex items-baseline gap-2">
-            <span className="font-black" style={{ fontSize: 56, letterSpacing: '-0.05em', lineHeight: 1, background: 'linear-gradient(135deg, #c084fc, #f472b6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              ₹{DISPLAY_PRICE}
-            </span>
-          </div>
-          <span className="mb-2 text-sm font-bold px-2.5 py-1 rounded-lg" style={{ background: 'rgba(34,197,94,0.1)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.2)' }}>66% off</span>
+        <div className="section-divider mb-6" />
+
+        {/* Urgency */}
+        <div className="flex items-center gap-2 mb-5 px-3 py-2 rounded-lg" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)' }}>
+          <span
+            className="w-2 h-2 rounded-full shrink-0"
+            style={{ background: 'var(--danger)', boxShadow: '0 0 6px var(--danger)', animation: 'pulse-glow 2s infinite' }}
+          />
+          <p className="text-sm font-semibold" style={{ color: 'var(--danger)' }}>
+            🚨 Launch Offer — Ends Soon. Price goes to ₹299.
+          </p>
         </div>
-        <p className="text-xs mb-7" style={{ color: 'rgba(255,255,255,0.35)' }}>One-time payment. No subscription. Instant PDF delivery.</p>
+
+        {/* Price */}
+        <div className="flex items-end gap-3 mb-1">
+          <span className="text-xl line-through font-medium" style={{ color: 'var(--text-tertiary)' }}>₹{originalAmount}</span>
+          <span
+            className="font-black"
+            style={{ fontSize: 52, letterSpacing: '-0.05em', lineHeight: 1, background: 'var(--gradient-brand)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+          >
+            ₹{displayAmount}
+          </span>
+          <span className="mb-1.5 badge badge-success">66% off</span>
+        </div>
+        <p className="text-xs mb-6" style={{ color: 'var(--text-tertiary)' }}>
+          One-time payment · Instant PDF delivery · No subscription
+        </p>
+
+        {/* Promo code */}
+        <div className="mb-4">
+          <label className="block text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
+            Have a promo code?
+          </label>
+          <div className={`flex gap-2 ${promoShake ? 'animate-shake' : ''}`}>
+            <div className="relative flex-1">
+              <Tag size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }} />
+              <input
+                type="text"
+                value={promoCode}
+                onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoApplied(false); setPromoError(false); }}
+                onKeyDown={e => e.key === 'Enter' && handleValidatePromo()}
+                placeholder="LAUNCH"
+                className="input pl-8 font-mono uppercase text-sm"
+                style={{
+                  borderColor: promoApplied ? 'var(--success)' : promoError ? 'var(--danger)' : undefined,
+                }}
+              />
+              {promoApplied && (
+                <Check size={14} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--success)' }} />
+              )}
+              {promoError && (
+                <X size={14} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--danger)' }} />
+              )}
+            </div>
+            <button
+              onClick={handleValidatePromo}
+              disabled={promoLoading || !promoCode.trim()}
+              className="btn btn-secondary text-sm px-5 rounded-xl shrink-0"
+            >
+              {promoLoading ? '…' : 'Apply'}
+            </button>
+          </div>
+          {promoApplied && (
+            <p className="text-xs mt-1.5 font-medium" style={{ color: 'var(--success)' }}>✓ ₹200 off applied!</p>
+          )}
+          {promoError && (
+            <p className="text-xs mt-1.5 font-medium" style={{ color: 'var(--danger)' }}>Invalid code. Try LAUNCH.</p>
+          )}
+        </div>
 
         {/* Email */}
-        <div className="mb-4">
-          <label className="block text-xs font-semibold mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
+        <div className="mb-5">
+          <label className="block text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
             Where should we send your full report?
           </label>
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            className="w-full h-12 px-4 rounded-xl text-sm font-medium outline-none transition-all"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }}
-            onFocus={e => (e.target.style.borderColor = 'rgba(168,85,247,0.5)')}
-            onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.1)')}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="your@email.com"
+            className="input text-sm"
+            style={{ height: 48 }}
           />
         </div>
 
-        {/* CTA Button */}
-        <button
+        {/* CTA */}
+        <motion.button
           onClick={handlePay}
-          disabled={loading}
-          className="w-full h-14 rounded-xl font-bold text-base text-white transition-all duration-200"
-          style={{ background: loading ? 'rgba(168,85,247,0.5)' : 'linear-gradient(135deg, #7C3AED, #A855F7, #EC4899)', boxShadow: loading ? 'none' : '0 8px 32px rgba(168,85,247,0.4)', letterSpacing: '-0.01em' }}
+          disabled={loading || !email}
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+          className="btn btn-primary w-full font-bold"
+          style={{ height: 56, fontSize: 15, borderRadius: 'var(--r-xl)' }}
         >
           {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+            <span className="flex items-center gap-2">
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
               </svg>
-              Processing...
+              Processing payment...
             </span>
           ) : 'Yes, Show Me Everything →'}
-        </button>
+        </motion.button>
 
-        {/* Trust signals */}
-        <div className="flex items-center justify-center gap-5 mt-5">
+        {/* Trust */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
           <div className="flex items-center gap-1.5">
-            <ShieldCheck size={13} style={{ color: 'rgba(255,255,255,0.3)' }} />
-            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Secure via Razorpay</span>
+            <ShieldCheck size={13} style={{ color: 'var(--text-tertiary)' }} />
+            <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Secure via Razorpay</span>
           </div>
-          <div className="w-px h-3" style={{ background: 'rgba(255,255,255,0.1)' }} />
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Instant PDF delivery</span>
-          <div className="w-px h-3" style={{ background: 'rgba(255,255,255,0.1)' }} />
-          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>One-time only</span>
+          <span className="text-xs" style={{ color: 'var(--border-bright)' }}>·</span>
+          <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Instant PDF delivery</span>
+          <span className="text-xs" style={{ color: 'var(--border-bright)' }}>·</span>
+          <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>One-time only</span>
         </div>
 
       </div>
-    </div>
+    </motion.div>
   );
 }
