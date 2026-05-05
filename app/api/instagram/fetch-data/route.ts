@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch last 20 posts with engagement data
     const mediaResponse = await fetch(
-      `https://graph.facebook.com/v19.0/${igUserId}/media?fields=id,media_type,timestamp,like_count,comments_count,caption,thumbnail_url,media_url&limit=20&access_token=${token}`
+      `https://graph.instagram.com/v21.0/${igUserId}/media?fields=id,media_type,timestamp,like_count,comments_count,caption,thumbnail_url,media_url&limit=20&access_token=${token}`
     );
     const mediaData = await mediaResponse.json();
 
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
               : 'reach,impressions,saved,total_interactions';
 
           const insightResponse = await fetch(
-            `https://graph.facebook.com/v19.0/${post.id}/insights?metric=${metricList}&access_token=${token}`
+            `https://graph.instagram.com/v21.0/${post.id}/insights?metric=${metricList}&access_token=${token}`
           );
           const insightData = await insightResponse.json();
           const insights: Record<string, number> = {};
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     let insightsData = null;
     try {
       const insightsResponse = await fetch(
-        `https://graph.facebook.com/v19.0/${igUserId}/insights?metric=reach,impressions,profile_views&period=day&since=${since}&until=${until}&access_token=${token}`
+        `https://graph.instagram.com/v21.0/${igUserId}/insights?metric=reach,impressions,profile_views&period=day&since=${since}&until=${until}&access_token=${token}`
       );
       insightsData = await insightsResponse.json();
     } catch {
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     let audienceData = null;
     try {
       const audienceResponse = await fetch(
-        `https://graph.facebook.com/v19.0/${igUserId}/insights?metric=audience_gender_age,audience_city,online_followers&period=lifetime&access_token=${token}`
+        `https://graph.instagram.com/v21.0/${igUserId}/insights?metric=audience_gender_age,audience_city,online_followers&period=lifetime&access_token=${token}`
       );
       audienceData = await audienceResponse.json();
     } catch {

@@ -20,17 +20,17 @@ export async function GET(request: NextRequest) {
     const appSecret = process.env.INSTAGRAM_APP_SECRET!;
     const redirectUri = process.env.INSTAGRAM_REDIRECT_URI!;
 
-    // Step 1: Exchange code for short-lived token via Facebook Graph API
-    const tokenResponse = await fetch('https://graph.facebook.com/v19.0/oauth/access_token', {
+    // Step 1: Exchange code for short-lived token via Instagram API
+    const tokenFormData = new FormData();
+    tokenFormData.append('client_id', appId);
+    tokenFormData.append('client_secret', appSecret);
+    tokenFormData.append('grant_type', 'authorization_code');
+    tokenFormData.append('redirect_uri', redirectUri);
+    tokenFormData.append('code', code);
+
+    const tokenResponse = await fetch('https://api.instagram.com/oauth/access_token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: appId,
-        client_secret: appSecret,
-        grant_type: 'authorization_code',
-        redirect_uri: redirectUri,
-        code,
-      }),
+      body: tokenFormData,
     });
 
     const tokenData = await tokenResponse.json();
@@ -40,73 +40,42 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${appUrl}/audit?error=oauth_failed`);
     }
 
-    // Step 2: Get connected Instagram Business/Creator account
-    // First, get the Facebook pages the user manages
-    const pagesResponse = await fetch(
-      `https://graph.facebook.com/v19.0/me/accounts?access_token=${tokenData.access_token}`
+    const shortLivedToken = tokenData.access_token;
+    // Instagram direct login sometimes provides user_id in the token exchange response
+    const igUserIdFromToken = tokenData.user_id; 
+
+    // Step 2: Exchange for long-lived token (valid for 60 days)
+    const longLivedResponse = await fetch(
+      `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${appSecret}&access_token=${shortLivedToken}`
     );
-    const pagesData = await pagesResponse.json();
+    const longLivedData = await longLivedResponse.json();
+    
+    const igAccessToken = longLivedData.access_token || shortLivedToken;
+    const expiresIn = longLivedData.expires_in || 5184000; // default 60 days
+    const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
-    // Try to get the Instagram account connected to the first page
-    let igUserId: string | null = null;
-    let igUsername: string | null = null;
-    let igAccessToken = tokenData.access_token;
-    let igBio = '';
-    let igFollowers = 0;
-    let igMediaCount = 0;
-    let igProfilePicture: string | null = null;
+    // Step 3: Fetch the user's profile data
+    const profileResponse = await fetch(
+      `https://graph.instagram.com/v21.0/me?fields=id,username,name,profile_picture_url,followers_count,media_count,biography&access_token=${igAccessToken}`
+    );
+    const profileData = await profileResponse.json();
 
-    if (pagesData.data && pagesData.data.length > 0) {
-      // Get Instagram account from the first connected page
-      const pageToken = pagesData.data[0].access_token;
-      const pageId = pagesData.data[0].id;
-
-      const igAccountResponse = await fetch(
-        `https://graph.facebook.com/v19.0/${pageId}?fields=instagram_business_account&access_token=${pageToken}`
-      );
-      const igAccountData = await igAccountResponse.json();
-
-      if (igAccountData.instagram_business_account?.id) {
-        igUserId = igAccountData.instagram_business_account.id;
-
-        // Get full profile
-        const profileResponse = await fetch(
-          `https://graph.facebook.com/v19.0/${igUserId}?fields=id,username,biography,followers_count,media_count,profile_picture_url&access_token=${pageToken}`
-        );
-        const profile = await profileResponse.json();
-
-        igUsername = profile.username || `user_${igUserId}`;
-        igBio = profile.biography || '';
-        igFollowers = profile.followers_count || 0;
-        igMediaCount = profile.media_count || 0;
-        igProfilePicture = profile.profile_picture_url || null;
-        igAccessToken = pageToken; // Use page token for Business API calls
-      }
+    if (profileData.error) {
+       console.error('[instagram/callback] Profile fetch failed:', profileData.error);
+       return NextResponse.redirect(`${appUrl}/audit?error=oauth_failed`);
     }
 
-    // Fallback: try the user's own Instagram account via Basic Display
-    if (!igUserId) {
-      const meResponse = await fetch(
-        `https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${tokenData.access_token}`
-      );
-      const me = await meResponse.json();
-
-      if (!me.id) {
-        console.error('[instagram/callback] Could not identify user:', me);
-        return NextResponse.redirect(`${appUrl}/audit?error=oauth_failed`);
-      }
-
-      igUserId = me.id;
-      igUsername = me.name || `user_${me.id}`;
-    }
-
+    const igUserId = profileData.id || igUserIdFromToken;
+    
     if (!igUserId) {
       return NextResponse.redirect(`${appUrl}/audit?error=personal_account`);
     }
 
-    // Compute token expiry (Facebook user tokens typically last 60 days)
-    const expiresIn = tokenData.expires_in || 5184000;
-    const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+    const igUsername = profileData.username || `user_${igUserId}`;
+    const igBio = profileData.biography || '';
+    const igFollowers = profileData.followers_count || 0;
+    const igMediaCount = profileData.media_count || 0;
+    const igProfilePicture = profileData.profile_picture_url || null;
 
     // Store in Supabase
     const { error: dbError } = await supabaseAdmin
