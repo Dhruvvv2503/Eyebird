@@ -4,7 +4,10 @@ import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { AlertTriangle, RefreshCw, Lock, CheckCircle2, Star, ArrowDown } from 'lucide-react';
+import {
+  AlertTriangle, RefreshCw, Lock, CheckCircle2,
+  ArrowDown, TrendingUp, TrendingDown, Zap,
+} from 'lucide-react';
 import ScoreRing from '@/components/ui/ScoreRing';
 import PaymentModal from '@/components/audit/PaymentModal';
 import PremiumLoadingScreen from '@/components/audit/PremiumLoadingScreen';
@@ -75,6 +78,10 @@ interface AuditData {
   };
 }
 
+const FORMAT_LABELS: Record<string, string> = {
+  VIDEO: 'Reels', IMAGE: 'Static', CAROUSEL_ALBUM: 'Carousel', REELS: 'Reels',
+};
+
 const LOADING_STEPS = [
   'Connecting to Instagram…',
   'Fetching your last 20 posts…',
@@ -84,37 +91,68 @@ const LOADING_STEPS = [
   'Almost done…',
 ];
 
-function getScoreLabel(score: number) {
-  if (score >= 80) return { emoji: '🏆', text: 'Elite Creator', color: 'var(--success)' };
-  if (score >= 65) return { emoji: '⚡', text: 'Strong Performance', color: 'var(--warning)' };
-  if (score >= 50) return { emoji: '📈', text: 'Growing Fast', color: 'var(--warning)' };
-  return { emoji: '🔧', text: 'High Potential', color: 'var(--danger)' };
+function getScoreMeta(score: number) {
+  if (score >= 80) return { emoji: '🏆', label: 'Elite Creator', color: '#22C55E' };
+  if (score >= 65) return { emoji: '⚡', label: 'Strong Performance', color: '#F59E0B' };
+  if (score >= 50) return { emoji: '📈', label: 'Growing Fast', color: '#F59E0B' };
+  return { emoji: '🔧', label: 'High Potential', color: '#EF4444' };
 }
 
-/* Realistic blur placeholder showing real card shapes */
-function BlurPlaceholder({ onUnlock }: { onUnlock: () => void }) {
+/* Thin animated bar */
+function ThinBar({ value, max, color, delay = 0 }: { value: number; max: number; color: string; delay?: number }) {
+  const pct = Math.min((value / (max * 1.2)) * 100, 100);
   return (
-    <div className="relative mt-8 mb-0" style={{ height: 340 }}>
-      {/* Blurred content stack */}
-      <div
-        className="absolute inset-0 space-y-4"
-        style={{ filter: 'blur(7px)', pointerEvents: 'none', userSelect: 'none', opacity: 0.45 }}
-      >
+    <div style={{ height: 3, borderRadius: 99, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+      <motion.div
+        style={{ height: '100%', borderRadius: 99, background: color }}
+        initial={{ width: 0 }}
+        animate={{ width: `${pct}%` }}
+        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay }}
+      />
+    </div>
+  );
+}
+
+/* Stat tile */
+function Stat({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
+  return (
+    <div
+      style={{
+        padding: '14px 16px',
+        borderRadius: 12,
+        background: accent ? 'rgba(168,85,247,0.08)' : 'rgba(255,255,255,0.04)',
+        border: `1px solid ${accent ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.07)'}`,
+      }}
+    >
+      <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
+        {label}
+      </p>
+      <p style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.03em', color: accent ? 'var(--brand-mid)' : 'white', lineHeight: 1 }}>
+        {value}
+      </p>
+      {sub && <p style={{ fontSize: 11, marginTop: 3, color: 'rgba(255,255,255,0.35)' }}>{sub}</p>}
+    </div>
+  );
+}
+
+/* Blur teaser above paywall */
+function BlurTeaser({ onUnlock }: { onUnlock: () => void }) {
+  return (
+    <div style={{ position: 'relative', marginTop: 8 }}>
+      {/* Fake blurred cards */}
+      <div style={{ filter: 'blur(6px)', opacity: 0.4, pointerEvents: 'none', userSelect: 'none', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {/* Fake heatmap */}
-        <div className="rounded-2xl p-6" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-          <div className="flex gap-2 mb-4 items-center">
-            <div className="w-8 h-8 rounded-lg" style={{ background: 'var(--bg-elevated)' }} />
-            <div className="w-36 h-2.5 rounded-full" style={{ background: 'var(--bg-elevated)' }} />
-          </div>
-          <div className="space-y-1.5">
-            {Array.from({ length: 5 }, (_, row) => (
-              <div key={row} className="flex gap-px">
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px' }}>
+          <div style={{ width: 160, height: 10, borderRadius: 6, background: 'var(--bg-elevated)', marginBottom: 16 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {Array.from({ length: 6 }, (_, row) => (
+              <div key={row} style={{ display: 'flex', gap: 2 }}>
                 {Array.from({ length: 20 }, (_, col) => (
                   <div
                     key={col}
                     style={{
-                      flex: 1, height: 14, borderRadius: 2,
-                      background: `rgba(168,85,247,${(Math.sin(row * 7 + col * 3) * 0.3 + 0.4).toFixed(2)})`,
+                      flex: 1, height: 12, borderRadius: 2,
+                      background: `rgba(168,85,247,${(0.15 + Math.abs(Math.sin(row * 5 + col * 2.1)) * 0.6).toFixed(2)})`,
                     }}
                   />
                 ))}
@@ -123,72 +161,55 @@ function BlurPlaceholder({ onUnlock }: { onUnlock: () => void }) {
           </div>
         </div>
         {/* Fake chart */}
-        <div className="rounded-2xl p-6" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-          <div className="w-40 h-2.5 rounded-full mb-4" style={{ background: 'var(--bg-elevated)' }} />
-          <div className="flex items-end gap-3 h-20">
-            {[60, 85, 45, 70, 35, 90].map((h, i) => (
-              <div
-                key={i}
-                className="flex-1 rounded-t"
-                style={{ height: `${h}%`, background: `rgba(168,85,247,${0.25 + i * 0.1})` }}
-              />
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px' }}>
+          <div style={{ width: 130, height: 10, borderRadius: 6, background: 'var(--bg-elevated)', marginBottom: 16 }} />
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 72 }}>
+            {[55, 80, 40, 70, 30, 90, 45].map((h, i) => (
+              <div key={i} style={{ flex: 1, borderRadius: '4px 4px 0 0', height: `${h}%`, background: `rgba(168,85,247,${0.25 + i * 0.08})` }} />
             ))}
           </div>
         </div>
       </div>
 
-      {/* Gradient overlay */}
+      {/* Gradient veil */}
       <div
-        className="absolute inset-0"
-        style={{ background: 'linear-gradient(to bottom, transparent 0%, rgba(10,10,16,0.6) 40%, var(--bg-base) 80%)' }}
-      />
-
-      {/* Centered CTA */}
-      <div className="absolute inset-0 flex flex-col items-center justify-end pb-6">
+        style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(to bottom, rgba(10,10,16,0) 0%, rgba(10,10,16,0.7) 50%, var(--bg-base) 100%)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end',
+          paddingBottom: 32,
+        }}
+      >
         <motion.button
           onClick={onUnlock}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="flex flex-col items-center gap-3"
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+            cursor: 'pointer', background: 'none', border: 'none',
+          }}
         >
           <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center"
             style={{
+              width: 52, height: 52, borderRadius: 14,
               background: 'var(--bg-surface)',
-              border: '1px solid var(--border-brand)',
-              boxShadow: 'var(--glow-sm)',
+              border: '1px solid rgba(168,85,247,0.4)',
+              boxShadow: '0 0 24px rgba(168,85,247,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <Lock size={22} style={{ color: 'var(--brand-mid)' }} />
+            <Lock size={20} color="var(--brand-mid)" />
           </div>
-          <div className="text-center">
-            <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-              Unlock to reveal your full report
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>6 deep insights hidden below</p>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 3 }}>6 deep insights hidden below</p>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Unlock your full report</p>
           </div>
-          <div className="flex items-center gap-1.5 mt-1" style={{ color: 'var(--brand-mid)' }}>
-            <ArrowDown size={14} />
-            <span className="text-xs font-semibold">See pricing below</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--brand-mid)' }}>
+            <ArrowDown size={13} />
+            <span style={{ fontSize: 12, fontWeight: 600 }}>See pricing ↓</span>
           </div>
         </motion.button>
       </div>
-    </div>
-  );
-}
-
-/* Quick stat pill */
-function StatPill({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <div
-      className="flex flex-col gap-0.5 px-4 py-3 rounded-xl"
-      style={{
-        background: highlight ? 'rgba(168,85,247,0.06)' : 'var(--bg-elevated)',
-        border: `1px solid ${highlight ? 'var(--border-brand)' : 'var(--border)'}`,
-      }}
-    >
-      <span className="text-xs font-medium" style={{ color: 'var(--text-tertiary)' }}>{label}</span>
-      <span className="text-sm font-black tabular-nums" style={{ color: highlight ? 'var(--brand-mid)' : 'var(--text-primary)', letterSpacing: '-0.02em' }}>{value}</span>
     </div>
   );
 }
@@ -203,36 +224,33 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
   const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!igUserId) return;
-    runAuditPipeline();
-  }, [igUserId]);
+  useEffect(() => { if (igUserId) runAuditPipeline(); }, [igUserId]);
 
   async function runAuditPipeline() {
     setLoading(true); setError(null);
     try {
       setLoadingStep(1);
-      const fetchRes = await fetch('/api/instagram/fetch-data', {
+      const r1 = await fetch('/api/instagram/fetch-data', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ igUserId }),
       });
-      if (!fetchRes.ok) { const e = await fetchRes.json(); throw new Error(e.error || 'Failed to fetch Instagram data'); }
+      if (!r1.ok) { const e = await r1.json(); throw new Error(e.error || 'Failed to fetch Instagram data'); }
 
       setLoadingStep(3);
-      const genRes = await fetch('/api/audit/generate', {
+      const r2 = await fetch('/api/audit/generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ igUserId }),
       });
-      if (!genRes.ok) { const e = await genRes.json(); throw new Error(e.error || 'Failed to generate audit'); }
+      if (!r2.ok) { const e = await r2.json(); throw new Error(e.error || 'Failed to generate audit'); }
 
       setLoadingStep(5);
-      const auditRes = await fetch('/api/audit/fetch', {
+      const r3 = await fetch('/api/audit/fetch', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ igUserId }),
       });
-      if (!auditRes.ok) throw new Error('Audit data not found');
+      if (!r3.ok) throw new Error('Audit data not found');
 
-      const { audit, account } = await auditRes.json();
+      const { audit, account } = await r3.json();
       setData({
         ...audit,
         computed_metrics: {
@@ -252,21 +270,19 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
     } finally { setLoading(false); }
   }
 
-  if (loading) return (
-    <PremiumLoadingScreen currentStepIndex={loadingStep} steps={LOADING_STEPS} username={data?.username} />
-  );
+  if (loading) return <PremiumLoadingScreen currentStepIndex={loadingStep} steps={LOADING_STEPS} username={data?.username} />;
 
   if (error || !data) {
     return (
       <>
         <Navbar />
-        <main className="min-h-screen flex items-center justify-center pt-16 px-5" style={{ background: 'var(--bg-base)' }}>
-          <div className="card p-10 text-center max-w-sm w-full">
-            <AlertTriangle size={36} className="mx-auto mb-4" style={{ color: 'var(--danger)' }} />
-            <h2 className="text-lg font-bold mb-2" style={{ letterSpacing: '-0.02em' }}>Something went wrong</h2>
-            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{error || 'Could not generate audit.'}</p>
-            <button onClick={() => router.push('/audit')} className="btn btn-primary w-full h-11 rounded-xl font-semibold flex items-center justify-center gap-2">
-              <RefreshCw size={15} /> Try Again
+        <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', background: 'var(--bg-base)' }}>
+          <div className="card p-10 text-center" style={{ maxWidth: 360, width: '100%' }}>
+            <AlertTriangle size={36} style={{ color: 'var(--danger)', margin: '0 auto 16px' }} />
+            <h2 style={{ fontSize: 18, fontWeight: 800, marginBottom: 8, letterSpacing: '-0.02em' }}>Something went wrong</h2>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 24 }}>{error || 'Could not generate your audit.'}</p>
+            <button onClick={() => router.push('/audit')} className="btn btn-primary" style={{ width: '100%', height: 44, borderRadius: 12, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <RefreshCw size={14} /> Try Again
             </button>
           </div>
         </main>
@@ -275,147 +291,143 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
   }
 
   const { is_paid, overall_score, computed_metrics: m, ai_analysis: ai, username } = data;
-  const scoreInfo = getScoreLabel(overall_score);
+  const scoreMeta = getScoreMeta(overall_score);
   const benchNum = parseFloat(m.benchmark) || 5.5;
   const isEngHigh = m.engagementRate >= benchNum;
-
+  const bestFormatKey = Object.entries(m.formatBreakdown || {}).sort((a, b) => (b[1] as number) - (a[1] as number))[0]?.[0];
   const scrollToPaywall = () => paywallRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   return (
     <>
       <Navbar />
-      <main className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
+      <main style={{ background: 'var(--bg-base)', minHeight: '100vh', paddingBottom: 100 }}>
 
-        {/* ── Subtle radial glow behind hero ─────────────────── */}
-        <div
-          className="fixed top-0 left-1/2 pointer-events-none"
-          style={{
-            transform: 'translateX(-50%)',
-            width: 800, height: 500,
-            background: 'radial-gradient(ellipse, rgba(124,58,237,0.1) 0%, transparent 70%)',
-            filter: 'blur(40px)', zIndex: 0,
-          }}
-        />
+        {/* ═══════════════════════════════════════════════════════════
+            HERO — Full-bleed, gradient mesh, matches landing page
+        ═══════════════════════════════════════════════════════════ */}
+        <section style={{ position: 'relative', overflow: 'hidden', paddingTop: 72, paddingBottom: 64 }}>
+          {/* Background gradient mesh — matches landing page */}
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+            <div style={{ position: 'absolute', top: '-20%', left: '15%', width: 600, height: 500, background: 'radial-gradient(ellipse, rgba(124,58,237,0.2) 0%, transparent 70%)', filter: 'blur(60px)' }} />
+            <div style={{ position: 'absolute', top: '-10%', right: '10%', width: 400, height: 350, background: 'radial-gradient(ellipse, rgba(255,62,128,0.12) 0%, transparent 70%)', filter: 'blur(50px)' }} />
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 120, background: 'linear-gradient(to bottom, transparent, var(--bg-base))' }} />
+          </div>
 
-        <div className="relative z-10 max-w-3xl mx-auto px-4 pt-24 pb-28 space-y-5">
-
-          {/* ═══════════════════════════════════════════════════
-              HERO: Profile + Score
-          ═══════════════════════════════════════════════════ */}
-          <motion.section
-            initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-            className="rounded-2xl overflow-hidden"
-            style={{
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border)',
-              boxShadow: 'var(--shadow-xl)',
-            }}
-          >
-            {/* Gradient top strip */}
-            <div className="h-px" style={{ background: 'var(--gradient-brand)' }} />
-
-            <div className="p-7 md:p-9">
+          <div style={{ position: 'relative', zIndex: 1, maxWidth: 720, margin: '0 auto', padding: '0 20px' }}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            >
               {/* Profile row */}
-              <div className="flex items-center gap-4 mb-8">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 40 }}>
                 <div
-                  className="relative w-[60px] h-[60px] rounded-full overflow-hidden shrink-0"
-                  style={{ border: '2px solid rgba(168,85,247,0.5)', boxShadow: '0 0 20px rgba(168,85,247,0.2)' }}
+                  style={{
+                    width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
+                    border: '2px solid rgba(168,85,247,0.5)',
+                    boxShadow: '0 0 0 4px rgba(168,85,247,0.1), 0 0 24px rgba(168,85,247,0.3)',
+                    background: 'var(--bg-elevated)',
+                  }}
                 >
                   {m.profilePictureUrl ? (
-                    <Image src={m.profilePictureUrl} alt={`@${username}`} fill className="object-cover" />
+                    <Image src={m.profilePictureUrl} alt={`@${username}`} width={64} height={64} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-2xl" style={{ background: 'var(--bg-elevated)' }}>👤</div>
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>👤</div>
                   )}
                 </div>
-                <div className="min-w-0">
-                  <h1
-                    className="font-black tracking-tight truncate"
-                    style={{ fontSize: 'clamp(18px, 4vw, 24px)', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}
-                  >
+                <div>
+                  <h1 style={{ fontSize: 'clamp(20px, 4vw, 26px)', fontWeight: 900, letterSpacing: '-0.03em', color: 'white', lineHeight: 1.1 }}>
                     @{username}
                   </h1>
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                    {(m.followers || 0).toLocaleString('en-IN')} followers · {m.mediaCount || 0} posts
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
-                    Audited {formatDate(data.created_at)} · 22 signals measured
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>
+                    {(m.followers || 0).toLocaleString('en-IN')} followers · {m.mediaCount || 0} posts · Audited {formatDate(data.created_at)}
                   </p>
                 </div>
               </div>
 
-              {/* Score + context */}
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8">
-                <div className="shrink-0">
-                  <ScoreRing score={overall_score} size={168} strokeWidth={11} />
+              {/* Score + info layout */}
+              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 48, flexWrap: 'wrap' }}>
+
+                {/* Left: Score ring */}
+                <div style={{ flexShrink: 0 }}>
+                  <ScoreRing score={overall_score} size={172} strokeWidth={11} />
                 </div>
-                <div className="flex-1 text-center sm:text-left">
-                  <div className="flex items-center justify-center sm:justify-start gap-2 mb-3">
-                    <span className="text-xl">{scoreInfo.emoji}</span>
-                    <span className="text-lg font-black tracking-tight" style={{ color: scoreInfo.color, letterSpacing: '-0.02em' }}>
-                      {scoreInfo.text}
+
+                {/* Right: Verdict + stats */}
+                <div style={{ flex: 1, minWidth: 220, paddingTop: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                    <span style={{ fontSize: 20 }}>{scoreMeta.emoji}</span>
+                    <span style={{ fontSize: 16, fontWeight: 800, color: scoreMeta.color, letterSpacing: '-0.02em' }}>
+                      {scoreMeta.label}
                     </span>
                   </div>
 
                   {ai.engagement_verdict && (
-                    <p
-                      className="text-sm leading-relaxed mb-5"
-                      style={{ color: 'var(--text-secondary)', maxWidth: 380 }}
-                    >
+                    <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(255,255,255,0.6)', marginBottom: 24, maxWidth: 380 }}>
                       {ai.engagement_verdict}
                     </p>
                   )}
 
-                  {/* Quick stat pills */}
-                  <div className="grid grid-cols-2 gap-2 max-w-xs mx-auto sm:mx-0">
-                    <StatPill
+                  {/* Stat grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, maxWidth: 360 }}>
+                    <Stat
                       label="Engagement"
                       value={`${m.engagementRate}%`}
-                      highlight={isEngHigh}
+                      sub={isEngHigh ? `${(m.engagementRate / benchNum).toFixed(1)}× avg` : `avg is ${m.benchmark}%`}
+                      accent={isEngHigh}
                     />
-                    <StatPill
+                    <Stat
                       label="Posts / week"
-                      value={m.postsPerWeek ? `${m.postsPerWeek}×` : '—'}
+                      value={m.postsPerWeek ? `${m.postsPerWeek}` : '—'}
+                      sub="avg posting rate"
                     />
-                    <StatPill
+                    <Stat
                       label="Best format"
-                      value={m.formatBreakdown ? Object.keys(m.formatBreakdown)[0] === 'VIDEO' ? 'Reels' : 'Static' : '—'}
+                      value={FORMAT_LABELS[bestFormatKey || 'VIDEO'] || 'Reels'}
+                      sub="highest engagement"
                     />
-                    <StatPill
+                    <Stat
                       label="Hook score"
                       value={`${ai.hook_avg_score}/10`}
-                      highlight
+                      sub={ai.hook_avg_score >= 7 ? 'Above average' : ai.hook_avg_score >= 5 ? 'Average' : 'Needs work'}
+                      accent={ai.hook_avg_score >= 7}
                     />
                   </div>
                 </div>
               </div>
-            </div>
-          </motion.section>
 
-          {/* ═══════════════════════════════════════════════════
-              FREE METRICS
-          ═══════════════════════════════════════════════════ */}
-          <FreeMetricsSection
-            engagementRate={m.engagementRate}
-            benchmark={m.benchmark}
-            engagementVerdict={ai.engagement_verdict}
-            followers={m.followers}
-            bestFormat={ai.best_format}
-            bestFormatReason={ai.best_format_reason}
-            formatBreakdown={m.formatBreakdown}
-            hookAvgScore={ai.hook_avg_score}
-            estimatedReelMin={ai.estimated_rates?.reel?.min}
-            estimatedReelMax={ai.estimated_rates?.reel?.max}
-          />
+              {/* Divider to content */}
+              <div style={{ marginTop: 40, height: 1, background: 'linear-gradient(90deg, rgba(168,85,247,0.3) 0%, rgba(255,255,255,0.05) 60%, transparent 100%)' }} />
+            </motion.div>
+          </div>
+        </section>
 
-          {/* ═══════════════════════════════════════════════════
-              PAYWALL ZONE (unpaid)
-          ═══════════════════════════════════════════════════ */}
+        {/* ═══════════════════════════════════════════════════════════
+            BODY CONTENT
+        ═══════════════════════════════════════════════════════════ */}
+        <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 20px' }}>
+
+          {/* Free metrics */}
+          <div style={{ marginTop: 48 }}>
+            <FreeMetricsSection
+              engagementRate={m.engagementRate}
+              benchmark={m.benchmark}
+              engagementVerdict={ai.engagement_verdict}
+              followers={m.followers}
+              bestFormat={ai.best_format}
+              bestFormatReason={ai.best_format_reason}
+              formatBreakdown={m.formatBreakdown}
+              hookAvgScore={ai.hook_avg_score}
+              estimatedReelMin={ai.estimated_rates?.reel?.min}
+              estimatedReelMax={ai.estimated_rates?.reel?.max}
+            />
+          </div>
+
+          {/* Paywall zone */}
           {!is_paid && (
             <>
-              <BlurPlaceholder onUnlock={scrollToPaywall} />
-
-              <div ref={paywallRef}>
+              <BlurTeaser onUnlock={scrollToPaywall} />
+              <div ref={paywallRef} style={{ marginTop: 8 }}>
                 <PaymentModal
                   igUserId={igUserId}
                   auditId={data.id}
@@ -426,21 +438,24 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
             </>
           )}
 
-          {/* ═══════════════════════════════════════════════════
-              PAID REPORT
-          ═══════════════════════════════════════════════════ */}
+          {/* Paid report */}
           {is_paid && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
+              style={{ marginTop: 32 }}
             >
-              {/* Unlock celebration */}
               <div
-                className="flex items-center gap-3 px-5 py-3.5 rounded-2xl mb-5"
-                style={{ background: 'var(--success-bg)', border: '1px solid var(--success-border)' }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '14px 20px', borderRadius: 14, marginBottom: 32,
+                  background: 'rgba(34,197,94,0.06)',
+                  border: '1px solid rgba(34,197,94,0.2)',
+                }}
               >
                 <CheckCircle2 size={18} style={{ color: 'var(--success)', flexShrink: 0 }} />
-                <p className="text-sm font-semibold" style={{ color: 'var(--success)' }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--success)' }}>
                   Full report unlocked — your personalised playbook is below 👇
                 </p>
               </div>
