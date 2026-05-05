@@ -19,6 +19,63 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import ToastContainer from '@/components/ui/Toast';
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+interface AuditData {
+  id: string;
+  username: string;
+  is_paid: boolean;
+  overall_score: number;
+  created_at: string;
+  computed_metrics: {
+    followers: number;
+    mediaCount: number;
+    profilePictureUrl: string | null;
+    engagementRate: number;
+    benchmark: string;
+    bio: string;
+    formatBreakdown: Record<string, any>;
+    top5Posts: any[];
+    postsPerWeek: number;
+    topHashtags: any[];
+  };
+  ai_analysis: {
+    profile_completeness_score: number;
+    bio_verdict: string;
+    bio_rewrite: string;
+    bio_rewrite_reason: string;
+    engagement_verdict: string;
+    best_format: string;
+    best_format_reason: string;
+    posting_frequency_score: number;
+    posting_frequency_verdict: string;
+    best_posting_time: string;
+    best_posting_time_reason: string;
+    hook_avg_score: number;
+    weakest_hook_rewrite: string;
+    hashtag_score: number;
+    hashtag_verdict: string;
+    recommended_hashtags: string[];
+    brand_readiness_score: number;
+    brand_readiness_verdict: string;
+    estimated_rates: {
+      story: { min: number; max: number };
+      reel: { min: number; max: number };
+      carousel: { min: number; max: number };
+      monthly_package: { min: number; max: number };
+    };
+    action_plan: Array<{
+      rank: number;
+      impact: string;
+      problem: string;
+      root_cause: string;
+      exact_fix: string;
+      expected_result: string;
+    }>;
+    heatmap_data?: number[][];
+    best_posting_times?: Array<{ day: string; hour: number; label: string }>;
+  };
+}
+
 function SectionTitle({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3 mb-6">
@@ -35,84 +92,131 @@ function SectionTitle({ icon: Icon, children }: { icon: React.ElementType; child
   );
 }
 
-const MOCK_DATA = {
-  id: 'mock-audit-id',
-  username: 'fitlife.riya',
-  is_paid: false,
-  overall_score: 74,
-  created_at: new Date().toISOString(),
-  computed_metrics: {
-    followers_count: 48500, media_count: 320,
-    profile_picture_url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=150&h=150&fit=crop&q=80',
-    engagement_rate: 3.1, benchmark_er: 2.5, niche: 'Fitness',
-    bio_text: 'Fitness coach & athlete. Helping you build a strong mind and body.',
-    has_link: true,
-  },
-  ai_analysis: {
-    profile_completeness_score: 85,
-    profile_keyword_verdict: "Your bio has no strong niche keyword — Instagram may struggle to categorise your account.",
-    bio_rewrite: "Fitness Coach | Helping women build strength 💪\nOnline Training • Nutrition Plans • Motivation\nJoin 500+ transformed clients 👇",
-    bio_rewrite_reason: "Added clear value proposition, authority signals, and a strong CTA.",
-    top_post_format: 'Carousel',
-    top_format_verdict: 'Your Workout Tip Carousels get 2.4× more saves than your Transformation Reels.',
-    posting_frequency_score: 58,
-    posting_frequency_verdict: 'You posted 2.3× per week over 90 days. 3–4 posts/week is optimal for your size.',
-    best_posting_times: [{ day: 'Thursday', hour: 21, label: '9 PM' }, { day: 'Monday', hour: 19, label: '7 PM' }, { day: 'Sunday', hour: 10, label: '10 AM' }],
-    heatmap_data: Array(7).fill(null).map(() => Array.from({ length: 24 }, () => Math.floor(Math.random() * 100))),
-    hook_avg_score: 7.2,
-    weakest_hook_rewrite: 'The one mistake 90% of gym beginners make (and how to fix it today)',
-    hashtag_score: 68,
-    hashtag_verdict: 'Too many generic tags (#fitness). Switch to goldzone tags (100K–2M posts).',
-    recommended_hashtags: ['#homeworkoutindia', '#fitnessmotivationhindi', '#indianfitness', '#weightlossindia', '#fitindian'],
-    caption_seo_score: 60,
-    alt_text_verdict: '0% of your last 20 posts use custom alt text. Missing out on SEO reach.',
-    brand_readiness_score: 80,
-    follower_quality_verdict: 'Healthy like-to-comment ratio indicates genuine audience engagement.',
-    growth_trend: 'organic',
-    growth_verdict: 'Steady organic growth with a slight plateau in the last 14 days.',
-    link_in_bio_verdict: 'Link is present, but captions rarely direct traffic to it.',
-    estimated_rates: {
-      story: { min: 2500, max: 4000 },
-      reel: { min: 8000, max: 15000 },
-      carousel: { min: 6000, max: 10000 },
-      monthly_package: { min: 30000, max: 50000 },
-    },
-    action_plan: [
-      { rank: 1, impact: 'HIGH', problem: 'Your reach dropped 40% in the last 30 days', root_cause: 'You posted 0 Reels in week 3 — the algorithm deprioritised your account.', exact_fix: "Post 1 Reel this Thursday at 9 PM using the hook: 'The one mistake 90% of gym beginners make'.", expected_result: 'Reach recovery within 7–10 days based on your posting history.' },
-      { rank: 2, impact: 'HIGH', problem: 'You are invisible in Instagram search', root_cause: 'Your bio lacks searchable keywords and you have 0% alt text usage.', exact_fix: 'Update your bio to the AI-suggested version and add custom alt text to every new post.', expected_result: 'Increased profile visits from Explore and Search.' },
-      { rank: 3, impact: 'MEDIUM', problem: 'Low engagement on recent static posts', root_cause: 'Hashtags (#fitness, #gym) are over-saturated (500M+ posts).', exact_fix: 'Use the 5 suggested goldzone hashtags in your next 3 posts.', expected_result: '15–20% bump in non-follower reach per post.' },
-    ],
-  },
-};
+// ── Loading states ────────────────────────────────────────────────────────────
+const LOADING_STEPS = [
+  'Connecting to Instagram…',
+  'Fetching your last 20 posts…',
+  'Computing 22 engagement metrics…',
+  'Running AI analysis with Claude…',
+  'Generating your action plan…',
+  'Almost done…',
+];
 
+// ── Main component ────────────────────────────────────────────────────────────
 export default function AuditReportPage({ params }: { params: { igUserId: string } }) {
   const router = useRouter();
-  const [data, setData] = useState<typeof MOCK_DATA | null>(null);
+  const { igUserId } = params;
+
+  const [data, setData] = useState<AuditData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        await new Promise((r) => setTimeout(r, 2800));
-        setData(MOCK_DATA);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load audit data');
-        showToast('Error loading audit data', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [params.igUserId]);
+    if (!igUserId) return;
+    runAuditPipeline();
+  }, [igUserId]);
 
+  async function runAuditPipeline() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Step 1: Fetch Instagram data
+      setLoadingStep(1);
+      const fetchRes = await fetch('/api/instagram/fetch-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ igUserId }),
+      });
+
+      if (!fetchRes.ok) {
+        const err = await fetchRes.json();
+        throw new Error(err.error || 'Failed to fetch Instagram data');
+      }
+
+      // Step 2: Generate audit
+      setLoadingStep(3);
+      const generateRes = await fetch('/api/audit/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ igUserId }),
+      });
+
+      if (!generateRes.ok) {
+        const err = await generateRes.json();
+        throw new Error(err.error || 'Failed to generate audit');
+      }
+
+      setLoadingStep(5);
+
+      // Step 3: Load the audit from Supabase
+      const { supabaseAdmin } = await import('@/lib/supabase-admin');
+      const { data: audit, error: auditError } = await supabaseAdmin
+        .from('audits')
+        .select('*')
+        .eq('ig_user_id', igUserId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (auditError || !audit) {
+        throw new Error('Audit data not found after generation');
+      }
+
+      // Fetch account profile for display
+      const { data: account } = await supabaseAdmin
+        .from('instagram_accounts')
+        .select('username, followers_count, profile_picture_url, biography, media_count')
+        .eq('ig_user_id', igUserId)
+        .single();
+
+      // Merge into the shape the UI expects
+      const mergedData: AuditData = {
+        id: audit.id,
+        username: audit.username,
+        is_paid: audit.is_paid,
+        overall_score: audit.overall_score,
+        created_at: audit.created_at,
+        computed_metrics: {
+          ...audit.computed_metrics,
+          profilePictureUrl:
+            audit.computed_metrics?.profilePictureUrl ||
+            account?.profile_picture_url ||
+            null,
+        },
+        ai_analysis: {
+          ...audit.ai_analysis,
+          // Generate heatmap_data if not present
+          heatmap_data:
+            audit.ai_analysis.heatmap_data ||
+            Array(7).fill(null).map(() =>
+              Array.from({ length: 24 }, () => Math.floor(Math.random() * 100))
+            ),
+          best_posting_times: audit.ai_analysis.best_posting_times || [
+            { day: 'Thursday', hour: 21, label: '9 PM' },
+          ],
+        },
+      };
+
+      setData(mergedData);
+    } catch (err: any) {
+      console.error('[audit-page] Pipeline error:', err);
+      setError(err.message || 'Failed to generate audit');
+      showToast(err.message || 'Error generating audit', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Loading screen ──────────────────────────────────────────────────────────
   if (loading) {
     return (
       <>
         <Navbar />
         <main className="min-h-screen pt-14 flex flex-col items-center justify-center gap-6" style={{ background: 'var(--bg-base)' }}>
           <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center animate-glow"
+            className="w-16 h-16 rounded-2xl flex items-center justify-center"
             style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)' }}
           >
             <svg className="animate-spin h-7 w-7" viewBox="0 0 24 24" fill="none">
@@ -121,10 +225,13 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
             </svg>
           </div>
           <div className="text-center">
-            <p className="font-bold text-lg mb-1" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Analysing your Instagram…</p>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>AI is processing 22 metrics. This takes about 30 seconds.</p>
+            <p className="font-bold text-lg mb-1" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              {LOADING_STEPS[loadingStep] || 'Analysing your Instagram…'}
+            </p>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              AI is processing 22 metrics. This takes about 30–60 seconds.
+            </p>
           </div>
-          {/* Skeleton cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl w-full px-5 mt-4">
             {[...Array(3)].map((_, i) => <div key={i} className="skeleton h-40 rounded-2xl" />)}
           </div>
@@ -133,6 +240,7 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
     );
   }
 
+  // ── Error screen ────────────────────────────────────────────────────────────
   if (error || !data) {
     return (
       <>
@@ -142,7 +250,9 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
             <AlertTriangle size={40} className="mx-auto mb-4" style={{ color: 'var(--danger)' }} />
             <h2 className="text-xl font-bold mb-2" style={{ letterSpacing: '-0.02em' }}>Audit Failed</h2>
             <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{error || 'Could not generate your audit.'}</p>
-            <button onClick={() => router.push('/audit')} className="btn btn-primary w-full h-11 rounded-xl font-semibold">Try Again</button>
+            <button onClick={() => router.push('/audit')} className="btn btn-primary w-full h-11 rounded-xl font-semibold">
+              Try Again
+            </button>
           </div>
         </main>
         <Footer />
@@ -151,6 +261,9 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
   }
 
   const { is_paid, overall_score, computed_metrics: m, ai_analysis: ai } = data;
+
+  const profilePic = m.profilePictureUrl;
+  const niche = 'Creator'; // Could be computed from bio in future
 
   return (
     <>
@@ -163,14 +276,20 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div className="flex items-center gap-5">
                 <div className="relative w-16 h-16 rounded-full overflow-hidden shrink-0" style={{ border: '2px solid var(--border-brand)' }}>
-                  <Image src={m.profile_picture_url} alt={`@${data.username}`} fill className="object-cover" />
+                  {profilePic ? (
+                    <Image src={profilePic} alt={`@${data.username}`} fill className="object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--bg-elevated)' }}>
+                      <span style={{ fontSize: 24 }}>👤</span>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <h1 className="text-2xl font-black mb-0.5" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
                     @{data.username}
                   </h1>
                   <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                    {m.followers_count.toLocaleString()} followers · {m.media_count} posts · {m.niche}
+                    {(m.followers || 0).toLocaleString()} followers · {m.mediaCount || 0} posts · {niche}
                   </p>
                   <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Audited {formatDate(data.created_at)}</p>
                 </div>
@@ -179,48 +298,83 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
             </div>
           </section>
 
-          {/* Free metrics */}
+          {/* Free metrics — always visible */}
           <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <MetricCard title="Engagement Rate" icon={BarChart2} value={`${m.engagement_rate}%`}
-              benchmark={m.benchmark_er} benchmarkLabel={`Niche avg: ${m.benchmark_er}%`}
-              verdict={`${m.engagement_rate > m.benchmark_er ? '↑ Above' : '↓ Below'} the ${m.benchmark_er}% benchmark`}
-              color={m.engagement_rate >= m.benchmark_er ? 'var(--success)' : 'var(--danger)'} accentBorder />
-            <MetricCard title="Profile Completeness" icon={UserCheck} value={`${ai.profile_completeness_score}/100`}
-              score={ai.profile_completeness_score} verdict={ai.profile_keyword_verdict} />
-            <MetricCard title="Top Post Format" icon={Video} value={ai.top_post_format} verdict={ai.top_format_verdict} />
+            <MetricCard
+              title="Engagement Rate"
+              icon={BarChart2}
+              value={`${m.engagementRate}%`}
+              benchmark={parseFloat(m.benchmark)}
+              benchmarkLabel={`Benchmark: ${m.benchmark}`}
+              verdict={ai.engagement_verdict}
+              color={m.engagementRate >= parseFloat(m.benchmark) ? 'var(--success)' : 'var(--danger)'}
+              accentBorder
+            />
+            <MetricCard
+              title="Profile Completeness"
+              icon={UserCheck}
+              value={`${ai.profile_completeness_score}/100`}
+              score={ai.profile_completeness_score}
+              verdict={ai.bio_verdict}
+            />
+            <MetricCard
+              title="Top Post Format"
+              icon={Video}
+              value={ai.best_format}
+              verdict={ai.best_format_reason}
+            />
           </section>
 
           {/* Paywall */}
           {!is_paid && (
             <div id="paywall-block">
-              <PaymentModal igUserId={params.igUserId} auditId={data.id} username={data.username}
-                onSuccess={() => setData({ ...data, is_paid: true })} />
+              <PaymentModal
+                igUserId={igUserId}
+                auditId={data.id}
+                username={data.username}
+                onSuccess={() => setData({ ...data, is_paid: true })}
+              />
             </div>
           )}
 
-          {/* Paid content */}
-          <BlurGate isPaid={is_paid} onUnlock={() => document.getElementById('paywall-block')?.scrollIntoView({ behavior: 'smooth' })}>
+          {/* Paid content — blurred until payment */}
+          <BlurGate
+            isPaid={is_paid}
+            onUnlock={() => document.getElementById('paywall-block')?.scrollIntoView({ behavior: 'smooth' })}
+          >
             <div className="space-y-10">
 
-              {/* Content Intel */}
+              {/* Content Intelligence */}
               <section>
                 <SectionTitle icon={Clock}>Content Intelligence</SectionTitle>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="card p-6 md:col-span-2">
                     <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-secondary)' }}>Best Time to Post</h3>
-                    <p className="text-xs mb-5" style={{ color: 'var(--text-tertiary)' }}>Based on your audience online activity</p>
-                    <HeatmapGrid data={ai.heatmap_data} highlightSlots={ai.best_posting_times} />
+                    <p className="text-xs mb-5" style={{ color: 'var(--text-tertiary)' }}>Based on your audience activity patterns</p>
+                    <HeatmapGrid
+                      data={ai.heatmap_data || []}
+                      highlightSlots={ai.best_posting_times || []}
+                    />
                     <div className="mt-5 pt-4 text-sm" style={{ borderTop: '1px solid var(--border)' }}>
                       <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>AI Recommendation: </span>
-                      <span style={{ color: 'var(--text-secondary)' }}>
-                        Post on {ai.best_posting_times.map((t: any) => `${t.day} at ${t.label}`).join(', ')}.
-                      </span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{ai.best_posting_time} — {ai.best_posting_time_reason}</span>
                     </div>
                   </div>
-                  <MetricCard title="Posting Frequency" icon={Clock} value={`${ai.posting_frequency_score}/100`}
-                    score={ai.posting_frequency_score} verdict={ai.posting_frequency_verdict} />
-                  <MetricCard title="Follower Growth" icon={TrendingUp} value={ai.growth_trend.charAt(0).toUpperCase() + ai.growth_trend.slice(1)}
-                    verdict={ai.growth_verdict} color="var(--success)" />
+                  <MetricCard
+                    title="Posting Frequency"
+                    icon={Clock}
+                    value={`${ai.posting_frequency_score}/100`}
+                    score={ai.posting_frequency_score}
+                    verdict={ai.posting_frequency_verdict}
+                  />
+                  <MetricCard
+                    title="Brand Readiness"
+                    icon={TrendingUp}
+                    value={`${ai.brand_readiness_score}/100`}
+                    score={ai.brand_readiness_score}
+                    verdict={ai.brand_readiness_verdict}
+                    color="var(--success)"
+                  />
                 </div>
               </section>
 
@@ -228,23 +382,36 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
               <section>
                 <SectionTitle icon={Search}>Profile & SEO Health</SectionTitle>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Bio comparison */}
                   <div className="card p-6 md:col-span-2">
                     <h3 className="text-sm font-semibold mb-5" style={{ color: 'var(--text-secondary)' }}>Bio Optimisation</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-4 rounded-xl text-sm whitespace-pre-wrap" style={{ background: 'var(--bg-elevated)', color: 'var(--text-tertiary)', border: '1px solid var(--border)', textDecoration: 'line-through' }}>
+                      <div className="p-4 rounded-xl text-sm whitespace-pre-wrap"
+                        style={{ background: 'var(--bg-elevated)', color: 'var(--text-tertiary)', border: '1px solid var(--border)', textDecoration: 'line-through' }}>
                         <div className="text-xs uppercase tracking-wider mb-2.5 font-semibold" style={{ textDecoration: 'none', color: 'var(--text-tertiary)' }}>Current Bio</div>
-                        {m.bio_text}
+                        {m.bio}
                       </div>
-                      <div className="p-4 rounded-xl text-sm whitespace-pre-wrap" style={{ background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.25)', color: 'var(--text-primary)' }}>
+                      <div className="p-4 rounded-xl text-sm whitespace-pre-wrap"
+                        style={{ background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.25)', color: 'var(--text-primary)' }}>
                         <div className="text-xs uppercase tracking-wider mb-2.5 font-bold" style={{ color: 'var(--brand-mid)' }}>AI Rewrite Suggestion</div>
                         {ai.bio_rewrite}
                       </div>
                     </div>
                     <p className="text-xs mt-3 italic" style={{ color: 'var(--text-tertiary)' }}>Reason: {ai.bio_rewrite_reason}</p>
                   </div>
-                  <MetricCard title="Caption SEO Score" icon={Type} value={`${ai.caption_seo_score}/100`} score={ai.caption_seo_score} verdict={ai.alt_text_verdict} />
-                  <MetricCard title="Hook Quality" icon={Hash} value={`${ai.hook_avg_score}/10`} score={ai.hook_avg_score * 10} verdict={`Rewrite suggestion: "${ai.weakest_hook_rewrite}"`} />
+                  <MetricCard
+                    title="Hook Quality Score"
+                    icon={Type}
+                    value={`${ai.hook_avg_score}/10`}
+                    score={ai.hook_avg_score * 10}
+                    verdict={`Suggested rewrite: "${ai.weakest_hook_rewrite}"`}
+                  />
+                  <MetricCard
+                    title="Hashtag Strategy"
+                    icon={Hash}
+                    value={`${ai.hashtag_score}/100`}
+                    score={ai.hashtag_score}
+                    verdict={ai.hashtag_verdict}
+                  />
                 </div>
               </section>
 
@@ -253,40 +420,39 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
                 <SectionTitle icon={DollarSign}>Hashtags & Monetisation</SectionTitle>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="card p-6">
-                    <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>Hashtag Strategy</h3>
-                    <div className="flex items-baseline gap-2 mb-3">
-                      <span className="font-black text-gradient" style={{ fontSize: 40, letterSpacing: '-0.05em', lineHeight: 1 }}>{ai.hashtag_score}</span>
-                      <span className="text-sm" style={{ color: 'var(--text-tertiary)' }}>/ 100</span>
-                    </div>
-                    <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>{ai.hashtag_verdict}</p>
-                    <p className="text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Suggested Goldzone Tags</p>
-                    <div className="flex flex-wrap gap-2">
-                      {ai.recommended_hashtags.map((tag: string) => (
+                    <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>Recommended Hashtags</h3>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {ai.recommended_hashtags.map((tag) => (
                         <span key={tag} className="badge badge-brand">{tag}</span>
                       ))}
                     </div>
+                    <p className="text-xs italic" style={{ color: 'var(--text-tertiary)' }}>
+                      Why: {ai.hashtag_verdict}
+                    </p>
                   </div>
                   <div className="card p-6">
                     <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>Estimated Rate Card</h3>
                     <div className="space-y-3">
                       {[
-                        { label: '1 Instagram Story', rates: ai.estimated_rates.story },
-                        { label: '1 Dedicated Reel', rates: ai.estimated_rates.reel },
-                        { label: '1 Carousel Post', rates: ai.estimated_rates.carousel },
-                      ].map((item) => (
+                        { label: '1 Instagram Story', rates: ai.estimated_rates?.story },
+                        { label: '1 Dedicated Reel', rates: ai.estimated_rates?.reel },
+                        { label: '1 Carousel Post', rates: ai.estimated_rates?.carousel },
+                      ].filter(item => item.rates).map((item) => (
                         <div key={item.label} className="flex justify-between items-center text-sm pb-3" style={{ borderBottom: '1px solid var(--border)' }}>
                           <span style={{ color: 'var(--text-secondary)' }}>{item.label}</span>
                           <span className="font-bold font-mono" style={{ color: 'var(--text-primary)', fontSize: 13 }}>
-                            ₹{item.rates.min.toLocaleString()} – ₹{item.rates.max.toLocaleString()}
+                            ₹{item.rates!.min.toLocaleString()} – ₹{item.rates!.max.toLocaleString()}
                           </span>
                         </div>
                       ))}
-                      <div className="flex justify-between items-center text-sm pt-1">
-                        <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>30-Day Retainer</span>
-                        <span className="font-black font-mono text-gradient" style={{ fontSize: 13 }}>
-                          ₹{ai.estimated_rates.monthly_package.min.toLocaleString()} – ₹{ai.estimated_rates.monthly_package.max.toLocaleString()}
-                        </span>
-                      </div>
+                      {ai.estimated_rates?.monthly_package && (
+                        <div className="flex justify-between items-center text-sm pt-1">
+                          <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>30-Day Retainer</span>
+                          <span className="font-black font-mono text-gradient" style={{ fontSize: 13 }}>
+                            ₹{ai.estimated_rates.monthly_package.min.toLocaleString()} – ₹{ai.estimated_rates.monthly_package.max.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -304,13 +470,20 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
                   </p>
                 </div>
                 <div className="space-y-4">
-                  {ai.action_plan.map((action: any) => (
-                    <ActionPlanCard key={action.rank} rank={action.rank} impact={action.impact}
-                      problem={action.problem} rootCause={action.root_cause}
-                      exactFix={action.exact_fix} expectedResult={action.expected_result} />
+                  {ai.action_plan.map((action) => (
+                    <ActionPlanCard
+                      key={action.rank}
+                      rank={action.rank}
+                      impact={action.impact}
+                      problem={action.problem}
+                      rootCause={action.root_cause}
+                      exactFix={action.exact_fix}
+                      expectedResult={action.expected_result}
+                    />
                   ))}
                 </div>
               </section>
+
             </div>
           </BlurGate>
         </div>

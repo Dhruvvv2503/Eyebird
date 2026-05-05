@@ -1,29 +1,41 @@
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import Razorpay from 'razorpay';
 
 export async function POST(request: NextRequest) {
   try {
-    const { amount, igUserId, email, promoCode } = await request.json();
+    const { igUserId, email, promoCode } = await request.json();
 
-    if (!amount || !igUserId || !email) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!igUserId || !email) {
+      return NextResponse.json({ error: 'igUserId and email required' }, { status: 400 });
     }
 
-    // Verify promo code again on the server if provided
-    let finalAmount = amount;
+    let amount = 29900; // ₹299 in paise
+
+    // Re-validate promo server-side (never trust client)
     if (promoCode) {
-      // In a real app, query the database
-      // const { data } = await supabase.from('promo_codes').select('*').eq('code', promoCode).single();
-      if (promoCode === 'LAUNCH') {
-        finalAmount = 9900; // ₹99
-      }
-    }
+      const { data: promo } = await supabaseAdmin
+        .from('promo_codes')
+        .select('*')
+        .eq('code', promoCode.toUpperCase().trim())
+        .single();
 
-    // Ensure final amount matches what we expect
-    if (finalAmount !== amount) {
-      return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 });
+      if (
+        promo &&
+        promo.is_active &&
+        (!promo.max_uses || promo.current_uses < promo.max_uses) &&
+        (!promo.expires_at || new Date(promo.expires_at) > new Date())
+      ) {
+        if (promo.discount_type === 'flat') {
+          amount = Math.max(100, 29900 - promo.flat_discount_amount);
+        } else if (promo.discount_type === 'percent') {
+          const discount = Math.floor(29900 * promo.discount_percent / 100);
+          amount = 29900 - discount;
+        }
+      }
     }
 
     const razorpay = new Razorpay({
@@ -31,22 +43,21 @@ export async function POST(request: NextRequest) {
       key_secret: process.env.RAZORPAY_KEY_SECRET!,
     });
 
-    const options = {
-      amount: finalAmount,
+    const order = await razorpay.orders.create({
+      amount,
       currency: 'INR',
-      receipt: `rcpt_${igUserId.substring(0, 8)}_${Date.now()}`,
-    };
-
-    const order = await razorpay.orders.create(options);
+      receipt: `eb_${igUserId.substring(0, 10)}_${Date.now()}`,
+      notes: { igUserId, email, promoCode: promoCode || '' },
+    });
 
     return NextResponse.json({
       orderId: order.id,
       amount: order.amount,
       currency: order.currency,
-      keyId: process.env.RAZORPAY_KEY_ID,
+      keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
     });
-  } catch (error) {
-    console.error('Create Order Error:', error);
-    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
+  } catch (err) {
+    console.error('[create-order] Error:', err);
+    return NextResponse.json({ error: 'Failed to create payment order' }, { status: 500 });
   }
 }
