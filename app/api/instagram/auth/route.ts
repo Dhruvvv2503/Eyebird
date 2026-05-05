@@ -15,7 +15,7 @@ export async function GET() {
     }
 
     const redirectUri = getInstagramRedirectUri();
-    const oauthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&display=page&extras={"setup":{"channel":"IG_API_ONBOARDING"}}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=instagram_basic,instagram_manage_insights,pages_show_list,pages_read_engagement`;
+    const oauthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&display=page&extras={"setup":{"channel":"IG_API_ONBOARDING"}}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=instagram_business_basic,instagram_business_manage_insights,instagram_business_manage_messages,instagram_business_content_publish`;
 
     return NextResponse.redirect(oauthUrl);
   } catch (err) {
