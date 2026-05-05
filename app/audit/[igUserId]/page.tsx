@@ -262,6 +262,7 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
 
   const [data, setData] = useState<AuditData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isFreshAudit, setIsFreshAudit] = useState(false); // only true when running full pipeline
   const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -270,6 +271,43 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
   async function runAuditPipeline() {
     setLoading(true); setError(null);
     try {
+      // ── FAST PATH: existing audit already in DB ──
+      const existingRes = await fetch('/api/audit/fetch', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ igUserId }),
+      });
+
+      if (existingRes.ok) {
+        const { audit, account } = await existingRes.json();
+        // If audit is complete (has ai_analysis), show it immediately — no re-generation
+        if (audit?.ai_analysis && Object.keys(audit.ai_analysis).length > 3) {
+          const resolved = {
+            ...audit,
+            computed_metrics: {
+              ...audit.computed_metrics,
+              profilePictureUrl: audit.computed_metrics?.profilePictureUrl || account?.profile_picture_url || null,
+            },
+            ai_analysis: {
+              ...audit.ai_analysis,
+              heatmap_data: audit.ai_analysis.heatmap_data ||
+                Array(7).fill(null).map(() => Array.from({ length: 24 }, () => Math.floor(Math.random() * 100))),
+              best_posting_times: audit.ai_analysis.best_posting_times || [{ day: 'Thursday', hour: 21, label: '9 PM' }],
+            },
+          };
+          setData(resolved);
+          try {
+            localStorage.setItem('eb_connected_user', JSON.stringify({
+              igUserId,
+              username: resolved.username,
+            }));
+          } catch { /* ignore */ }
+          setLoading(false);
+          return; // ← skip full pipeline entirely
+        }
+      }
+
+      // ── FULL PIPELINE: no audit yet, generate fresh ──
+      setIsFreshAudit(true);
       setLoadingStep(1);
       const r1 = await fetch('/api/instagram/fetch-data', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -306,7 +344,6 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
         },
       };
       setData(resolved);
-      // Persist to localStorage so Navbar can show connected state
       try {
         localStorage.setItem('eb_connected_user', JSON.stringify({
           igUserId,
@@ -319,7 +356,17 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
     } finally { setLoading(false); }
   }
 
-  if (loading) return <PremiumLoadingScreen currentStepIndex={loadingStep} steps={LOADING_STEPS} username={data?.username} />;
+  if (loading && isFreshAudit) return <PremiumLoadingScreen currentStepIndex={loadingStep} steps={LOADING_STEPS} username={data?.username} />;
+
+  // Fast-path: cached audit is loading (brief spinner instead of full loading screen)
+  if (loading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid rgba(168,85,247,0.2)', borderTop: '3px solid #A855F7', animation: 'spin 0.8s linear infinite' }} />
+        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>Loading your report…</p>
+      </div>
+    </div>
+  );
 
   if (error || !data) {
     return (
