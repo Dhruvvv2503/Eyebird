@@ -63,6 +63,12 @@ export default function PaymentModal({ igUserId, auditId, username, onSuccess }:
 
       const { orderId, keyId, amount } = await orderRes.json();
 
+      if (!keyId) {
+        showToast('Payment configuration error. Please contact support.', 'error');
+        setLoading(false);
+        return;
+      }
+
       const rzp = new (window as any).Razorpay({
         key: keyId,
         amount,
@@ -98,8 +104,20 @@ export default function PaymentModal({ igUserId, auditId, username, onSuccess }:
             setLoading(false);
           }
         },
-        modal: { ondismiss: () => setLoading(false) },
+        modal: {
+          ondismiss: () => setLoading(false),
+          confirm_close: false,
+        },
+        // Razorpay payment failure callback
       });
+
+      rzp.on('payment.failed', (response: any) => {
+        console.error('[payment] failed:', response.error);
+        const reason = response.error?.description || response.error?.reason || 'Payment failed';
+        showToast(`Payment failed: ${reason}`, 'error');
+        setLoading(false);
+      });
+
       rzp.open();
     } catch {
       showToast('Something went wrong. Please try again.', 'error');

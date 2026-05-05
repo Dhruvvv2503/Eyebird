@@ -292,7 +292,7 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
       if (!r3.ok) throw new Error('Audit data not found');
 
       const { audit, account } = await r3.json();
-      setData({
+      const resolved = {
         ...audit,
         computed_metrics: {
           ...audit.computed_metrics,
@@ -304,7 +304,15 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
             Array(7).fill(null).map(() => Array.from({ length: 24 }, () => Math.floor(Math.random() * 100))),
           best_posting_times: audit.ai_analysis.best_posting_times || [{ day: 'Thursday', hour: 21, label: '9 PM' }],
         },
-      });
+      };
+      setData(resolved);
+      // Persist to localStorage so Navbar can show connected state
+      try {
+        localStorage.setItem('eb_connected_user', JSON.stringify({
+          igUserId,
+          username: resolved.username,
+        }));
+      } catch { /* ignore */ }
     } catch (err: any) {
       setError(err.message || 'Failed to generate audit');
       showToast(err.message || 'Error', 'error');
