@@ -138,21 +138,24 @@ function Stat({ label, value, sub, accent }: { label: string; value: string; sub
 /* Blur teaser above paywall */
 function BlurTeaser({ onUnlock }: { onUnlock: () => void }) {
   return (
-    <div style={{ position: 'relative', marginTop: 8 }}>
-      {/* Fake blurred cards */}
-      <div style={{ filter: 'blur(6px)', opacity: 0.4, pointerEvents: 'none', userSelect: 'none', display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ position: 'relative', marginTop: 8, height: 380, overflow: 'hidden' }}>
+      {/* Stacked fake cards — blurred */}
+      <div style={{ filter: 'blur(5px)', opacity: 0.35, pointerEvents: 'none', userSelect: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {/* Fake heatmap */}
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px' }}>
-          <div style={{ width: 160, height: 10, borderRadius: 6, background: 'var(--bg-elevated)', marginBottom: 16 }} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {Array.from({ length: 6 }, (_, row) => (
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 18, padding: '22px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(168,85,247,0.2)' }} />
+            <div style={{ width: 140, height: 10, borderRadius: 6, background: 'var(--bg-elevated)' }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {Array.from({ length: 7 }, (_, row) => (
               <div key={row} style={{ display: 'flex', gap: 2 }}>
-                {Array.from({ length: 20 }, (_, col) => (
+                {Array.from({ length: 22 }, (_, col) => (
                   <div
                     key={col}
                     style={{
-                      flex: 1, height: 12, borderRadius: 2,
-                      background: `rgba(168,85,247,${(0.15 + Math.abs(Math.sin(row * 5 + col * 2.1)) * 0.6).toFixed(2)})`,
+                      flex: 1, height: 14, borderRadius: 2,
+                      background: `rgba(168,85,247,${(0.08 + Math.abs(Math.sin(row * 4.3 + col * 1.7)) * 0.65).toFixed(2)})`,
                     }}
                   />
                 ))}
@@ -160,53 +163,91 @@ function BlurTeaser({ onUnlock }: { onUnlock: () => void }) {
             ))}
           </div>
         </div>
-        {/* Fake chart */}
-        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px' }}>
-          <div style={{ width: 130, height: 10, borderRadius: 6, background: 'var(--bg-elevated)', marginBottom: 16 }} />
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 72 }}>
-            {[55, 80, 40, 70, 30, 90, 45].map((h, i) => (
-              <div key={i} style={{ flex: 1, borderRadius: '4px 4px 0 0', height: `${h}%`, background: `rgba(168,85,247,${0.25 + i * 0.08})` }} />
+        {/* Fake rate card */}
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 18, padding: '20px 24px' }}>
+          <div style={{ width: 120, height: 10, borderRadius: 6, background: 'var(--bg-elevated)', marginBottom: 14 }} />
+          {[80, 60, 90, 45].map((w, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: i < 3 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+              <div style={{ width: `${w}px`, height: 8, borderRadius: 4, background: 'var(--bg-elevated)' }} />
+              <div style={{ width: 60, height: 8, borderRadius: 4, background: 'rgba(168,85,247,0.25)' }} />
+            </div>
+          ))}
+        </div>
+        {/* Fake hashtag card */}
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 18, padding: '18px 24px' }}>
+          <div style={{ width: 100, height: 10, borderRadius: 6, background: 'var(--bg-elevated)', marginBottom: 12 }} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {[70, 90, 55, 80, 65, 75, 50, 85].map((w, i) => (
+              <div key={i} style={{ width: w, height: 22, borderRadius: 99, background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.2)' }} />
             ))}
           </div>
         </div>
       </div>
 
-      {/* Gradient veil */}
+      {/* Strong gradient veil */}
       <div
         style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(to bottom, rgba(10,10,16,0) 0%, rgba(10,10,16,0.7) 50%, var(--bg-base) 100%)',
+          background: 'linear-gradient(to bottom, rgba(10,10,16,0) 0%, rgba(10,10,16,0.55) 35%, rgba(10,10,16,0.92) 65%, var(--bg-base) 90%)',
+        }}
+      />
+
+      {/* Lock CTA — centered vertically in the lower half */}
+      <div
+        style={{
+          position: 'absolute', inset: 0,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end',
           paddingBottom: 32,
         }}
       >
         <motion.button
           onClick={onUnlock}
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
-            cursor: 'pointer', background: 'none', border: 'none',
-          }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, cursor: 'pointer', background: 'none', border: 'none' }}
         >
+          {/* Pulsing ring + lock */}
+          <div style={{ position: 'relative', width: 60, height: 60 }}>
+            <motion.div
+              animate={{ scale: [1, 1.25, 1], opacity: [0.4, 0, 0.4] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+              style={{
+                position: 'absolute', inset: -8, borderRadius: '50%',
+                border: '2px solid rgba(168,85,247,0.5)',
+              }}
+            />
+            <div
+              style={{
+                width: 60, height: 60, borderRadius: 16,
+                background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(124,58,237,0.1))',
+                border: '1px solid rgba(168,85,247,0.4)',
+                boxShadow: '0 0 32px rgba(168,85,247,0.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <Lock size={22} color="var(--brand-mid)" />
+            </div>
+          </div>
+
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: 15, fontWeight: 800, color: 'white', marginBottom: 3, letterSpacing: '-0.01em' }}>
+              6 deep insights locked below
+            </p>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+              Best posting time · Rate card · Hook rewrites · Hashtags
+            </p>
+          </div>
+
           <div
             style={{
-              width: 52, height: 52, borderRadius: 14,
-              background: 'var(--bg-surface)',
-              border: '1px solid rgba(168,85,247,0.4)',
-              boxShadow: '0 0 24px rgba(168,85,247,0.2)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 16px', borderRadius: 99,
+              background: 'rgba(168,85,247,0.12)',
+              border: '1px solid rgba(168,85,247,0.25)',
             }}
           >
-            <Lock size={20} color="var(--brand-mid)" />
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 3 }}>6 deep insights hidden below</p>
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Unlock your full report</p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--brand-mid)' }}>
-            <ArrowDown size={13} />
-            <span style={{ fontSize: 12, fontWeight: 600 }}>See pricing ↓</span>
+            <ArrowDown size={13} style={{ color: 'var(--brand-mid)' }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-mid)' }}>See the offer below</span>
           </div>
         </motion.button>
       </div>

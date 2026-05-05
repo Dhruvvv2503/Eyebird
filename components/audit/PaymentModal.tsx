@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { ShieldCheck, Zap, Check, X, Tag } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShieldCheck, Clock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import { isValidEmail } from '@/lib/utils';
 import { showToast } from '@/components/ui/Toast';
 
@@ -13,102 +13,98 @@ interface PaymentModalProps {
   onSuccess: () => void;
 }
 
-const LOCKED_ITEMS = [
-  { emoji: '⚡', title: 'Your exact best time to post', desc: "We analysed 90 days of data — it's not what you'd guess" },
-  { emoji: '📉', title: '3 growth leaks killing your reach', desc: 'With exact, week-by-week action steps to fix each one' },
-  { emoji: '#️⃣', title: '22 niche-matched hashtags', desc: 'Not generic. Pulled from accounts like yours that are growing' },
-  { emoji: '💰', title: 'Your full brand rate card', desc: 'Story, Reel, Carousel + monthly retainer in INR' },
-  { emoji: '✏️', title: 'AI-rewritten bio', desc: 'A version that converts visitors into followers' },
-  { emoji: '🔁', title: 'Your weakest hook — rewritten', desc: "The one caption that's losing you the most viewers" },
+const FEATURES = [
+  { emoji: '⚡', title: 'Best time to post', desc: 'Your audience\'s real activity window' },
+  { emoji: '📉', title: '3 growth leaks', desc: 'Week-by-week fixes, ranked by impact' },
+  { emoji: '#️⃣', title: '22 goldzone hashtags', desc: 'Niche-matched. Not generic.' },
+  { emoji: '💰', title: 'Your brand rate card', desc: 'Story, Reel, Carousel — in INR' },
+  { emoji: '✏️', title: 'AI-rewritten bio', desc: 'Converts visitors into followers' },
+  { emoji: '🔁', title: 'Weakest hook rewritten', desc: 'The one losing you the most viewers' },
 ];
+
+const loadRazorpay = (): Promise<boolean> => new Promise((resolve) => {
+  if ((window as any).Razorpay) { resolve(true); return; }
+  const s = document.createElement('script');
+  s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+  s.onload = () => resolve(true);
+  s.onerror = () => resolve(false);
+  document.body.appendChild(s);
+});
 
 export default function PaymentModal({ igUserId, auditId, username, onSuccess }: PaymentModalProps) {
   const [email, setEmail] = useState('');
-  const [promoCode, setPromoCode] = useState('LAUNCH');
-  const [promoApplied, setPromoApplied] = useState(false);
-  const [promoError, setPromoError] = useState(false);
-  const [promoShake, setPromoShake] = useState(false);
-  const [promoLoading, setPromoLoading] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Always ₹99 — launch price. Promo kept as UX element.
-  const displayAmount = 99;
-  const originalAmount = 299;
-
-  const handleValidatePromo = async () => {
-    if (!promoCode.trim()) return;
-    setPromoLoading(true);
-    setPromoError(false);
-    setPromoApplied(false);
-    try {
-      const res = await fetch('/api/payment/validate-promo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promoCode.trim().toUpperCase(), baseAmount: originalAmount }),
-      });
-      const data = await res.json();
-      if (data.valid) {
-        setPromoApplied(true);
-      } else {
-        setPromoError(true);
-        setPromoShake(true);
-        setTimeout(() => setPromoShake(false), 500);
-      }
-    } catch {
-      setPromoError(true);
-    } finally {
-      setPromoLoading(false);
-    }
-  };
-
-  const loadRazorpay = (): Promise<boolean> => new Promise((resolve) => {
-    if ((window as any).Razorpay) { resolve(true); return; }
-    const s = document.createElement('script');
-    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    s.onload = () => resolve(true);
-    s.onerror = () => resolve(false);
-    document.body.appendChild(s);
-  });
-
   const handlePay = async () => {
-    if (!isValidEmail(email)) { showToast('Please enter a valid email address.', 'error'); return; }
+    if (!isValidEmail(email)) {
+      showToast('Please enter a valid email address.', 'error');
+      return;
+    }
     setLoading(true);
     try {
       const loaded = await loadRazorpay();
-      if (!loaded) { showToast('Could not load payment gateway. Check your connection.', 'error'); setLoading(false); return; }
+      if (!loaded) {
+        showToast('Could not load payment gateway. Check your connection.', 'error');
+        setLoading(false);
+        return;
+      }
 
       const orderRes = await fetch('/api/payment/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ igUserId, email }),
       });
-      if (!orderRes.ok) { showToast('Payment could not start. Please try again.', 'error'); setLoading(false); return; }
+
+      if (!orderRes.ok) {
+        showToast('Payment could not start. Please try again.', 'error');
+        setLoading(false);
+        return;
+      }
+
       const { orderId, keyId, amount } = await orderRes.json();
 
       const rzp = new (window as any).Razorpay({
-        key: keyId, amount, currency: 'INR', order_id: orderId,
-        name: 'Eyebird', description: `Full Audit Report — @${username}`,
-        prefill: { email }, theme: { color: '#A855F7' },
+        key: keyId,
+        amount,
+        currency: 'INR',
+        order_id: orderId,
+        name: 'Eyebird',
+        description: `Full Audit Report — @${username}`,
+        prefill: { email },
+        theme: { color: '#A855F7' },
         handler: async (response: any) => {
           try {
             const verifyRes = await fetch('/api/payment/verify', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 orderId: response.razorpay_order_id,
                 paymentId: response.razorpay_payment_id,
                 signature: response.razorpay_signature,
-                igUserId, auditId, email,
+                igUserId,
+                auditId,
+                email,
               }),
             });
-            if (verifyRes.ok) { showToast('🎉 Report unlocked! Check your email for the PDF.', 'success'); onSuccess(); }
-            else showToast("Couldn't verify payment. Email support@eyebird.in if charged.", 'error');
-          } catch { showToast('Verification error. Contact support@eyebird.in if charged.', 'error'); }
-          finally { setLoading(false); }
+            if (verifyRes.ok) {
+              showToast('🎉 Report unlocked! Check your email for the PDF.', 'success');
+              onSuccess();
+            } else {
+              showToast("Couldn't verify payment. Email support@eyebird.in if charged.", 'error');
+            }
+          } catch {
+            showToast('Verification error. Contact support@eyebird.in if charged.', 'error');
+          } finally {
+            setLoading(false);
+          }
         },
         modal: { ondismiss: () => setLoading(false) },
       });
       rzp.open();
-    } catch { showToast('Something went wrong. Please try again.', 'error'); setLoading(false); }
+    } catch {
+      showToast('Something went wrong. Please try again.', 'error');
+      setLoading(false);
+    }
   };
 
   return (
@@ -117,160 +113,212 @@ export default function PaymentModal({ igUserId, auditId, username, onSuccess }:
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="rounded-2xl overflow-hidden"
-      style={{
-        background: 'var(--bg-surface)',
-        border: '2px solid var(--border-brand)',
-        boxShadow: '0 0 40px rgba(168,85,247,0.18), var(--shadow-xl)',
-      }}
+      style={{ position: 'relative' }}
     >
-      {/* Top accent bar */}
-      <div className="h-1" style={{ background: 'var(--gradient-brand)' }} />
+      {/* Outer glow */}
+      <div
+        style={{
+          position: 'absolute', inset: -1,
+          borderRadius: 24,
+          background: 'linear-gradient(135deg, rgba(168,85,247,0.5) 0%, rgba(255,62,128,0.3) 50%, rgba(124,58,237,0.4) 100%)',
+          filter: 'blur(8px)',
+          opacity: 0.6,
+          pointerEvents: 'none',
+        }}
+      />
 
-      <div className="p-6 md:p-8">
+      {/* Main card */}
+      <div
+        style={{
+          position: 'relative',
+          borderRadius: 22,
+          overflow: 'hidden',
+          background: 'var(--bg-surface)',
+          border: '1px solid rgba(168,85,247,0.25)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+        }}
+      >
+        {/* Brand gradient line */}
+        <div style={{ height: 2, background: 'linear-gradient(90deg, #FF3E80 0%, #A855F7 50%, #7C3AED 100%)' }} />
 
-        {/* Header */}
-        <h2 className="text-xl font-black mb-1 tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-          Your full playbook is ready.
-        </h2>
-        <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-          Just needs one click. Brands in your niche pay ₹1,500–₹3,000 per Reel. Your exact rate card is inside.
-        </p>
+        <div style={{ padding: '28px 28px 24px' }}>
 
-        {/* Locked items */}
-        <div className="rounded-xl overflow-hidden mb-6" style={{ border: '1px solid var(--border)' }}>
-          {LOCKED_ITEMS.map((item, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-3 px-4 py-3"
-              style={{ borderBottom: i < LOCKED_ITEMS.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}
-            >
-              <span className="text-lg shrink-0 mt-0.5">{item.emoji}</span>
-              <div>
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{item.title}</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{item.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="section-divider mb-6" />
-
-        {/* Urgency */}
-        <div className="flex items-center gap-2 mb-5 px-3 py-2 rounded-lg" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)' }}>
-          <span
-            className="w-2 h-2 rounded-full shrink-0"
-            style={{ background: 'var(--danger)', boxShadow: '0 0 6px var(--danger)', animation: 'pulse-glow 2s infinite' }}
-          />
-          <p className="text-sm font-semibold" style={{ color: 'var(--danger)' }}>
-            🚨 Launch Offer — Ends Soon. Price goes to ₹299.
-          </p>
-        </div>
-
-        {/* Price */}
-        <div className="flex items-end gap-3 mb-1">
-          <span className="text-xl line-through font-medium" style={{ color: 'var(--text-tertiary)' }}>₹{originalAmount}</span>
-          <span
-            className="font-black"
-            style={{ fontSize: 52, letterSpacing: '-0.05em', lineHeight: 1, background: 'var(--gradient-brand)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
-          >
-            ₹{displayAmount}
-          </span>
-          <span className="mb-1.5 badge badge-success">66% off</span>
-        </div>
-        <p className="text-xs mb-6" style={{ color: 'var(--text-tertiary)' }}>
-          One-time payment · Instant PDF delivery · No subscription
-        </p>
-
-        {/* Promo code */}
-        <div className="mb-4">
-          <label className="block text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
-            Have a promo code?
-          </label>
-          <div className={`flex gap-2 ${promoShake ? 'animate-shake' : ''}`}>
-            <div className="relative flex-1">
-              <Tag size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }} />
-              <input
-                type="text"
-                value={promoCode}
-                onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoApplied(false); setPromoError(false); }}
-                onKeyDown={e => e.key === 'Enter' && handleValidatePromo()}
-                placeholder="LAUNCH"
-                className="input pl-8 font-mono uppercase text-sm"
+          {/* Header */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <div
                 style={{
-                  borderColor: promoApplied ? 'var(--success)' : promoError ? 'var(--danger)' : undefined,
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: 'var(--danger)',
+                  boxShadow: '0 0 8px var(--danger)',
+                  animation: 'pulse-glow 2s infinite',
                 }}
               />
-              {promoApplied && (
-                <Check size={14} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--success)' }} />
-              )}
-              {promoError && (
-                <X size={14} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--danger)' }} />
-              )}
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--danger)' }}>
+                Launch offer — ends soon
+              </span>
             </div>
-            <button
-              onClick={handleValidatePromo}
-              disabled={promoLoading || !promoCode.trim()}
-              className="btn btn-secondary text-sm px-5 rounded-xl shrink-0"
+            <h2 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.03em', color: 'var(--text-primary)', lineHeight: 1.2, marginBottom: 6 }}>
+              Your full playbook is ready.
+            </h2>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              Brands in your niche pay ₹1,500–₹3,000 per Reel. Your exact rate card is one click away.
+            </p>
+          </div>
+
+          {/* Feature 2×3 grid */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: 8,
+              marginBottom: 24,
+            }}
+          >
+            {FEATURES.map((f, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 8 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.06, duration: 0.3 }}
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  display: 'flex',
+                  gap: 10,
+                  alignItems: 'flex-start',
+                }}
+              >
+                <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{f.emoji}</span>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {f.title}
+                  </p>
+                  <p style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>{f.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 20 }} />
+
+          {/* Price block */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+            <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-tertiary)', textDecoration: 'line-through' }}>₹299</span>
+            <span
+              style={{
+                fontSize: 52, fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1,
+                background: 'linear-gradient(135deg, #FF3E80 0%, #A855F7 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
             >
-              {promoLoading ? '…' : 'Apply'}
-            </button>
-          </div>
-          {promoApplied && (
-            <p className="text-xs mt-1.5 font-medium" style={{ color: 'var(--success)' }}>✓ ₹200 off applied!</p>
-          )}
-          {promoError && (
-            <p className="text-xs mt-1.5 font-medium" style={{ color: 'var(--danger)' }}>Invalid code. Try LAUNCH.</p>
-          )}
-        </div>
-
-        {/* Email */}
-        <div className="mb-5">
-          <label className="block text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
-            Where should we send your full report?
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="your@email.com"
-            className="input text-sm"
-            style={{ height: 48 }}
-          />
-        </div>
-
-        {/* CTA */}
-        <motion.button
-          onClick={handlePay}
-          disabled={loading || !email}
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
-          className="btn btn-primary w-full font-bold"
-          style={{ height: 56, fontSize: 15, borderRadius: 'var(--r-xl)' }}
-        >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-              </svg>
-              Processing payment...
+              ₹99
             </span>
-          ) : 'Yes, Show Me Everything →'}
-        </motion.button>
-
-        {/* Trust */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
-          <div className="flex items-center gap-1.5">
-            <ShieldCheck size={13} style={{ color: 'var(--text-tertiary)' }} />
-            <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Secure via Razorpay</span>
+            <span
+              style={{
+                fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 99,
+                background: 'rgba(34,197,94,0.12)',
+                color: 'var(--success)',
+                border: '1px solid rgba(34,197,94,0.25)',
+                letterSpacing: '0.04em',
+              }}
+            >
+              66% OFF
+            </span>
           </div>
-          <span className="text-xs" style={{ color: 'var(--border-bright)' }}>·</span>
-          <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Instant PDF delivery</span>
-          <span className="text-xs" style={{ color: 'var(--border-bright)' }}>·</span>
-          <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>One-time only</span>
-        </div>
+          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 22 }}>
+            One-time payment · Instant PDF delivery · No subscription
+          </p>
 
+          {/* Email */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
+              Where should we send your full report?
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Mail
+                size={14}
+                style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }}
+              />
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handlePay()}
+                placeholder="your@email.com"
+                className="input"
+                style={{
+                  height: 48,
+                  paddingLeft: 38,
+                  fontSize: 14,
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  borderRadius: 12,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* CTA */}
+          <motion.button
+            onClick={handlePay}
+            disabled={loading || !email}
+            whileHover={loading || !email ? {} : { scale: 1.01, boxShadow: '0 8px 32px rgba(168,85,247,0.4)' }}
+            whileTap={loading || !email ? {} : { scale: 0.99 }}
+            style={{
+              width: '100%',
+              height: 54,
+              borderRadius: 14,
+              border: 'none',
+              cursor: loading || !email ? 'not-allowed' : 'pointer',
+              background: loading || !email
+                ? 'rgba(168,85,247,0.3)'
+                : 'linear-gradient(135deg, #FF3E80 0%, #A855F7 50%, #7C3AED 100%)',
+              color: 'white',
+              fontSize: 15,
+              fontWeight: 800,
+              letterSpacing: '-0.01em',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              marginBottom: 16,
+              transition: 'background 0.3s ease',
+              boxShadow: loading || !email ? 'none' : '0 4px 20px rgba(168,85,247,0.35)',
+            }}
+          >
+            {loading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Processing payment...
+              </>
+            ) : (
+              <>
+                Yes, Show Me Everything
+                <ArrowRight size={16} />
+              </>
+            )}
+          </motion.button>
+
+          {/* Trust row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <ShieldCheck size={12} style={{ color: 'var(--text-tertiary)' }} />
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Secure via Razorpay</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Clock size={12} style={{ color: 'var(--text-tertiary)' }} />
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Instant delivery</span>
+            </div>
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>One-time only</span>
+          </div>
+
+        </div>
       </div>
     </motion.div>
   );
