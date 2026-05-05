@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle, RefreshCw, Lock, CheckCircle2,
-  ArrowDown, TrendingUp, TrendingDown, Zap,
+  ArrowDown, TrendingUp, TrendingDown, Zap, Mail, Send, Loader2,
 } from 'lucide-react';
 import ScoreRing from '@/components/ui/ScoreRing';
 import PaymentModal from '@/components/audit/PaymentModal';
@@ -522,6 +522,13 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
                 </p>
               </div>
               <PaidReport ai={ai} m={m} />
+
+              {/* ── Send to Email CTA ── */}
+              <EmailReportButton igUserId={igUserId} />
+
+              {/* ── Audit Another Account ── */}
+              <AuditAnotherCTA />
+
             </motion.div>
           )}
 
@@ -532,3 +539,156 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
     </>
   );
 }
+
+/* ── Email report button ── */
+function EmailReportButton({ igUserId }: { igUserId: string }) {
+  const [email, setEmail] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleSend = async () => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showToast('Please enter a valid email address.', 'error');
+      return;
+    }
+    setSending(true);
+    try {
+      const res = await fetch('/api/email/send-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ igUserId, email }),
+      });
+      if (res.ok) {
+        setSent(true);
+        showToast('📬 Report sent! Check your inbox.', 'success');
+      } else {
+        showToast('Failed to send. Please try again.', 'error');
+      }
+    } catch {
+      showToast('Something went wrong. Please try again.', 'error');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }} transition={{ duration: 0.45, delay: 0.1 }}
+      style={{
+        marginTop: 24, borderRadius: 20, overflow: 'hidden',
+        background: 'var(--bg-surface)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+      }}
+    >
+      <div style={{ height: 2, background: 'linear-gradient(90deg,#A855F7,#7C3AED)' }} />
+      <div style={{ padding: '24px 28px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+          <div style={{ width: 3, height: 14, borderRadius: 2, background: 'linear-gradient(180deg,#A855F7,#7C3AED)' }} />
+          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#A855F7', margin: 0 }}>Send to Email</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 11, marginBottom: 16 }}>
+          <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Mail size={14} style={{ color: '#A855F7' }} />
+          </div>
+          <h3 style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.03em', color: 'white', margin: 0 }}>
+            {sent ? 'Report sent to your inbox ✉️' : 'Get this report in your email'}
+          </h3>
+        </div>
+
+        {!sent ? (
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Mail size={13} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }} />
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSend()}
+                placeholder="your@email.com"
+                className="input"
+                style={{ height: 44, paddingLeft: 36, fontSize: 14, width: '100%', boxSizing: 'border-box', borderRadius: 12 }}
+              />
+            </div>
+            <button
+              onClick={handleSend}
+              disabled={sending || !email}
+              style={{
+                height: 44, padding: '0 20px', borderRadius: 12, border: 'none',
+                background: sending || !email ? 'rgba(168,85,247,0.3)' : 'linear-gradient(135deg,#A855F7,#7C3AED)',
+                color: 'white', fontSize: 14, fontWeight: 700,
+                cursor: sending || !email ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
+                boxShadow: sending || !email ? 'none' : '0 4px 16px rgba(168,85,247,0.3)',
+              }}
+            >
+              {sending ? (
+                <><Loader2 size={14} className="animate-spin" /> Sending…</>
+              ) : (
+                <><Send size={14} /> Send Report</>
+              )}
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 12, background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}>
+            <CheckCircle2 size={16} style={{ color: '#22C55E' }} />
+            <p style={{ fontSize: 14, color: '#22C55E', fontWeight: 600 }}>
+              Full report sent to <strong>{email}</strong>. Check spam if you don't see it.
+            </p>
+          </div>
+        )}
+        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', marginTop: 10 }}>
+          Includes: hook table, hashtags, rate card, bio rewrite &amp; action plan. No subscription — one-time report.
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ── Audit another account CTA ── */
+function AuditAnotherCTA() {
+  const handleClick = () => {
+    try { localStorage.removeItem('eb_connected_user'); } catch { /* */ }
+    window.location.href = '/audit';
+  };
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }} transition={{ duration: 0.45, delay: 0.15 }}
+      style={{ marginTop: 16, marginBottom: 48 }}
+    >
+      <div style={{
+        padding: '28px', borderRadius: 20, textAlign: 'center',
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
+      }}>
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', marginBottom: 14 }}>
+          Want to audit a different Instagram account?
+        </p>
+        <button
+          onClick={handleClick}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '11px 22px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.12)',
+            background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.7)',
+            fontSize: 14, fontWeight: 600, cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.07)';
+            (e.currentTarget as HTMLButtonElement).style.color = 'white';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)';
+            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.7)';
+          }}
+        >
+          <RefreshCw size={15} />
+          Audit Another Account
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
