@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ShieldCheck, Clock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import { isValidEmail } from '@/lib/utils';
 import { showToast } from '@/components/ui/Toast';
@@ -22,14 +22,6 @@ const FEATURES = [
   { emoji: '🔁', title: 'Weakest hook rewritten', desc: 'The one losing you the most viewers' },
 ];
 
-const loadRazorpay = (): Promise<boolean> => new Promise((resolve) => {
-  if ((window as any).Razorpay) { resolve(true); return; }
-  const s = document.createElement('script');
-  s.src = 'https://checkout.razorpay.com/v1/checkout.js';
-  s.onload = () => resolve(true);
-  s.onerror = () => resolve(false);
-  document.body.appendChild(s);
-});
 
 export default function PaymentModal({ igUserId, auditId, username, onSuccess }: PaymentModalProps) {
   const [email, setEmail] = useState('');
@@ -42,85 +34,23 @@ export default function PaymentModal({ igUserId, auditId, username, onSuccess }:
     }
     setLoading(true);
     try {
-      const loaded = await loadRazorpay();
-      if (!loaded) {
-        showToast('Could not load payment gateway. Check your connection.', 'error');
-        setLoading(false);
-        return;
-      }
-
-      const orderRes = await fetch('/api/payment/create-order', {
+      const res = await fetch('/api/payment/bypass', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ igUserId, email }),
+        body: JSON.stringify({ igUserId, auditId, email }),
       });
 
-      if (!orderRes.ok) {
-        showToast('Payment could not start. Please try again.', 'error');
+      if (!res.ok) {
+        showToast('Something went wrong. Please try again.', 'error');
         setLoading(false);
         return;
       }
 
-      const { orderId, keyId, amount } = await orderRes.json();
-
-      if (!keyId) {
-        showToast('Payment configuration error. Please contact support.', 'error');
-        setLoading(false);
-        return;
-      }
-
-      const rzp = new (window as any).Razorpay({
-        key: keyId,
-        amount,
-        currency: 'INR',
-        order_id: orderId,
-        name: 'Eyebird',
-        description: `Full Audit Report — @${username}`,
-        prefill: { email },
-        theme: { color: '#A855F7' },
-        handler: async (response: any) => {
-          try {
-            const verifyRes = await fetch('/api/payment/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                orderId: response.razorpay_order_id,
-                paymentId: response.razorpay_payment_id,
-                signature: response.razorpay_signature,
-                igUserId,
-                auditId,
-                email,
-              }),
-            });
-            if (verifyRes.ok) {
-              showToast('🎉 Report unlocked! Check your email for the PDF.', 'success');
-              onSuccess();
-            } else {
-              showToast("Couldn't verify payment. Email support@eyebird.in if charged.", 'error');
-            }
-          } catch {
-            showToast('Verification error. Contact support@eyebird.in if charged.', 'error');
-          } finally {
-            setLoading(false);
-          }
-        },
-        modal: {
-          ondismiss: () => setLoading(false),
-          confirm_close: false,
-        },
-        // Razorpay payment failure callback
-      });
-
-      rzp.on('payment.failed', (response: any) => {
-        console.error('[payment] failed:', response.error);
-        const reason = response.error?.description || response.error?.reason || 'Payment failed';
-        showToast(`Payment failed: ${reason}`, 'error');
-        setLoading(false);
-      });
-
-      rzp.open();
+      showToast('🎉 Full report unlocked! Check your email too.', 'success');
+      onSuccess();
     } catch {
       showToast('Something went wrong. Please try again.', 'error');
+    } finally {
       setLoading(false);
     }
   };
@@ -224,33 +154,32 @@ export default function PaymentModal({ igUserId, auditId, username, onSuccess }:
           {/* Divider */}
           <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 20 }} />
 
-          {/* Price block */}
+          {/* Price block — free bypass mode */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
-            <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-tertiary)', textDecoration: 'line-through' }}>₹299</span>
             <span
               style={{
-                fontSize: 52, fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1,
-                background: 'linear-gradient(135deg, #FF3E80 0%, #A855F7 100%)',
+                fontSize: 36, fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1,
+                background: 'linear-gradient(135deg, #22C55E 0%, #A855F7 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}
             >
-              ₹99
+              Free
             </span>
             <span
               style={{
-                fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 99,
+                fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 99,
                 background: 'rgba(34,197,94,0.12)',
                 color: 'var(--success)',
                 border: '1px solid rgba(34,197,94,0.25)',
                 letterSpacing: '0.04em',
               }}
             >
-              66% OFF
+              LIMITED BETA
             </span>
           </div>
           <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 22 }}>
-            One-time payment · Instant PDF delivery · No subscription
+            Early access · Full report · No payment needed right now
           </p>
 
           {/* Email */}
@@ -313,11 +242,11 @@ export default function PaymentModal({ igUserId, auditId, username, onSuccess }:
             {loading ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
-                Processing payment...
+                Unlocking your report...
               </>
             ) : (
               <>
-                Yes, Show Me Everything
+                Unlock Full Report Free
                 <ArrowRight size={16} />
               </>
             )}
@@ -327,13 +256,13 @@ export default function PaymentModal({ igUserId, auditId, username, onSuccess }:
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <ShieldCheck size={12} style={{ color: 'var(--text-tertiary)' }} />
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Secure via Razorpay</span>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Your data is safe</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <Clock size={12} style={{ color: 'var(--text-tertiary)' }} />
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Instant delivery</span>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Instant access</span>
             </div>
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>One-time only</span>
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>No credit card needed</span>
           </div>
 
         </div>
