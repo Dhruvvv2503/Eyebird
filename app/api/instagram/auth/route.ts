@@ -15,7 +15,7 @@ export async function GET() {
     }
 
     const redirectUri = getInstagramRedirectUri();
-    const oauthUrl = `https://api.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=instagram_business_basic,instagram_business_manage_insights,instagram_business_manage_messages,instagram_business_content_publish`;
+    const oauthUrl = `https://www.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=instagram_business_basic,instagram_business_manage_insights,instagram_business_manage_messages,instagram_business_content_publish`;
 
     return NextResponse.redirect(oauthUrl);
   } catch (err) {
