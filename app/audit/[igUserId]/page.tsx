@@ -151,26 +151,18 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
 
       setLoadingStep(5);
 
-      // Step 3: Load the audit from Supabase
-      const { supabaseAdmin } = await import('@/lib/supabase-admin');
-      const { data: audit, error: auditError } = await supabaseAdmin
-        .from('audits')
-        .select('*')
-        .eq('ig_user_id', igUserId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      // Step 3: Load the audit from backend
+      const fetchAuditRes = await fetch('/api/audit/fetch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ igUserId }),
+      });
 
-      if (auditError || !audit) {
+      if (!fetchAuditRes.ok) {
         throw new Error('Audit data not found after generation');
       }
 
-      // Fetch account profile for display
-      const { data: account } = await supabaseAdmin
-        .from('instagram_accounts')
-        .select('username, followers_count, profile_picture_url, biography, media_count')
-        .eq('ig_user_id', igUserId)
-        .single();
+      const { audit, account } = await fetchAuditRes.json();
 
       // Merge into the shape the UI expects
       const mergedData: AuditData = {
