@@ -51,7 +51,7 @@ export default function Navbar() {
   const handleDisconnect = () => {
     localStorage.removeItem('eb_connected_user');
     setConnected(null);
-    window.location.href = '/audit';
+    window.location.href = '/';
   };
 
   const links = [
