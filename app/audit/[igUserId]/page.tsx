@@ -305,99 +305,112 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
         {/* ═══════════════════════════════════════════════════════════
             HERO — Full-bleed, gradient mesh, matches landing page
         ═══════════════════════════════════════════════════════════ */}
-        <section style={{ position: 'relative', overflow: 'hidden', paddingTop: 72, paddingBottom: 64 }}>
+        <section style={{ position: 'relative', overflow: 'hidden', paddingTop: 64, paddingBottom: 40 }}>
           {/* Background gradient mesh — matches landing page */}
           <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-            <div style={{ position: 'absolute', top: '-20%', left: '15%', width: 600, height: 500, background: 'radial-gradient(ellipse, rgba(124,58,237,0.2) 0%, transparent 70%)', filter: 'blur(60px)' }} />
-            <div style={{ position: 'absolute', top: '-10%', right: '10%', width: 400, height: 350, background: 'radial-gradient(ellipse, rgba(255,62,128,0.12) 0%, transparent 70%)', filter: 'blur(50px)' }} />
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 120, background: 'linear-gradient(to bottom, transparent, var(--bg-base))' }} />
+            <div style={{ position: 'absolute', top: '-30%', left: '10%', width: 700, height: 600, background: 'radial-gradient(ellipse, rgba(124,58,237,0.22) 0%, transparent 65%)', filter: 'blur(70px)' }} />
+            <div style={{ position: 'absolute', top: '-10%', right: '5%', width: 450, height: 400, background: 'radial-gradient(ellipse, rgba(255,62,128,0.14) 0%, transparent 65%)', filter: 'blur(60px)' }} />
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 100, background: 'linear-gradient(to bottom, transparent, var(--bg-base))' }} />
           </div>
 
-          <div style={{ position: 'relative', zIndex: 1, maxWidth: 720, margin: '0 auto', padding: '0 20px' }}>
+          <div style={{ position: 'relative', zIndex: 1, maxWidth: 760, margin: '0 auto', padding: '0 24px' }}>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             >
-              {/* Profile row */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 40 }}>
-                <div
-                  style={{
-                    width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
-                    border: '2px solid rgba(168,85,247,0.5)',
-                    boxShadow: '0 0 0 4px rgba(168,85,247,0.1), 0 0 24px rgba(168,85,247,0.3)',
-                    background: 'var(--bg-elevated)',
-                  }}
-                >
-                  {m.profilePictureUrl ? (
-                    <Image src={m.profilePictureUrl} alt={`@${username}`} width={64} height={64} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-                  ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>👤</div>
-                  )}
-                </div>
-                <div>
-                  <h1 style={{ fontSize: 'clamp(20px, 4vw, 26px)', fontWeight: 900, letterSpacing: '-0.03em', color: 'white', lineHeight: 1.1 }}>
-                    @{username}
-                  </h1>
-                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>
-                    {(m.followers || 0).toLocaleString('en-IN')} followers · {m.mediaCount || 0} posts · Audited {formatDate(data.created_at)}
-                  </p>
-                </div>
-              </div>
+              {/* Glassmorphic hero card */}
+              <div
+                style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 24,
+                  padding: '32px 32px 28px',
+                  backdropFilter: 'blur(12px)',
+                  boxShadow: '0 8px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)',
+                }}
+              >
+                {/* Brand gradient top border */}
+                <div style={{ height: 1, background: 'linear-gradient(90deg, rgba(168,85,247,0.8) 0%, rgba(255,62,128,0.4) 50%, transparent 100%)', marginBottom: 28, borderRadius: 1 }} />
 
-              {/* Score + info layout */}
-              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 48, flexWrap: 'wrap' }}>
-
-                {/* Left: Score ring */}
-                <div style={{ flexShrink: 0 }}>
-                  <ScoreRing score={overall_score} size={172} strokeWidth={11} />
-                </div>
-
-                {/* Right: Verdict + stats */}
-                <div style={{ flex: 1, minWidth: 220, paddingTop: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                    <span style={{ fontSize: 20 }}>{scoreMeta.emoji}</span>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: scoreMeta.color, letterSpacing: '-0.02em' }}>
-                      {scoreMeta.label}
-                    </span>
+                {/* Profile row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
+                  <div
+                    style={{
+                      width: 72, height: 72, borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
+                      border: '2px solid rgba(168,85,247,0.6)',
+                      boxShadow: '0 0 0 5px rgba(168,85,247,0.08), 0 0 30px rgba(168,85,247,0.35)',
+                      background: 'var(--bg-elevated)',
+                    }}
+                  >
+                    {m.profilePictureUrl ? (
+                      <Image src={m.profilePictureUrl} alt={`@${username}`} width={72} height={72} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>👤</div>
+                    )}
                   </div>
-
-                  {ai.engagement_verdict && (
-                    <p style={{ fontSize: 14, lineHeight: 1.7, color: 'rgba(255,255,255,0.6)', marginBottom: 24, maxWidth: 380 }}>
-                      {ai.engagement_verdict}
+                  <div>
+                    <h1 style={{ fontSize: 'clamp(20px, 3.5vw, 26px)', fontWeight: 900, letterSpacing: '-0.03em', color: 'white', lineHeight: 1.15, marginBottom: 4 }}>
+                      @{username}
+                    </h1>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+                      {(m.followers || 0).toLocaleString('en-IN')} followers · {m.mediaCount || 0} posts
                     </p>
-                  )}
-
-                  {/* Stat grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, maxWidth: 360 }}>
-                    <Stat
-                      label="Engagement"
-                      value={`${m.engagementRate}%`}
-                      sub={isEngHigh ? `${(m.engagementRate / benchNum).toFixed(1)}× avg` : `avg is ${m.benchmark}%`}
-                      accent={isEngHigh}
-                    />
-                    <Stat
-                      label="Posts / week"
-                      value={m.postsPerWeek ? `${m.postsPerWeek}` : '—'}
-                      sub="avg posting rate"
-                    />
-                    <Stat
-                      label="Best format"
-                      value={FORMAT_LABELS[bestFormatKey || 'VIDEO'] || 'Reels'}
-                      sub="highest engagement"
-                    />
-                    <Stat
-                      label="Hook score"
-                      value={`${ai.hook_avg_score}/10`}
-                      sub={ai.hook_avg_score >= 7 ? 'Above average' : ai.hook_avg_score >= 5 ? 'Average' : 'Needs work'}
-                      accent={ai.hook_avg_score >= 7}
-                    />
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Audited {formatDate(data.created_at)} · 22 signals measured</p>
                   </div>
                 </div>
-              </div>
 
-              {/* Divider to content */}
-              <div style={{ marginTop: 40, height: 1, background: 'linear-gradient(90deg, rgba(168,85,247,0.3) 0%, rgba(255,255,255,0.05) 60%, transparent 100%)' }} />
+                {/* Score + info layout */}
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 40, flexWrap: 'wrap' }}>
+
+                  {/* Left: Score ring */}
+                  <div style={{ flexShrink: 0 }}>
+                    <ScoreRing score={overall_score} size={164} strokeWidth={10} />
+                  </div>
+
+                  {/* Right: Verdict + stats */}
+                  <div style={{ flex: 1, minWidth: 200, paddingTop: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <span style={{ fontSize: 18 }}>{scoreMeta.emoji}</span>
+                      <span style={{ fontSize: 15, fontWeight: 800, color: scoreMeta.color, letterSpacing: '-0.02em' }}>
+                        {scoreMeta.label}
+                      </span>
+                    </div>
+
+                    {ai.engagement_verdict && (
+                      <p style={{ fontSize: 13, lineHeight: 1.65, color: 'rgba(255,255,255,0.55)', marginBottom: 20, maxWidth: 360 }}>
+                        {ai.engagement_verdict}
+                      </p>
+                    )}
+
+                    {/* Stat grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, maxWidth: 340 }}>
+                      <Stat
+                        label="Engagement"
+                        value={`${m.engagementRate}%`}
+                        sub={isEngHigh ? `${(m.engagementRate / benchNum).toFixed(1)}× industry avg` : `avg is ${m.benchmark}%`}
+                        accent={isEngHigh}
+                      />
+                      <Stat
+                        label="Posts / week"
+                        value={m.postsPerWeek ? `${m.postsPerWeek}` : '—'}
+                        sub="posting frequency"
+                      />
+                      <Stat
+                        label="Best format"
+                        value={FORMAT_LABELS[bestFormatKey || 'VIDEO'] || 'Reels'}
+                        sub="highest engagement"
+                      />
+                      <Stat
+                        label="Hook score"
+                        value={`${ai.hook_avg_score}/10`}
+                        sub={ai.hook_avg_score >= 7 ? 'Above average' : ai.hook_avg_score >= 5 ? 'Average' : 'Needs work'}
+                        accent={ai.hook_avg_score >= 7}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>{/* end glassmorphic card */}
             </motion.div>
           </div>
         </section>
@@ -405,10 +418,10 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
         {/* ═══════════════════════════════════════════════════════════
             BODY CONTENT
         ═══════════════════════════════════════════════════════════ */}
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 20px' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto', padding: '0 24px' }}>
 
           {/* Free metrics */}
-          <div style={{ marginTop: 48 }}>
+          <div style={{ marginTop: 32 }}>
             <FreeMetricsSection
               engagementRate={m.engagementRate}
               benchmark={m.benchmark}

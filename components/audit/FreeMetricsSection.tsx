@@ -72,6 +72,7 @@ export default function FreeMetricsSection({
 
   const formatData = Object.entries(formatBreakdown || {})
     .map(([k, v]) => ({ name: FORMAT_LABELS[k] || k, posts: v as number, key: k }))
+    .filter(d => d.posts > 0)
     .sort((a, b) => b.posts - a.posts).slice(0, 4);
 
   const totalPosts = formatData.reduce((s, d) => s + d.posts, 0);
@@ -84,8 +85,11 @@ export default function FreeMetricsSection({
         viewport={{ once: true }} transition={{ duration: 0.4 }}
         className="mb-6"
       >
-        <p className="eyebrow mb-1.5">Your snapshot</p>
-        <h2 className="text-2xl font-black tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+          <div style={{ width: 3, height: 18, borderRadius: 2, background: 'var(--gradient-brand)' }} />
+          <p className="eyebrow" style={{ marginBottom: 0 }}>Your snapshot</p>
+        </div>
+        <h2 className="text-2xl font-black tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em', paddingLeft: 13 }}>
           Here's what we found.
         </h2>
       </motion.div>
@@ -101,7 +105,7 @@ export default function FreeMetricsSection({
         {/* Top color bar */}
         <div className="h-0.5" style={{ background: isHigh ? 'var(--success)' : 'var(--danger)' }} />
 
-        <div className="p-7 md:p-8">
+        <div style={{ padding: '28px 28px 24px' }}>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
 
             {/* Left: big number */}
@@ -117,7 +121,7 @@ export default function FreeMetricsSection({
                 </span>
               </div>
               <div className="flex items-end gap-3 mb-5">
-                <span className="font-black tabular-nums" style={{ fontSize: 64, letterSpacing: '-0.05em', lineHeight: 1, color: engColor }}>
+                <span className="font-black tabular-nums" style={{ fontSize: 72, letterSpacing: '-0.05em', lineHeight: 1, color: engColor }}>
                   <CountUp to={engagementRate} decimals={2} />%
                 </span>
               </div>
@@ -174,7 +178,7 @@ export default function FreeMetricsSection({
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}
         >
           <div className="h-0.5" style={{ background: 'var(--brand-mid)' }} />
-          <div className="p-7">
+          <div style={{ padding: '28px 28px 24px' }}>
             <p className="eyebrow mb-4">Content Superpower</p>
             <div className="flex items-center gap-3 mb-4">
               <span className="text-4xl">{FORMAT_EMOJI[bestFormat] || '📹'}</span>
@@ -216,7 +220,7 @@ export default function FreeMetricsSection({
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}
         >
           <div className="h-0.5" style={{ background: hookColor }} />
-          <div className="p-7 flex flex-col h-full">
+          <div style={{ padding: '28px 28px 24px', display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className="flex items-start justify-between mb-4">
               <p className="eyebrow">Hook Strength</p>
               <span className="flex items-center gap-1 text-[10px] font-bold" style={{ color: 'var(--text-tertiary)' }}>
