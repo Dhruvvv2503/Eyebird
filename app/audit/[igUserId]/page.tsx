@@ -9,6 +9,7 @@ import BlurGate from '@/components/ui/BlurGate';
 import ActionPlanCard from '@/components/audit/ActionPlanCard';
 import PaymentModal from '@/components/audit/PaymentModal';
 import HeatmapGrid from '@/components/audit/HeatmapGrid';
+import PremiumLoadingScreen from '@/components/audit/PremiumLoadingScreen';
 import { showToast } from '@/components/ui/Toast';
 import { formatDate } from '@/lib/utils';
 import {
@@ -211,33 +212,7 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
 
   // ── Loading screen ──────────────────────────────────────────────────────────
   if (loading) {
-    return (
-      <>
-        <Navbar />
-        <main className="min-h-screen pt-14 flex flex-col items-center justify-center gap-6" style={{ background: 'var(--bg-base)' }}>
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center"
-            style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)' }}
-          >
-            <svg className="animate-spin h-7 w-7" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="rgb(168,85,247)" strokeWidth="3" />
-              <path className="opacity-75" fill="rgb(168,85,247)" d="M4 12a8 8 0 018-8v8z" />
-            </svg>
-          </div>
-          <div className="text-center">
-            <p className="font-bold text-lg mb-1" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              {LOADING_STEPS[loadingStep] || 'Analysing your Instagram…'}
-            </p>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              AI is processing 22 metrics. This takes about 30–60 seconds.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl w-full px-5 mt-4">
-            {[...Array(3)].map((_, i) => <div key={i} className="skeleton h-40 rounded-2xl" />)}
-          </div>
-        </main>
-      </>
-    );
+    return <PremiumLoadingScreen currentStepIndex={loadingStep} steps={LOADING_STEPS} />;
   }
 
   // ── Error screen ────────────────────────────────────────────────────────────
