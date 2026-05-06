@@ -5,15 +5,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import Razorpay from 'razorpay';
 
-const LAUNCH_PRICE_PAISE = 9900; // ₹99
+const BASE_PRICE_PAISE = 9900; // ₹99
 
 export async function POST(request: NextRequest) {
   try {
-    const { igUserId, email } = await request.json();
+    const { igUserId, email, amount } = await request.json();
 
     if (!igUserId || !email) {
       return NextResponse.json({ error: 'igUserId and email required' }, { status: 400 });
     }
+
+    const finalAmount = typeof amount === 'number' && amount >= 100 ? amount : BASE_PRICE_PAISE;
 
     const razorpay = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID!,
@@ -21,13 +23,13 @@ export async function POST(request: NextRequest) {
     });
 
     const order = await razorpay.orders.create({
-      amount: LAUNCH_PRICE_PAISE,
+      amount: finalAmount,
       currency: 'INR',
       receipt: `eb_${igUserId.substring(0, 10)}_${Date.now()}`,
       notes: { igUserId, email },
     });
 
-    // Also save email to instagram_accounts for marketing
+    // Save email for marketing
     await supabaseAdmin
       .from('instagram_accounts')
       .update({ email })
@@ -37,7 +39,6 @@ export async function POST(request: NextRequest) {
       orderId: order.id,
       amount: order.amount,
       currency: order.currency,
-      // fallback: use either env var — NEXT_PUBLIC_ for client, raw for server
       keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID,
     });
   } catch (err) {
