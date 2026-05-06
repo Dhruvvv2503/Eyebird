@@ -36,6 +36,8 @@ export default function AdminPage() {
   const [input, setInput] = useState('');
   const [authed, setAuthed] = useState(false);
   const [data, setData] = useState<any>(null);
+  const [promos, setPromos] = useState<any[]>([]);
+  const [promosLoading, setPromosLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<'dashboard' | 'promos'>('dashboard');
   const [promoForm, setPromoForm] = useState({ code: '', discount_type: 'percent', discount_percent: 0, flat_discount_amount: 0, max_uses: '', expires_at: '' });
@@ -49,6 +51,7 @@ export default function AdminPage() {
     if (saved) { setToken(saved); setAuthed(true); }
   }, []);
 
+  // Load dashboard stats
   const load = useCallback(async (t: string) => {
     setLoading(true);
     const res = await api('/api/admin/stats', t);
@@ -56,7 +59,23 @@ export default function AdminPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { if (authed && token) load(token); }, [authed, token, load]);
+  // Load promos separately — always fresh from /api/admin/promos
+  const loadPromos = useCallback(async (t: string) => {
+    setPromosLoading(true);
+    const res = await api('/api/admin/promos', t);
+    if (res.ok) {
+      const json = await res.json();
+      setPromos(json.promos ?? []);
+    }
+    setPromosLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (authed && token) {
+      load(token);
+      loadPromos(token);
+    }
+  }, [authed, token, load, loadPromos]);
 
   const login = () => {
     setToken(input);
@@ -66,26 +85,40 @@ export default function AdminPage() {
 
   const createPromo = async () => {
     setSaving(true); setMsg('');
-    const res = await api('/api/admin/promos', token, { method: 'POST', body: JSON.stringify({ ...promoForm, max_uses: promoForm.max_uses ? parseInt(promoForm.max_uses) : null, expires_at: promoForm.expires_at || null }) });
+    const res = await api('/api/admin/promos', token, {
+      method: 'POST',
+      body: JSON.stringify({
+        ...promoForm,
+        max_uses: promoForm.max_uses ? parseInt(promoForm.max_uses) : null,
+        expires_at: promoForm.expires_at || null,
+      }),
+    });
     setSaving(false);
-    if (res.ok) { setMsg('✅ Promo created!'); load(token); setPromoForm({ code: '', discount_type: 'percent', discount_percent: 0, flat_discount_amount: 0, max_uses: '', expires_at: '' }); }
-    else { const e = await res.json(); setMsg('❌ ' + e.error); }
+    if (res.ok) {
+      setMsg('✅ Promo created!');
+      setPromoForm({ code: '', discount_type: 'percent', discount_percent: 0, flat_discount_amount: 0, max_uses: '', expires_at: '' });
+      await loadPromos(token); // ← dedicated refresh, instant
+    } else {
+      const e = await res.json();
+      setMsg('❌ ' + (e.error || 'Failed to create'));
+    }
   };
 
   const togglePromo = async (id: string, is_active: boolean) => {
     await api('/api/admin/promos', token, { method: 'PATCH', body: JSON.stringify({ id, is_active: !is_active }) });
-    load(token);
+    await loadPromos(token);
   };
 
   const deletePromo = async (id: string) => {
     if (!confirm('Delete this promo code?')) return;
     await api('/api/admin/promos', token, { method: 'DELETE', body: JSON.stringify({ id }) });
-    load(token);
+    await loadPromos(token);
   };
 
   const saveDiscount = async (id: string) => {
     await api('/api/admin/promos', token, { method: 'PATCH', body: JSON.stringify({ id, discount_percent: editDiscount }) });
-    setEditId(null); load(token);
+    setEditId(null);
+    await loadPromos(token);
   };
 
   const base: React.CSSProperties = { minHeight: '100vh', background: '#0a0a10', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', color: 'white', padding: '0 0 60px' };
@@ -112,7 +145,7 @@ export default function AdminPage() {
     </div>;
   }
 
-  const { stats, daily, recent, promos, recentPurchases } = data;
+  const { stats, daily, recent, recentPurchases } = data;
 
   return (
     <div style={base}>
@@ -268,7 +301,7 @@ export default function AdminPage() {
           </Card>
 
           {/* Promo list */}
-          <Card title={`All Promo Codes (${promos.length})`}>
+          <Card title={`All Promo Codes (${promos.length})${promosLoading ? ' — refreshing…' : ''}`}>
             {promos.length === 0 ? <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>No promo codes yet.</div> : (
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
