@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 const ADMIN_KEY = 'eb_admin_token';
 
@@ -38,13 +38,16 @@ export default function AdminPage() {
   const [data, setData] = useState<any>(null);
   const [promos, setPromos] = useState<any[]>([]);
   const [promosLoading, setPromosLoading] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);        // initial load only
+  const [refreshing, setRefreshing] = useState(false);  // background refresh
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [tab, setTab] = useState<'dashboard' | 'promos'>('dashboard');
   const [promoForm, setPromoForm] = useState({ code: '', discount_type: 'percent', discount_percent: 0, flat_discount_amount: 0, max_uses: '', expires_at: '' });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [editId, setEditId] = useState<string | null>(null);
   const [editDiscount, setEditDiscount] = useState<number>(0);
+  const tokenRef = useRef('');
 
   useEffect(() => {
     const saved = sessionStorage.getItem(ADMIN_KEY);
@@ -52,11 +55,11 @@ export default function AdminPage() {
   }, []);
 
   // Load dashboard stats
-  const load = useCallback(async (t: string) => {
-    setLoading(true);
+  const load = useCallback(async (t: string, silent = false) => {
+    if (!silent) setLoading(true); else setRefreshing(true);
     const res = await api('/api/admin/stats', t);
-    if (res.ok) setData(await res.json());
-    setLoading(false);
+    if (res.ok) { setData(await res.json()); setLastUpdated(new Date()); }
+    if (!silent) setLoading(false); else setRefreshing(false);
   }, []);
 
   // Load promos separately — always fresh from /api/admin/promos
@@ -72,10 +75,29 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (authed && token) {
+      tokenRef.current = token;
       load(token);
       loadPromos(token);
     }
   }, [authed, token, load, loadPromos]);
+
+  // Auto-refresh every 30 seconds (silent — no spinner)
+  useEffect(() => {
+    if (!authed) return;
+    const interval = setInterval(() => {
+      const t = tokenRef.current;
+      if (t) {
+        load(t, true);
+        loadPromos(t);
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [authed, load, loadPromos]);
+
+  const handleManualRefresh = () => {
+    load(token, true);
+    loadPromos(token);
+  };
 
   const login = () => {
     setToken(input);
@@ -125,6 +147,8 @@ export default function AdminPage() {
   const inp: React.CSSProperties = { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 14px', color: 'white', fontSize: 14, outline: 'none', width: '100%', boxSizing: 'border-box' as const };
   const btn: React.CSSProperties = { padding: '10px 18px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#A855F7,#7C3AED)', color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer' };
 
+  const formatTime = (d: Date) => d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
   if (!authed) {
     return (
       <div style={{ ...base, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -154,12 +178,29 @@ export default function AdminPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 26, height: 26, borderRadius: 7, background: 'linear-gradient(135deg,#FF3E80,#7C3AED)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800 }}>EB</div>
           <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.02em' }}>Eyebird Admin</span>
+          {/* Live indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 99, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: refreshing ? '#F59E0B' : '#22C55E', boxShadow: `0 0 6px ${refreshing ? '#F59E0B' : '#22C55E'}`, transition: 'background 0.3s' }} />
+            <span style={{ fontSize: 10, fontWeight: 700, color: refreshing ? '#F59E0B' : '#22C55E', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{refreshing ? 'Syncing' : 'Live'}</span>
+          </div>
+          {lastUpdated && (
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Updated {formatTime(lastUpdated)}</span>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           {(['dashboard', 'promos'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: tab === t ? 'rgba(168,85,247,0.15)' : 'transparent', color: tab === t ? '#A855F7' : 'rgba(255,255,255,0.45)', fontWeight: 600, fontSize: 13, cursor: 'pointer', textTransform: 'capitalize' }}>{t}</button>
           ))}
-          <button onClick={() => { sessionStorage.removeItem(ADMIN_KEY); setAuthed(false); }} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 12, cursor: 'pointer', marginLeft: 8 }}>Logout</button>
+          <button
+            onClick={handleManualRefresh}
+            disabled={refreshing}
+            title="Refresh now"
+            style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'none', color: refreshing ? '#F59E0B' : 'rgba(255,255,255,0.5)', fontSize: 13, cursor: refreshing ? 'not-allowed' : 'pointer', marginLeft: 4, display: 'flex', alignItems: 'center', gap: 5 }}
+          >
+            <span style={{ display: 'inline-block', animation: refreshing ? 'spin 0.8s linear infinite' : 'none', fontSize: 13 }}>↻</span>
+            {refreshing ? 'Syncing…' : 'Refresh'}
+          </button>
+          <button onClick={() => { sessionStorage.removeItem(ADMIN_KEY); setAuthed(false); }} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 12, cursor: 'pointer', marginLeft: 4 }}>Logout</button>
         </div>
       </div>
 
