@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
-    const reportUrl = `${appUrl}/audit/${igUserId}`;
+    const reportUrl = `${appUrl}/audit/${igUserId}?saved=1`;
     const username = audit.username || igUserId;
     const score = audit.overall_score || 0;
     const ai = audit.ai_analysis || {};

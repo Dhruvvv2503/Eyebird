@@ -255,14 +255,36 @@ function BlurTeaser({ onUnlock }: { onUnlock: () => void }) {
   );
 }
 
-export default function AuditReportPage({ params }: { params: { igUserId: string } }) {
+/* ── Shared helpers ── */
+function resolveAudit(audit: any, account: any) {
+  return {
+    ...audit,
+    computed_metrics: {
+      ...audit.computed_metrics,
+      profilePictureUrl: audit.computed_metrics?.profilePictureUrl || account?.profile_picture_url || null,
+    },
+    ai_analysis: {
+      ...audit.ai_analysis,
+      heatmap_data: audit.ai_analysis?.heatmap_data ||
+        Array(7).fill(null).map(() => Array.from({ length: 24 }, () => Math.floor(Math.random() * 100))),
+      best_posting_times: audit.ai_analysis?.best_posting_times || [{ day: 'Thursday', hour: 21, label: '9 PM' }],
+    },
+  };
+}
+function persistUser(igUserId: string, username: string) {
+  try { localStorage.setItem('eb_connected_user', JSON.stringify({ igUserId, username })); } catch { /* ignore */ }
+}
+
+export default function AuditReportPage({ params, searchParams }: { params: { igUserId: string }; searchParams: { saved?: string } }) {
   const router = useRouter();
   const { igUserId } = params;
+  // ?saved=1 means: came from email link → always show saved report, never re-generate
+  const viewSaved = searchParams?.saved === '1';
   const paywallRef = useRef<HTMLDivElement>(null);
 
   const [data, setData] = useState<AuditData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isFreshAudit, setIsFreshAudit] = useState(false); // only true when running full pipeline
+  const [isFreshAudit, setIsFreshAudit] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -271,42 +293,21 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
   async function runAuditPipeline() {
     setLoading(true); setError(null);
     try {
-      // ── FAST PATH: existing audit already in DB ──
-      const existingRes = await fetch('/api/audit/fetch', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ igUserId }),
-      });
-
-      if (existingRes.ok) {
-        const { audit, account } = await existingRes.json();
-        // If audit is complete (has ai_analysis), show it immediately — no re-generation
-        if (audit?.ai_analysis && Object.keys(audit.ai_analysis).length > 3) {
-          const resolved = {
-            ...audit,
-            computed_metrics: {
-              ...audit.computed_metrics,
-              profilePictureUrl: audit.computed_metrics?.profilePictureUrl || account?.profile_picture_url || null,
-            },
-            ai_analysis: {
-              ...audit.ai_analysis,
-              heatmap_data: audit.ai_analysis.heatmap_data ||
-                Array(7).fill(null).map(() => Array.from({ length: 24 }, () => Math.floor(Math.random() * 100))),
-              best_posting_times: audit.ai_analysis.best_posting_times || [{ day: 'Thursday', hour: 21, label: '9 PM' }],
-            },
-          };
-          setData(resolved);
-          try {
-            localStorage.setItem('eb_connected_user', JSON.stringify({
-              igUserId,
-              username: resolved.username,
-            }));
-          } catch { /* ignore */ }
-          setLoading(false);
-          return; // ← skip full pipeline entirely
-        }
+      // ── SAVED PATH: came from email link (?saved=1) → always load from DB ──
+      if (viewSaved) {
+        const res = await fetch('/api/audit/fetch', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ igUserId }),
+        });
+        if (!res.ok) throw new Error('Saved report not found');
+        const { audit, account } = await res.json();
+        setData(resolveAudit(audit, account));
+        persistUser(igUserId, audit.username);
+        setLoading(false);
+        return;
       }
 
-      // ── FULL PIPELINE: no audit yet, generate fresh ──
+      // ── FRESH PIPELINE: website flow → always re-generate even for returning users ──
       setIsFreshAudit(true);
       setLoadingStep(1);
       const r1 = await fetch('/api/instagram/fetch-data', {
@@ -330,26 +331,8 @@ export default function AuditReportPage({ params }: { params: { igUserId: string
       if (!r3.ok) throw new Error('Audit data not found');
 
       const { audit, account } = await r3.json();
-      const resolved = {
-        ...audit,
-        computed_metrics: {
-          ...audit.computed_metrics,
-          profilePictureUrl: audit.computed_metrics?.profilePictureUrl || account?.profile_picture_url || null,
-        },
-        ai_analysis: {
-          ...audit.ai_analysis,
-          heatmap_data: audit.ai_analysis.heatmap_data ||
-            Array(7).fill(null).map(() => Array.from({ length: 24 }, () => Math.floor(Math.random() * 100))),
-          best_posting_times: audit.ai_analysis.best_posting_times || [{ day: 'Thursday', hour: 21, label: '9 PM' }],
-        },
-      };
-      setData(resolved);
-      try {
-        localStorage.setItem('eb_connected_user', JSON.stringify({
-          igUserId,
-          username: resolved.username,
-        }));
-      } catch { /* ignore */ }
+      setData(resolveAudit(audit, account));
+      persistUser(igUserId, audit.username);
     } catch (err: any) {
       setError(err.message || 'Failed to generate audit');
       showToast(err.message || 'Error', 'error');
