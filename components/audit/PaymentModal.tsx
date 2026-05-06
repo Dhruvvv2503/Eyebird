@@ -13,7 +13,8 @@ interface PaymentModalProps {
   onSuccess: () => void;
 }
 
-const BASE_PRICE = 99; // ₹
+const MRP = 299;       // ₹ — crossed-out price always shown
+const BASE_PRICE = 99; // ₹ — selling price promo codes apply on
 const BASE_PAISE = 9900;
 
 const FEATURES = [
@@ -171,7 +172,7 @@ export default function PaymentModal({ igUserId, auditId, username, onSuccess }:
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--danger)', boxShadow: '0 0 8px var(--danger)', animation: 'pulse-glow 2s infinite' }} />
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--danger)' }}>Launch offer · ₹99 only</span>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--danger)' }}>Launch offer — limited time</span>
             </div>
             <h2 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.03em', color: 'var(--text-primary)', lineHeight: 1.2, marginBottom: 6 }}>Your full playbook is ready.</h2>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>Brands in your niche pay ₹1,500–₹3,000 per Reel. Your exact rate card is one click away.</p>
@@ -193,25 +194,36 @@ export default function PaymentModal({ igUserId, auditId, username, onSuccess }:
 
           <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 20 }} />
 
-          {/* Price */}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
+          {/* Price block */}
+          <div style={{ marginBottom: 18 }}>
             {isFree ? (
-              <span style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.04em', background: 'linear-gradient(135deg,#22C55E,#A855F7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Free</span>
+              /* Promo makes it 100% free */
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.04em', background: 'linear-gradient(135deg,#22C55E,#A855F7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Free</span>
+                <span style={{ fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.3)', textDecoration: 'line-through' }}>₹{MRP}</span>
+                <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 99, background: 'rgba(34,197,94,0.12)', color: '#22C55E', border: '1px solid rgba(34,197,94,0.25)', letterSpacing: '0.04em' }}>100% OFF</span>
+              </div>
             ) : (
-              <>
-                <span style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-0.04em', color: 'white' }}>₹{finalPrice}</span>
-                {hasDiscount && <span style={{ fontSize: 18, fontWeight: 600, color: 'rgba(255,255,255,0.3)', textDecoration: 'line-through' }}>₹{BASE_PRICE}</span>}
-              </>
+              /* Normal: show MRP strikethrough + 67% off + selling price + optional promo */
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                {/* Actual price */}
+                <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-0.04em', color: 'white', lineHeight: 1 }}>₹{finalPrice}</span>
+                {/* MRP strikethrough */}
+                <span style={{ fontSize: 18, fontWeight: 600, color: 'rgba(255,255,255,0.3)', textDecoration: 'line-through' }}>₹{MRP}</span>
+                {/* 67% off — always visible */}
+                <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 99, background: 'rgba(255,62,128,0.12)', color: '#FF3E80', border: '1px solid rgba(255,62,128,0.25)', letterSpacing: '0.04em' }}>67% OFF</span>
+                {/* Extra promo badge when code applied */}
+                {promoState?.applied && (
+                  <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 99, background: 'rgba(168,85,247,0.12)', color: '#A855F7', border: '1px solid rgba(168,85,247,0.25)', letterSpacing: '0.04em' }}>
+                    +{promoState.discountLabel}
+                  </span>
+                )}
+              </div>
             )}
-            {promoState?.applied && (
-              <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 99, background: isFree ? 'rgba(34,197,94,0.12)' : 'rgba(168,85,247,0.12)', color: isFree ? '#22C55E' : '#A855F7', border: `1px solid ${isFree ? 'rgba(34,197,94,0.25)' : 'rgba(168,85,247,0.25)'}`, letterSpacing: '0.04em' }}>
-                {promoState.discountLabel}
-              </span>
-            )}
+            <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 6 }}>
+              {isFree ? 'Free with your promo code · Full report included' : 'One-time payment · Instant access · No subscription'}
+            </p>
           </div>
-          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 18 }}>
-            {isFree ? 'Free with your promo code · Full report included' : 'One-time payment · Instant access · No subscription'}
-          </p>
 
           {/* Email */}
           <div style={{ marginBottom: 12 }}>

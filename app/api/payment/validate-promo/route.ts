@@ -39,13 +39,28 @@ export async function POST(request: NextRequest) {
     if (promo.discount_type === 'free') {
       finalAmount = 0; discountAmount = BASE_PRICE_PAISE; discountLabel = '100% off';
     } else if (promo.discount_type === 'percent') {
-      discountAmount = Math.round(BASE_PRICE_PAISE * promo.discount_percent / 100);
+      const pct = promo.discount_percent;
+      if (!pct || pct < 1 || pct > 100) {
+        return NextResponse.json({ valid: false, error: 'Promo code not valid' });
+      }
+      discountAmount = Math.round(BASE_PRICE_PAISE * pct / 100);
       finalAmount = BASE_PRICE_PAISE - discountAmount;
-      discountLabel = `${promo.discount_percent}% off`;
+      discountLabel = `${pct}% off`;
     } else if (promo.discount_type === 'flat') {
       discountAmount = promo.flat_discount_amount;
-      finalAmount = Math.max(0, BASE_PRICE_PAISE - discountAmount);
+      // Flat discount can't exceed or equal the base price (that should be a 'free' type)
+      if (!discountAmount || discountAmount <= 0 || discountAmount >= BASE_PRICE_PAISE) {
+        return NextResponse.json({ valid: false, error: 'Promo code not valid' });
+      }
+      finalAmount = BASE_PRICE_PAISE - discountAmount;
       discountLabel = `₹${Math.round(discountAmount / 100)} off`;
+    } else {
+      return NextResponse.json({ valid: false, error: 'Promo code not valid' });
+    }
+
+    // Final sanity check — price must be either 0 (free) or >= 100 paise (min Razorpay amount)
+    if (finalAmount < 0 || (finalAmount > 0 && finalAmount < 100)) {
+      return NextResponse.json({ valid: false, error: 'Promo code not valid' });
     }
 
     return NextResponse.json({ valid: true, code: promo.code, discountLabel, discountAmount, finalAmount, isFree: finalAmount === 0 });
