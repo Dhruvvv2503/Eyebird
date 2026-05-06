@@ -82,7 +82,11 @@ export default function PaymentModal({ igUserId, auditId, username, onSuccess }:
     try {
       const res = await fetch('/api/payment/bypass', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ igUserId, auditId, email, promoCode: promoState?.code }),
+        body: JSON.stringify({
+          igUserId, auditId, email,
+          promoCode: promoState?.code,
+          amount: promoState?.finalAmount ?? 0,
+        }),
       });
       if (!res.ok) throw new Error('Bypass failed');
       showToast('🎉 Full report unlocked!', 'success');

@@ -6,7 +6,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function POST(request: NextRequest) {
   try {
-    const { igUserId, auditId, email } = await request.json();
+    const { igUserId, auditId, email, promoCode, amount } = await request.json();
 
     if (!igUserId || !email) {
       return NextResponse.json({ error: 'igUserId and email required' }, { status: 400 });
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       .update({ is_paid: true, updated_at: new Date().toISOString() })
       .eq('ig_user_id', igUserId);
 
-    // Record as a free unlock in purchases (for tracking)
+    // Get audit id if not provided
     const { data: audit } = await supabaseAdmin
       .from('audits')
       .select('id')
@@ -33,16 +33,28 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .single();
 
+    const resolvedAuditId = auditId || audit?.id || null;
+    const resolvedPromoCode = promoCode || 'FREE_BYPASS';
+    const resolvedAmount = typeof amount === 'number' ? amount : 0;
+
+    // Record purchase with correct promo + amount
     await supabaseAdmin.from('purchases').insert({
-      audit_id: auditId || audit?.id || null,
+      audit_id: resolvedAuditId,
       ig_user_id: igUserId,
       email,
       razorpay_order_id: `free_${Date.now()}`,
-      razorpay_payment_id: `free_${Date.now()}`,
-      amount_paid: 0,
-      promo_code: 'FREE_BYPASS',
-      discount_applied: 0,
-    }).maybeSingle(); // ignore if duplicate
+      razorpay_payment_id: `bypass_${igUserId}_${Date.now()}`,
+      amount_paid: resolvedAmount,
+      promo_code: resolvedPromoCode,
+      discount_applied: resolvedPromoCode !== 'FREE_BYPASS' ? (9900 - resolvedAmount) : 9900,
+    });
+
+    // Increment promo usage if a real promo code was used
+    if (promoCode && promoCode !== 'FREE_BYPASS') {
+      await supabaseAdmin.rpc('increment_promo_usage', {
+        promo_code: promoCode.toUpperCase(),
+      });
+    }
 
     // Send report email (fire-and-forget)
     const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
