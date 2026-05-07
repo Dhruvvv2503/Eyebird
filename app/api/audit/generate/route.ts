@@ -269,17 +269,26 @@ Respond ONLY with valid JSON (no markdown, no explanation outside JSON):
 
     const message = await anthropic.messages.create({
       model: 'claude-opus-4-5',
-      max_tokens: 4096,
+      max_tokens: 8000,
       messages: [{ role: 'user', content: prompt }],
     });
 
     const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
     let aiAnalysis: any;
     try {
-      const cleaned = responseText.replace(/^```json\s*/m, '').replace(/^```\s*/m, '').replace(/```\s*$/m, '').trim();
+      // Extract JSON — Claude sometimes adds text before/after even when instructed not to
+      let cleaned = responseText.trim();
+      // Strip markdown code fences
+      cleaned = cleaned.replace(/^```json\s*/m, '').replace(/^```\s*/m, '').replace(/```\s*$/m, '').trim();
+      // Find the outermost JSON object in case Claude added preamble
+      const firstBrace = cleaned.indexOf('{');
+      const lastBrace = cleaned.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+      }
       aiAnalysis = JSON.parse(cleaned);
     } catch {
-      console.error('[audit/generate] Claude parse failed:', responseText.substring(0, 500));
+      console.error('[audit/generate] Claude parse failed. Stop_reason:', message.stop_reason, '\nResponse (first 800):', responseText.substring(0, 800));
       return NextResponse.json({ error: 'AI analysis failed to parse. Please try again.' }, { status: 500 });
     }
 
