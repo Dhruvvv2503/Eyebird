@@ -104,7 +104,11 @@ export default function PaymentModal({ igUserId, auditId, username, onSuccess }:
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ igUserId, email, amount: finalPaise }),
       });
-      if (!res.ok) throw new Error('Order creation failed');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const msg = errData.detail || errData.error || 'Order creation failed';
+        throw new Error(msg);
+      }
       const { orderId, amount, currency, keyId } = await res.json();
 
       const rzp = new window.Razorpay({

@@ -41,8 +41,15 @@ export async function POST(request: NextRequest) {
       currency: order.currency,
       keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID,
     });
-  } catch (err) {
-    console.error('[create-order] Error:', err);
-    return NextResponse.json({ error: 'Failed to create payment order' }, { status: 500 });
+  } catch (err: any) {
+    // Log full Razorpay error for debugging
+    const rzpError = err?.error || err;
+    console.error('[create-order] Razorpay error:', JSON.stringify(rzpError, null, 2));
+    return NextResponse.json({
+      error: 'Failed to create payment order',
+      // Return Razorpay's actual error description so it shows in the UI
+      detail: rzpError?.description || rzpError?.message || String(err),
+      code: rzpError?.code || null,
+    }, { status: 500 });
   }
 }
