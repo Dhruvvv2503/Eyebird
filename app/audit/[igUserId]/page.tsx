@@ -275,11 +275,12 @@ function persistUser(igUserId: string, username: string) {
   try { localStorage.setItem('eb_connected_user', JSON.stringify({ igUserId, username })); } catch { /* ignore */ }
 }
 
-export default function AuditReportPage({ params, searchParams }: { params: { igUserId: string }; searchParams: { saved?: string } }) {
+export default function AuditReportPage({ params, searchParams }: { params: { igUserId: string }; searchParams: { saved?: string; auditId?: string } }) {
   const router = useRouter();
   const { igUserId } = params;
-  // ?saved=1 means: came from email link → always show saved report, never re-generate
+  // ?saved=1 = email link | ?auditId=xxx = specific past audit from dashboard
   const viewSaved = searchParams?.saved === '1';
+  const specificAuditId = searchParams?.auditId || null;
   const paywallRef = useRef<HTMLDivElement>(null);
 
   const [data, setData] = useState<AuditData | null>(null);
@@ -293,11 +294,11 @@ export default function AuditReportPage({ params, searchParams }: { params: { ig
   async function runAuditPipeline() {
     setLoading(true); setError(null);
     try {
-      // ── SAVED PATH: came from email link (?saved=1) → always load from DB ──
-      if (viewSaved) {
+      // ── SAVED PATH: email link (?saved=1) OR specific audit (?auditId=xxx) → load from DB ──
+      if (viewSaved || specificAuditId) {
         const res = await fetch('/api/audit/fetch', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ igUserId }),
+          body: JSON.stringify({ igUserId, auditId: specificAuditId }),
         });
         if (!res.ok) throw new Error('Saved report not found');
         const { audit, account } = await res.json();

@@ -271,21 +271,19 @@ Respond ONLY with valid JSON (no markdown fences, no explanation):
       );
     }
 
-    // Store in Supabase
+    // Store as NEW audit row (insert, not upsert — allows multiple audits per user for history)
     const { data: audit, error: auditError } = await supabaseAdmin
       .from('audits')
-      .upsert(
-        {
-          ig_user_id: igUserId,
-          username: metrics.username,
-          computed_metrics: metrics,
-          ai_analysis: aiAnalysis,
-          overall_score: aiAnalysis.overall_score || 0,
-          is_paid: false,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'ig_user_id' }
-      )
+      .insert({
+        ig_user_id: igUserId,
+        username: metrics.username,
+        computed_metrics: metrics,
+        ai_analysis: aiAnalysis,
+        overall_score: aiAnalysis.overall_score || 0,
+        is_paid: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
       .select('id')
       .single();
 
