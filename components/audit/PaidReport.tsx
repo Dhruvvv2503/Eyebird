@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { Clock, Hash, Zap, IndianRupee, Search, TrendingUp } from 'lucide-react';
 import HeatmapGrid from '@/components/audit/HeatmapGrid';
+import { ContentTimeline, GrowthProjection, ViralReverseEngineering } from '@/components/audit/InsightSections';
 
 const FORMAT_LABELS: Record<string, string> = {
   VIDEO: 'Reels', IMAGE: 'Static', CAROUSEL_ALBUM: 'Carousel', REELS: 'Reels',
@@ -104,6 +105,8 @@ interface PaidReportProps {
     }>;
     heatmap_data?: number[][];
     best_posting_times?: Array<{ day: string; hour: number; label: string }>;
+    viral_reverse_engineering?: any;
+    growth_projection?: any;
   };
   m: {
     bio: string;
@@ -111,6 +114,7 @@ interface PaidReportProps {
     engagementRate: number;
     followers: number;
     topHashtags?: Array<{ tag: string; count: number }>;
+    allPostsTimeline?: any[];
   };
 }
 
@@ -118,9 +122,17 @@ const hookColor = (s: number) => s >= 7 ? '#22C55E' : s >= 5 ? '#F59E0B' : '#EF4
 const hookVerdict = (s: number) => s >= 9 ? 'Great' : s >= 7 ? 'Strong' : s >= 5 ? 'Average' : 'Weak';
 
 export default function PaidReport({ ai, m }: PaidReportProps) {
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      {/* ── NEW: Content Performance Timeline ── */}
+      <ContentTimeline allPostsTimeline={m.allPostsTimeline || []} />
+
+      {/* ── NEW: Growth Projection ── */}
+      <GrowthProjection projection={ai.growth_projection} followers={m.followers} />
+
+      {/* ── NEW: Viral Reverse Engineering ── */}
+      <ViralReverseEngineering viral={ai.viral_reverse_engineering} />
 
       {/* ── A: Best Time to Post ── */}
       <PCard accent="linear-gradient(90deg,#A855F7,#7C3AED)" delay={0}>
