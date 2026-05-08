@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -25,17 +24,8 @@ export async function GET(request: NextRequest) {
       }
     )
 
-    const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error && sessionData?.user) {
-      const { data: profile } = await supabaseAdmin
-        .from('user_profiles')
-        .select('onboarding_completed')
-        .eq('id', sessionData.user.id)
-        .single()
-
-      if (!profile || profile.onboarding_completed === false) {
-        return NextResponse.redirect(`${origin}/onboarding`)
-      }
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error) {
       return NextResponse.redirect(`${origin}${next}`)
     }
   }

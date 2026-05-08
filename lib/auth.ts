@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { supabaseAdmin } from './supabase-admin'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export async function getSession() {
   const cookieStore = await cookies()
