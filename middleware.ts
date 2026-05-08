@@ -2,6 +2,12 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // API routes (including /api/instagram/callback) must never be intercepted —
+  // Meta calls the Instagram callback without any user session cookie.
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(

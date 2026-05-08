@@ -52,7 +52,7 @@ function SignupForm() {
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding`,
+        redirectTo: `${window.location.origin}/api/auth/callback`,
       },
     });
     if (oauthError) {
@@ -79,11 +79,16 @@ function SignupForm() {
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding`,
+        emailRedirectTo: `${window.location.origin}/api/auth/callback`,
       },
     });
     if (signUpError) {
-      triggerError(signUpError.message || 'Something went wrong on our end. Please try again in a moment.');
+      const msg = signUpError.message || '';
+      if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already been registered')) {
+        router.replace('/login');
+        return;
+      }
+      triggerError(msg || 'Something went wrong on our end. Please try again in a moment.');
       setLoading(null);
     } else {
       setSuccess(true);

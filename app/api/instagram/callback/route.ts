@@ -9,11 +9,14 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code');
   const stateParam = searchParams.get('state');
   const error = searchParams.get('error');
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
+  // Derive origin from the incoming request so redirects always go to the
+  // correct host — NEXT_PUBLIC_APP_URL is localhost in dev and must not be
+  // used here as it would send production users to localhost.
+  const origin = new URL(request.url).origin;
 
   if (error || !code) {
     console.error('[instagram/callback] OAuth error:', error);
-    return NextResponse.redirect(`${appUrl}/audit?error=oauth_failed`);
+    return NextResponse.redirect(`${origin}/audit?error=oauth_failed`);
   }
 
   // Decode intent from state
@@ -47,7 +50,7 @@ export async function GET(request: NextRequest) {
 
     if (!tokenData.access_token) {
       console.error('[instagram/callback] Token exchange failed:', tokenData);
-      return NextResponse.redirect(`${appUrl}/audit?error=oauth_failed`);
+      return NextResponse.redirect(`${origin}/audit?error=oauth_failed`);
     }
 
     const shortLivedToken = tokenData.access_token;
@@ -71,13 +74,13 @@ export async function GET(request: NextRequest) {
 
     if (profileData.error) {
       console.error('[instagram/callback] Profile fetch failed:', profileData.error);
-      return NextResponse.redirect(`${appUrl}/audit?error=oauth_failed`);
+      return NextResponse.redirect(`${origin}/audit?error=oauth_failed`);
     }
 
     const igUserId = profileData.id || igUserIdFromToken;
 
     if (!igUserId) {
-      return NextResponse.redirect(`${appUrl}/audit?error=personal_account`);
+      return NextResponse.redirect(`${origin}/audit?error=personal_account`);
     }
 
     const igUsername = profileData.username || `user_${igUserId}`;
@@ -102,35 +105,14 @@ export async function GET(request: NextRequest) {
 
     if (dbError) {
       console.error('[instagram/callback] DB error:', dbError);
-      return NextResponse.redirect(`${appUrl}/audit?error=oauth_failed`);
+      return NextResponse.redirect(`${origin}/audit?error=oauth_failed`);
     }
 
-    // Route based on intent
-    if (intent === 'login') {
-      // Check if user has any past audits
-      const { data: existingAudits } = await supabaseAdmin
-        .from('audits')
-        .select('id')
-        .eq('ig_user_id', igUserId)
-        .limit(1);
-
-      if (existingAudits && existingAudits.length > 0) {
-        return NextResponse.redirect(`${appUrl}/dashboard/${igUserId}`);
-      } else {
-        // No past audits — send to fresh audit
-        return NextResponse.redirect(`${appUrl}/audit/${igUserId}`);
-      }
-    }
-
-    if (intent === 'onboarding') {
-      // Redirect back to onboarding wizard with igUserId for step 2
-      return NextResponse.redirect(`${appUrl}/onboarding?igUserId=${igUserId}`);
-    }
-
-    // get_started → dashboard audit with auto-start
-    return NextResponse.redirect(`${appUrl}/dashboard/audit?new_connection=true`);
+    // All intents → dashboard audit with auto-start trigger.
+    // Middleware will redirect unauthenticated users to /login?next=/dashboard/audit.
+    return NextResponse.redirect(`${origin}/dashboard/audit?new_connection=true`);
   } catch (err) {
     console.error('[instagram/callback] Unexpected error:', err);
-    return NextResponse.redirect(`${appUrl}/audit?error=default`);
+    return NextResponse.redirect(`${origin}/audit?error=default`);
   }
 }
