@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { supabaseAdmin } from './supabase-admin'
 
 export async function getSession() {
   const cookieStore = await cookies()
@@ -30,7 +31,6 @@ export async function requireAuth() {
 }
 
 export async function getUserProfile(userId: string) {
-  const { supabaseAdmin } = await import('./supabase-admin')
   const { data } = await supabaseAdmin
     .from('user_profiles')
     .select('*')
