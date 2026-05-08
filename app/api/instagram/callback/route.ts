@@ -127,8 +127,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${appUrl}/onboarding?igUserId=${igUserId}`);
     }
 
-    // get_started → fresh audit pipeline
-    return NextResponse.redirect(`${appUrl}/audit/${igUserId}`);
+    // get_started → dashboard audit with auto-start
+    return NextResponse.redirect(`${appUrl}/dashboard/audit?new_connection=true`);
   } catch (err) {
     console.error('[instagram/callback] Unexpected error:', err);
     return NextResponse.redirect(`${appUrl}/audit?error=default`);
