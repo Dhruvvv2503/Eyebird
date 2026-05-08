@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════
--- Creatiq Database Migration — 001 Initial Schema
+-- Eyebird Database Migration — 001 Initial Schema
 -- Run this in your Supabase SQL Editor
 -- ═══════════════════════════════════════════════
 

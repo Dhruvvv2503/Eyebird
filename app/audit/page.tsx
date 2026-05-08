@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, Suspense, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { getSupabaseClient } from '@/lib/supabase';
 import { motion } from 'framer-motion';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -10,9 +11,18 @@ import { Shield, Eye, EyeOff, Instagram, ChevronDown, ChevronUp, ArrowRight, His
 
 function AuditStartContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const error = searchParams.get('error');
   const [accessExpanded, setAccessExpanded] = useState(false);
   const [loadingIntent, setLoadingIntent] = useState<'get_started' | 'login' | null>(null);
+
+  // Redirect logged-in Supabase users directly to their dashboard audit page
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) router.replace('/dashboard/audit');
+    });
+  }, [router]);
 
   const handleConnect = (intent: 'get_started' | 'login') => {
     setLoadingIntent(intent);

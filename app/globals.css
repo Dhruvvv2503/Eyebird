@@ -683,6 +683,28 @@ nav .btn-primary {
 }
 
 /* ═══════════════════════════════════════════
+   DASHBOARD LAYOUT — Responsive helpers
+   ═══════════════════════════════════════════ */
+
+/* Sidebar: hidden on mobile, flex column on desktop */
+.db-sidebar { display: none !important; }
+@media (min-width: 768px) {
+  .db-sidebar { display: flex !important; flex-direction: column; }
+}
+
+/* Main content: account for mobile topbar then shift on desktop */
+.db-main { padding-top: 56px; }
+@media (min-width: 768px) { .db-main { margin-left: 240px; padding-top: 0; } }
+
+/* Mobile top bar: show on mobile, hide on desktop */
+.db-topbar { display: flex !important; }
+@media (min-width: 768px) { .db-topbar { display: none !important; } }
+
+/* Bottom nav: show on mobile, hide on desktop */
+.db-bottomnav { display: flex !important; }
+@media (min-width: 768px) { .db-bottomnav { display: none !important; } }
+
+/* ═══════════════════════════════════════════
    FIX 6D: Pulse line animation (Final CTA)
    ═══════════════════════════════════════════ */
 @keyframes pulse-line {

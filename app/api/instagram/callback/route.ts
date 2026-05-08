@@ -122,6 +122,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    if (intent === 'onboarding') {
+      // Redirect back to onboarding wizard with igUserId for step 2
+      return NextResponse.redirect(`${appUrl}/onboarding?igUserId=${igUserId}`);
+    }
+
     // get_started → fresh audit pipeline
     return NextResponse.redirect(`${appUrl}/audit/${igUserId}`);
   } catch (err) {
