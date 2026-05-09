@@ -225,7 +225,7 @@ export default function LandingPage() {
         </p>
 
         {/* CTA */}
-        <Link href="/signup" className="landing-cta-full" style={{
+        <a href={isLoggedIn ? '/dashboard' : '/signup'} className="landing-cta-full" style={{
           display: 'inline-flex', alignItems: 'center', gap: 10,
           padding: '17px 40px', background: GRADIENT, borderRadius: 14,
           fontSize: 17, fontWeight: 700, color: 'white', textDecoration: 'none',
@@ -235,9 +235,8 @@ export default function LandingPage() {
           onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 14px 44px rgba(139,92,246,0.5)' }}
           onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(139,92,246,0.35)' }}
         >
-          Meet your Instagram buddy
-          <ArrowRight size={18} />
-        </Link>
+          {isLoggedIn ? 'Go to dashboard →' : 'Get started free →'}
+        </a>
 
         {/* Micro-copy */}
         <div style={{
@@ -928,7 +927,7 @@ export default function LandingPage() {
             See exactly what your account has been trying to tell you
           </p>
 
-          <Link href="/signup" className="landing-cta-full" style={{
+          <a href={isLoggedIn ? '/dashboard' : '/signup'} className="landing-cta-full" style={{
             display: 'inline-flex', alignItems: 'center', gap: 10,
             padding: '18px 44px', background: GRADIENT, borderRadius: 14,
             fontSize: 18, fontWeight: 700, color: 'white', textDecoration: 'none',
@@ -937,9 +936,8 @@ export default function LandingPage() {
             onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 14px 52px rgba(139,92,246,0.55)' }}
             onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 40px rgba(139,92,246,0.4)' }}
           >
-            Meet your Instagram buddy
-            <ArrowRight size={20} />
-          </Link>
+            {isLoggedIn ? 'Go to dashboard →' : 'Start for free →'}
+          </a>
 
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
