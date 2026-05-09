@@ -94,7 +94,8 @@ export default function DashboardShell({
           borderLeft: active ? '2px solid #A855F7' : '2px solid transparent',
           fontSize: 13, fontWeight: active ? 600 : 500,
           transition: 'all 0.15s ease',
-          cursor: soon ? 'default' : 'pointer',
+          cursor: soon ? 'not-allowed' : 'pointer',
+          opacity: soon ? 0.4 : 1,
         }}
         onMouseEnter={e => { if (!active && !soon) { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; } }}
         onMouseLeave={e => { if (!active && !soon) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; } }}
@@ -102,9 +103,7 @@ export default function DashboardShell({
         <Icon size={16} style={{ flexShrink: 0 }} />
         <span style={{ flex: 1 }}>{label}</span>
         {soon && (
-          <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(168,85,247,0.12)', color: '#A855F7', border: '1px solid rgba(168,85,247,0.2)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            Soon
-          </span>
+          <span style={{ fontSize: 12, opacity: 0.5 }}>🔒</span>
         )}
       </Link>
     );
@@ -225,7 +224,8 @@ export default function DashboardShell({
       {/* ── Desktop Sidebar ── */}
       <div className="db-sidebar" style={{
         width: 240, flexShrink: 0, position: 'fixed', top: 0, left: 0, bottom: 0,
-        background: 'var(--bg-surface)', borderRight: '1px solid rgba(255,255,255,0.06)',
+        background: 'linear-gradient(180deg, rgba(139,92,246,0.04) 0%, transparent 40%), var(--bg-surface)',
+        borderRight: '1px solid rgba(255,255,255,0.06)',
         display: 'flex', flexDirection: 'column', zIndex: 30,
       }}>
         {/* Logo */}
