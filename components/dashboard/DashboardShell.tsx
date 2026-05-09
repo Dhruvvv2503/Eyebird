@@ -15,6 +15,7 @@ interface DashboardShellProps {
   avatarUrl: string | null;
   plan: string;
   igUsername: string | null;
+  igFollowers: number | null;
   userEmail: string;
   children: React.ReactNode;
 }
@@ -50,8 +51,14 @@ function PlanBadge({ plan }: { plan: string }) {
   );
 }
 
+function formatFollowers(n: number): string {
+  if (n >= 100000) return `${(n / 100000).toFixed(1)}L`
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`
+  return n.toLocaleString('en-IN')
+}
+
 export default function DashboardShell({
-  displayName, avatarUrl, plan, igUsername, userEmail, children,
+  displayName, avatarUrl, plan, igUsername, igFollowers, userEmail, children,
 }: DashboardShellProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -124,7 +131,9 @@ export default function DashboardShell({
               {igUsername ? `@${igUsername}` : displayName}
             </div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {igUsername ? displayName : userEmail}
+              {igUsername && igFollowers != null
+                ? `${formatFollowers(igFollowers)} followers`
+                : igUsername ? displayName : userEmail}
             </div>
           </div>
         </div>

@@ -14,7 +14,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       .single(),
     supabaseAdmin
       .from('instagram_accounts')
-      .select('username, profile_picture_url')
+      .select('username, profile_picture_url, followers_count')
       .eq('user_id', userId)
       .single(),
   ]);
@@ -40,6 +40,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       avatarUrl={avatarUrl}
       plan={profile?.plan || 'free'}
       igUsername={igAccount?.username || null}
+      igFollowers={igAccount?.followers_count ?? null}
       userEmail={session.user.email || ''}
     >
       {children}

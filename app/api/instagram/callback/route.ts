@@ -3,6 +3,8 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -27,6 +29,30 @@ export async function GET(request: NextRequest) {
       intent = decoded.intent || 'get_started';
     }
   } catch { /* fallback to get_started */ }
+
+  // Read the Supabase session — the browser carries cookies through Meta's redirect
+  let userId: string | null = null;
+  try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll: () => cookieStore.getAll(),
+          setAll: (cookiesToSet) => {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
+    const { data: { session } } = await supabase.auth.getSession();
+    userId = session?.user?.id ?? null;
+  } catch {
+    userId = null;
+  }
 
   try {
     const appId = process.env.INSTAGRAM_APP_ID!;
@@ -85,32 +111,33 @@ export async function GET(request: NextRequest) {
 
     const igUsername = profileData.username || `user_${igUserId}`;
 
-    // Store/update account
+    // Store/update account — include user_id so the dashboard can find it
+    const upsertPayload: Record<string, any> = {
+      ig_user_id: igUserId,
+      username: igUsername,
+      access_token: igAccessToken,
+      token_expires_at: expiresAt,
+      followers_count: profileData.followers_count || 0,
+      profile_picture_url: profileData.profile_picture_url || null,
+      biography: profileData.biography || '',
+      media_count: profileData.media_count || 0,
+      updated_at: new Date().toISOString(),
+    };
+    if (userId) {
+      upsertPayload.user_id = userId;
+    }
+
     const { error: dbError } = await supabaseAdmin
       .from('instagram_accounts')
-      .upsert(
-        {
-          ig_user_id: igUserId,
-          username: igUsername,
-          access_token: igAccessToken,
-          token_expires_at: expiresAt,
-          followers_count: profileData.followers_count || 0,
-          profile_picture_url: profileData.profile_picture_url || null,
-          biography: profileData.biography || '',
-          media_count: profileData.media_count || 0,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'ig_user_id' }
-      );
+      .upsert(upsertPayload, { onConflict: 'ig_user_id' });
 
     if (dbError) {
       console.error('[instagram/callback] DB error:', dbError);
       return NextResponse.redirect(`${origin}/audit?error=oauth_failed`);
     }
 
-    // All intents → dashboard audit with auto-start trigger.
-    // Middleware will redirect unauthenticated users to /login?next=/dashboard/audit.
-    return NextResponse.redirect(`${origin}/dashboard/audit?new_connection=true`);
+    // After successfully storing the token in Supabase:
+    return NextResponse.redirect(`${origin}/dashboard?instagram_connected=true`);
   } catch (err) {
     console.error('[instagram/callback] Unexpected error:', err);
     return NextResponse.redirect(`${origin}/audit?error=default`);

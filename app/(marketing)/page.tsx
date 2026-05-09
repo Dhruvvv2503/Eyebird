@@ -53,6 +53,8 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false)
   const [dmStep, setDmStep] = useState(0)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 80)
@@ -65,6 +67,22 @@ export default function LandingPage() {
       setDmStep(s => (s + 1) % 4)
     }, 1800)
     return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { getSupabaseClient } = await import('@/lib/supabase')
+        const supabase = getSupabaseClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        setIsLoggedIn(!!session)
+      } catch {
+        setIsLoggedIn(false)
+      } finally {
+        setIsCheckingAuth(false)
+      }
+    }
+    checkAuth()
   }, [])
 
   return (
@@ -91,22 +109,71 @@ export default function LandingPage() {
         </Link>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/login" style={{
-            fontSize: 14, color: 'rgba(255,255,255,0.5)',
-            textDecoration: 'none', padding: '8px 16px', transition: 'color 0.2s',
-          }}
-            onMouseOver={e => (e.currentTarget.style.color = 'white')}
-            onMouseOut={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)')}
-          >Log in</Link>
-          <Link href="/signup" style={{
-            fontSize: 14, fontWeight: 600, color: 'white',
-            textDecoration: 'none', padding: '9px 20px',
-            background: GRADIENT, borderRadius: 10,
-            transition: 'opacity 0.2s, transform 0.2s',
-          }}
-            onMouseOver={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'scale(1.02)' }}
-            onMouseOut={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1)' }}
-          >Get started free →</Link>
+          {!isCheckingAuth && (
+            isLoggedIn ? (
+              <a href="/dashboard" style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '9px 20px',
+                background: 'rgba(139,92,246,0.1)',
+                border: '1px solid rgba(139,92,246,0.3)',
+                borderRadius: 10,
+                textDecoration: 'none',
+                fontSize: 14,
+                fontWeight: 600,
+                color: '#a78bfa',
+                transition: 'all 0.2s',
+              }}
+              onMouseOver={e => {
+                e.currentTarget.style.background = 'rgba(139,92,246,0.18)'
+                e.currentTarget.style.borderColor = 'rgba(139,92,246,0.5)'
+              }}
+              onMouseOut={e => {
+                e.currentTarget.style.background = 'rgba(139,92,246,0.1)'
+                e.currentTarget.style.borderColor = 'rgba(139,92,246,0.3)'
+              }}
+              >
+                Go to dashboard →
+              </a>
+            ) : (
+              <>
+                <a href="/login" style={{
+                  fontSize: 14,
+                  color: 'rgba(255,255,255,0.55)',
+                  textDecoration: 'none',
+                  padding: '8px 16px',
+                  transition: 'color 0.2s',
+                }}
+                onMouseOver={e => (e.currentTarget.style.color = 'white')}
+                onMouseOut={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.55)')}
+                >
+                  Log in
+                </a>
+                <a href="/signup" style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: 'white',
+                  textDecoration: 'none',
+                  padding: '9px 20px',
+                  background: GRADIENT,
+                  borderRadius: 10,
+                  transition: 'opacity 0.2s, transform 0.2s',
+                }}
+                onMouseOver={e => {
+                  e.currentTarget.style.opacity = '0.9'
+                  e.currentTarget.style.transform = 'scale(1.02)'
+                }}
+                onMouseOut={e => {
+                  e.currentTarget.style.opacity = '1'
+                  e.currentTarget.style.transform = 'scale(1)'
+                }}
+                >
+                  Get started free →
+                </a>
+              </>
+            )
+          )}
         </div>
       </nav>
 
@@ -556,220 +623,270 @@ export default function LandingPage() {
       </section>
 
       {/* ─── PRICING ─── */}
-      <section className="section-pad" style={{
-        background: 'rgba(139,92,246,0.03)',
+      <section style={{
+        padding: '96px 24px',
+        background: 'rgba(139,92,246,0.025)',
         borderTop: '1px solid rgba(255,255,255,0.05)',
-        textAlign: 'center',
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
       }}>
-        <div style={{ maxWidth: 980, margin: '0 auto' }}>
-          <p className="text-label" style={{ marginBottom: 20 }}>Pricing</p>
+        <div style={{ maxWidth: 1020, margin: '0 auto' }}>
 
-          <h2 className="text-section-headline" style={{ marginBottom: 16, maxWidth: 680, margin: '0 auto 16px' }}>
-            Less than your Netflix<br />
-            <GradientText>Worth 100× more</GradientText>
+          {/* Label */}
+          <div style={{
+            fontSize: 11, fontWeight: 600, color: '#a78bfa',
+            textTransform: 'uppercase', letterSpacing: '0.1em',
+            textAlign: 'center', marginBottom: 16,
+          }}>Pricing</div>
+
+          {/* Headline */}
+          <h2 style={{
+            fontSize: 'clamp(36px, 5vw, 52px)', fontWeight: 900,
+            lineHeight: 1.1, letterSpacing: '-0.025em', color: 'white',
+            textAlign: 'center', marginBottom: 12,
+          }}>
+            Start free<br />
+            <span style={{
+              background: 'linear-gradient(135deg, #8B5CF6, #EC4899)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+            }}>Pay when it clicks</span>
           </h2>
 
-          <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.35)', marginBottom: 56, lineHeight: 1.6 }}>
-            Start free — upgrade when you see the value, cancel anytime
+          <p style={{
+            fontSize: 17, color: 'rgba(255,255,255,0.4)',
+            textAlign: 'center', marginBottom: 56, lineHeight: 1.6,
+          }}>
+            Free forever to start · Upgrade when you need more
           </p>
 
-          <div className="pricing-grid" style={{ alignItems: 'stretch' }}>
-            {/* Free */}
+          {/* THREE EQUAL HEIGHT CARDS */}
+          <div className="pricing-cards-grid" style={{
+            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 20, alignItems: 'stretch', marginBottom: 40,
+          }}>
+
+            {/* ── CARD 1: FREE ── */}
             <div style={{
-              background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 20, padding: '32px 28px', textAlign: 'left', height: '100%',
-              boxSizing: 'border-box',
+              background: 'rgba(139,92,246,0.06)',
+              border: '2px solid rgba(139,92,246,0.4)',
+              borderRadius: 20, padding: '32px 28px',
+              display: 'flex', flexDirection: 'column',
+              boxShadow: '0 0 40px rgba(139,92,246,0.08)',
+              position: 'relative',
             }}>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 8, fontWeight: 500 }}>Free Preview</div>
-              <div style={{ fontSize: 44, fontWeight: 900, color: 'white', fontFamily: 'monospace', lineHeight: 1, marginBottom: 4 }}>₹0</div>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', marginBottom: 24 }}>Always free</div>
-
-              {/* DM limit warning */}
-              <div style={{
-                background: 'rgba(234,179,8,0.06)', border: '1px solid rgba(234,179,8,0.2)',
-                borderRadius: 8, padding: '8px 12px', marginBottom: 20,
-                fontSize: 12, color: '#eab308', lineHeight: 1.5,
-              }}>
-                ⚠️ Limited to 3 DM automations/month — upgrade to remove limits
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>
+                Free Forever
               </div>
-
-              {['3 audit metrics free', 'Engagement score', 'One key insight', 'No credit card needed'].map(f => (
-                <div key={f} style={{ display: 'flex', gap: 10, marginBottom: 10, alignItems: 'flex-start' }}>
-                  <Check size={14} color="#22c55e" style={{ marginTop: 2, flexShrink: 0 }} />
-                  <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>{f}</span>
-                </div>
-              ))}
-              <Link href="/signup" style={{
-                display: 'block', width: '100%', padding: '13px 0',
-                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 12, textAlign: 'center',
-                fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.6)',
-                textDecoration: 'none', marginTop: 24, transition: 'background 0.2s',
-                boxSizing: 'border-box',
-              }}
-                onMouseOver={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.09)')}
-                onMouseOut={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
-              >Start free →</Link>
-            </div>
-
-            {/* Full Audit — highlighted */}
-            <div className="pricing-highlight" style={{
-              padding: '32px 28px', textAlign: 'left', height: '100%', boxSizing: 'border-box',
-            }}>
-              <div style={{
-                position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)',
-                background: GRADIENT, borderRadius: 20, padding: '4px 16px',
-                fontSize: 11, fontWeight: 700, color: 'white', whiteSpace: 'nowrap',
-              }}>MOST POPULAR</div>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 8, fontWeight: 500 }}>Full Audit</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
-                <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.25)', textDecoration: 'line-through' }}>₹299</span>
-                <span style={{ fontSize: 44, fontWeight: 900, color: 'white', fontFamily: 'monospace', lineHeight: 1 }}>₹99</span>
+              <div style={{ fontSize: 52, fontWeight: 900, color: 'white', fontFamily: 'monospace', letterSpacing: '-0.03em', lineHeight: 1, marginBottom: 6 }}>₹0</div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', marginBottom: 28 }}>Always free · No credit card</div>
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginBottom: 24 }} />
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 16, letterSpacing: '0.04em' }}>Free includes:</div>
+              <div style={{ flex: 1, marginBottom: 24 }}>
+                {[
+                  { icon: '📊', text: '3 audit metrics free' },
+                  { icon: '⚡', text: '1 active DM automation' },
+                  { icon: '💬', text: '500 DMs/month' },
+                  { icon: '#️⃣', text: 'Comment → DM (1 keyword)' },
+                  { icon: '✨', text: '50 Smart Reply suggestions' },
+                  { icon: '📈', text: 'Basic analytics dashboard' },
+                  { icon: '👥', text: '100 contacts stored' },
+                ].map((f, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>{f.icon}</span>
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{f.text}</span>
+                  </div>
+                ))}
               </div>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', marginBottom: 12 }}>One-time · yours forever</div>
-              <div style={{
-                display: 'inline-block', fontSize: 12, fontWeight: 600, color: '#22c55e',
-                background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)',
-                borderRadius: 8, padding: '4px 12px', marginBottom: 24,
-              }}>Code LAUNCH — save ₹200</div>
-              {[
-                'All 22 metrics analysed', 'AI action plan — 3 specific fixes',
-                'AI bio rewrite', 'Best time to post (your audience)',
-                'Goldzone hashtags', 'Brand rate card in ₹',
-                'PDF report by email', 'No subscription needed',
-              ].map(f => (
-                <div key={f} style={{ display: 'flex', gap: 10, marginBottom: 10, alignItems: 'flex-start' }}>
-                  <Check size={14} color="#22c55e" style={{ marginTop: 2, flexShrink: 0 }} />
-                  <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>{f}</span>
-                </div>
-              ))}
+              <div style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#eab308', lineHeight: 1.5, marginBottom: 20 }}>
+                ⚡ Most creators hit the 500 DM limit after their first viral post
+              </div>
               <Link href="/signup" style={{
-                display: 'block', padding: '15px 0', background: GRADIENT, borderRadius: 12,
+                display: 'block', padding: '14px 0',
+                background: 'linear-gradient(135deg, #8B5CF6, #EC4899)', borderRadius: 12,
                 textAlign: 'center', fontSize: 15, fontWeight: 700, color: 'white',
-                textDecoration: 'none', marginTop: 24,
-                boxShadow: '0 4px 20px rgba(139,92,246,0.3)',
-                transition: 'opacity 0.2s, transform 0.2s',
+                textDecoration: 'none', boxShadow: '0 4px 20px rgba(139,92,246,0.3)',
+                transition: 'all 0.2s', letterSpacing: '-0.01em',
               }}
                 onMouseOver={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'scale(1.01)' }}
                 onMouseOut={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1)' }}
+              >Start free →</Link>
+            </div>
+
+            {/* ── CARD 2: FULL AUDIT ── */}
+            <div style={{
+              background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 20, padding: '32px 28px',
+              display: 'flex', flexDirection: 'column',
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>
+                Full Audit
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
+                <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.2)', textDecoration: 'line-through', fontFamily: 'monospace' }}>₹299</span>
+                <span style={{ fontSize: 52, fontWeight: 900, color: 'white', fontFamily: 'monospace', letterSpacing: '-0.03em', lineHeight: 1 }}>₹99</span>
+              </div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', marginBottom: 16 }}>One-time · yours forever</div>
+              <div style={{ display: 'inline-block', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, padding: '5px 12px', fontSize: 12, fontWeight: 700, color: '#22c55e', marginBottom: 28, letterSpacing: '0.02em' }}>
+                Code LAUNCH — save ₹200
+              </div>
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginBottom: 20 }} />
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.35)', marginBottom: 16, letterSpacing: '0.04em' }}>Audit includes:</div>
+              <div style={{ flex: 1, marginBottom: 24 }}>
+                {[
+                  { icon: '📊', text: 'All 22 metrics analysed' },
+                  { icon: '🎯', text: 'AI action plan — 3 specific fixes' },
+                  { icon: '✏️', text: 'AI bio rewrite suggestion' },
+                  { icon: '🕐', text: 'Your exact best time to post' },
+                  { icon: '#️⃣', text: 'Goldzone hashtag recommendations' },
+                  { icon: '💰', text: 'Brand rate card in ₹' },
+                  { icon: '📄', text: 'PDF report delivered to email' },
+                  { icon: '♾️', text: 'No subscription — yours forever' },
+                  { icon: '💬', text: '500 free DMs to try automation' },
+                ].map((f, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>{f.icon}</span>
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{f.text}</span>
+                  </div>
+                ))}
+              </div>
+              <Link href="/signup" style={{
+                display: 'block', padding: '14px 0',
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 12, textAlign: 'center', fontSize: 15, fontWeight: 700,
+                color: 'rgba(255,255,255,0.7)', textDecoration: 'none', transition: 'all 0.2s',
+              }}
+                onMouseOver={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; (e.currentTarget as HTMLAnchorElement).style.color = 'white' }}
+                onMouseOut={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.7)' }}
               >Get full audit →</Link>
             </div>
 
-            {/* Creator Plan */}
+            {/* ── CARD 3: CREATOR PLAN — MOST POPULAR ── */}
             <div style={{
-              background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 20, padding: '32px 28px', textAlign: 'left', height: '100%',
-              boxSizing: 'border-box',
+              background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 20, padding: '32px 28px',
+              display: 'flex', flexDirection: 'column', position: 'relative',
             }}>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 8, fontWeight: 500 }}>Creator Plan</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
-                <span style={{
-                  fontSize: 18,
-                  color: 'rgba(255,255,255,0.2)',
-                  textDecoration: 'line-through',
-                  fontFamily: 'monospace',
-                  letterSpacing: '-0.02em',
-                }}>₹1999</span>
-                <span style={{
-                  fontSize: 44,
-                  fontWeight: 900,
-                  color: 'white',
-                  fontFamily: 'monospace',
-                  letterSpacing: '-0.03em',
-                  lineHeight: 1,
-                }}>₹799</span>
-              </div>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', marginBottom: 20 }}>per month · cancel anytime</div>
-
-              {/* Feature groups */}
-              {[
-                { group: 'Audit & Analysis', items: ['Everything in Full Audit', 'Monthly re-audit'] },
-                { group: 'Automation', items: ['Unlimited DM automations', 'Smart Reply AI inbox', 'Lead capture (WhatsApp)'] },
-                { group: 'Growth', items: ['Growth dashboard', 'Competitor tracking'] },
-              ].map(g => (
-                <div key={g.group} style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(139,92,246,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-                    {g.group}
-                  </div>
-                  {g.items.map(f => (
-                    <div key={f} style={{ display: 'flex', gap: 10, marginBottom: 8, alignItems: 'flex-start' }}>
-                      <Check size={14} color="#8B5CF6" style={{ marginTop: 2, flexShrink: 0 }} />
-                      <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)' }}>{f}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-
-              {/* vs Human manager */}
               <div style={{
-                marginTop: 8, marginBottom: 24,
-                background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)',
-                borderRadius: 10, padding: '10px 12px',
-              }}>
-                <div style={{ fontSize: 10, color: '#a78bfa', fontWeight: 600, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  vs Human Manager
-                </div>
+                position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)',
+                background: 'linear-gradient(135deg, #8B5CF6, #EC4899)',
+                borderRadius: 100, padding: '5px 18px',
+                fontSize: 11, fontWeight: 700, color: 'white', whiteSpace: 'nowrap',
+                letterSpacing: '0.06em', textTransform: 'uppercase',
+                boxShadow: '0 4px 16px rgba(139,92,246,0.4)',
+              }}>Most Popular</div>
+
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16, marginTop: 8 }}>
+                Creator Plan
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6 }}>
+                <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.2)', textDecoration: 'line-through', fontFamily: 'monospace' }}>₹1999</span>
+                <span style={{ fontSize: 52, fontWeight: 900, color: 'white', fontFamily: 'monospace', letterSpacing: '-0.03em', lineHeight: 1 }}>₹799</span>
+              </div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', marginBottom: 28 }}>per month · cancel anytime</div>
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginBottom: 20 }} />
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.35)', marginBottom: 16, letterSpacing: '0.04em' }}>All of Full Audit, and:</div>
+
+              <div style={{ flex: 1, marginBottom: 20 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#8B5CF6', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8, marginTop: 4 }}>Automation</div>
                 {[
-                  ['Human manager', '₹20,000–50,000/mo'],
-                  ['Eyebird Creator', '₹799/mo'],
-                ].map(([label, price]) => (
-                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                    <span style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</span>
-                    <span style={{ color: label.includes('Eyebird') ? '#22c55e' : 'rgba(255,255,255,0.3)', fontWeight: 600 }}>{price}</span>
+                  { icon: '♾️', text: 'Unlimited DMs — no caps, ever', bold: true },
+                  { icon: '⚡', text: 'Unlimited active automations', bold: false },
+                  { icon: '💬', text: 'Comment → DM (unlimited keywords)', bold: false },
+                  { icon: '📖', text: 'Story reply + Welcome DM', bold: false },
+                  { icon: '✨', text: 'Smart Reply AI inbox (unlimited)', bold: false },
+                  { icon: '📱', text: 'Lead capture — WhatsApp + Email', bold: false },
+                  { icon: '📣', text: 'Broadcast to qualifying contacts', bold: false },
+                  { icon: '🇮🇳', text: '27 Indian creator templates', bold: false },
+                ].map((f, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span style={{ fontSize: 13, flexShrink: 0, marginTop: 1 }}>{f.icon}</span>
+                    <span style={{ fontSize: 13, color: f.bold ? 'white' : 'rgba(255,255,255,0.55)', fontWeight: f.bold ? 700 : 400, lineHeight: 1.5 }}>{f.text}</span>
+                  </div>
+                ))}
+
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#8B5CF6', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8, marginTop: 16 }}>Intelligence</div>
+                {[
+                  { icon: '📈', text: 'Monthly re-audit — track growth' },
+                  { icon: '🔍', text: 'Competitor tracking (10 accounts)' },
+                  { icon: '🧠', text: 'Weekly AI insights every Monday' },
+                  { icon: '📊', text: 'Growth dashboard' },
+                  { icon: '👥', text: 'Full contacts CRM + CSV export' },
+                  { icon: '🎧', text: 'Priority support (Indian timezone)' },
+                ].map((f, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span style={{ fontSize: 13, flexShrink: 0, marginTop: 1 }}>{f.icon}</span>
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>{f.text}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.12)', borderRadius: 10, padding: '12px 16px', marginBottom: 20 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>vs competitors</div>
+                {[
+                  { name: 'ManyChat', price: '₹1,500/mo', note: '1K contact cap', isUs: false },
+                  { name: 'CreatorFlow', price: '₹2,100/mo', note: '5K DM cap', isUs: false },
+                  { name: 'Eyebird', price: '₹799/mo', note: 'Unlimited', isUs: true },
+                ].map((row, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                    <span style={{ fontSize: 12, fontWeight: row.isUs ? 700 : 400, color: row.isUs ? 'white' : 'rgba(255,255,255,0.3)' }}>
+                      {row.isUs ? '🟢 ' : ''}{row.name}
+                    </span>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <span style={{ fontSize: 12, fontWeight: row.isUs ? 700 : 400, color: row.isUs ? '#22c55e' : 'rgba(255,255,255,0.25)' }}>{row.price}</span>
+                      <span style={{ fontSize: 11, color: row.isUs ? '#22c55e' : 'rgba(255,255,255,0.2)' }}>{row.note}</span>
+                    </div>
                   </div>
                 ))}
               </div>
 
               <Link href="/signup" style={{
-                display: 'block', padding: '13px 0', background: 'transparent',
+                display: 'block', padding: '14px 0', background: 'transparent',
                 border: '1.5px solid rgba(139,92,246,0.5)', borderRadius: 12,
-                textAlign: 'center', fontSize: 15, fontWeight: 600, color: '#a78bfa',
-                textDecoration: 'none', transition: 'all 0.2s',
+                textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#a78bfa',
+                textDecoration: 'none', transition: 'all 0.2s', letterSpacing: '-0.01em',
+                marginTop: 'auto',
               }}
-                onMouseOver={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.1)'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.8)' }}
-                onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.5)' }}
+                onMouseOver={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.15)'; e.currentTarget.style.borderColor = '#8B5CF6'; (e.currentTarget as HTMLAnchorElement).style.color = 'white' }}
+                onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.5)'; (e.currentTarget as HTMLAnchorElement).style.color = '#a78bfa' }}
               >Start Creator Plan →</Link>
+
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'center', marginTop: 10, marginBottom: 0 }}>
+                Cancel anytime · No contracts · Instant access
+              </p>
             </div>
           </div>
 
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)', marginTop: 36, lineHeight: 1.6 }}>
+          {/* Bottom line */}
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)', textAlign: 'center', marginBottom: 40 }}>
             A human social media manager costs ₹20,000–₹50,000/month — Eyebird Creator Plan: ₹799/month — same work, no sick days
           </p>
 
-          {/* FAQ strip */}
-          <div style={{ marginTop: 64, textAlign: 'left' }}>
-            <p className="text-label" style={{ textAlign: 'center', marginBottom: 32 }}>Common questions</p>
-            <div className="faq-grid">
-              {[
-                {
-                  q: 'Is my Instagram account safe?',
-                  a: 'Yes — we use the official Meta API with read-only access — we can never post, follow, or DM on your behalf without you explicitly setting up an automation',
-                },
-                {
-                  q: 'Do I need to be tech-savvy?',
-                  a: 'Not at all — if you can use Instagram, you can use Eyebird — the whole setup takes under 2 minutes, no code, no agency',
-                },
-                {
-                  q: 'What is the ₹99 Full Audit?',
-                  a: 'A one-time deep analysis of 22 metrics on your account — you get a PDF report, AI action plan, bio rewrite, best posting time, and brand rate card — no subscription',
-                },
-                {
-                  q: 'Can I cancel the Creator Plan anytime?',
-                  a: 'Yes — cancel from your dashboard in one click — no questions asked, no lock-in — your automations stop the next billing cycle',
-                },
-                {
-                  q: 'Does Eyebird work for small accounts?',
-                  a: 'Absolutely — we\'ve helped accounts from 500 to 500,000 followers and the audit identifies exactly what matters at your current stage',
-                },
-                {
-                  q: 'Is this only for Indian creators?',
-                  a: 'Eyebird is built specifically for Indian creators — pricing in ₹, insights tailored to Indian audience patterns, and support in English and Hindi',
-                },
-              ].map((faq, i) => (
-                <FaqItem key={i} q={faq.q} a={faq.a} />
-              ))}
-            </div>
+          {/* FAQ GRID */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+            {[
+              {
+                q: 'What happens when I hit 500 DMs on free?',
+                a: 'Automations pause until next month — or upgrade to Creator Plan for unlimited DMs instantly',
+              },
+              {
+                q: 'Is this better than CreatorFlow?',
+                a: 'CreatorFlow charges ₹2,100/month with DM caps — Eyebird is ₹799 with unlimited DMs and an AI audit included',
+              },
+              {
+                q: 'Can I cancel anytime?',
+                a: 'Yes — no contracts, no penalties — cancel from your dashboard in one click',
+              },
+              {
+                q: 'Do you ever post on my Instagram?',
+                a: 'Never — we use Instagram\'s official read-only API for audits — automations only send DMs, never posts or follows',
+              },
+            ].map((faq, i) => (
+              <div key={i} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '18px 20px' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 7, lineHeight: 1.4 }}>{faq.q}</div>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.65 }}>{faq.a}</div>
+              </div>
+            ))}
           </div>
+
         </div>
       </section>
 

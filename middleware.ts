@@ -1,12 +1,35 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const PUBLIC_PATHS = [
+  '/',
+  '/login',
+  '/signup',
+  '/onboarding',
+  '/privacy',
+  '/terms',
+  '/data-deletion',
+  '/api/auth/callback',
+  '/api/instagram/callback',
+  '/api/instagram/auth',
+  '/api/preview-score',
+  '/api/webhooks',
+]
+
 export async function middleware(request: NextRequest) {
-  // API routes (including /api/instagram/callback) must never be intercepted —
-  // Meta calls the Instagram callback without any user session cookie.
-  if (request.nextUrl.pathname.startsWith('/api/')) {
-    return NextResponse.next({ request });
+  const { pathname } = request.nextUrl
+
+  // All API routes pass through without interception
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next({ request })
   }
+
+  const isPublic = PUBLIC_PATHS.some(path =>
+    pathname === path ||
+    pathname.startsWith(path + '/')
+  )
+
+  if (isPublic) return NextResponse.next({ request })
 
   let supabaseResponse = NextResponse.next({ request })
 
@@ -33,18 +56,10 @@ export async function middleware(request: NextRequest) {
 
   const { data: { session } } = await supabase.auth.getSession()
 
-  const { pathname } = request.nextUrl
-
   // Protected routes — auth required
   const isProtectedRoute =
     pathname === '/dashboard' ||
-    pathname.startsWith('/dashboard/audit') ||
-    pathname.startsWith('/dashboard/settings') ||
-    pathname.startsWith('/dashboard/automations') ||
-    pathname.startsWith('/dashboard/smart-reply') ||
-    pathname.startsWith('/dashboard/contacts') ||
-    pathname.startsWith('/dashboard/analytics') ||
-    pathname.startsWith('/onboarding')
+    pathname.startsWith('/dashboard/')
 
   // Auth routes — redirect to dashboard if already logged in
   const isAuthRoute = pathname === '/login' || pathname === '/signup'
@@ -65,20 +80,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/dashboard',
-    '/dashboard/audit',
-    '/dashboard/audit/:path*',
-    '/dashboard/settings',
-    '/dashboard/settings/:path*',
-    '/dashboard/automations',
-    '/dashboard/automations/:path*',
-    '/dashboard/smart-reply',
-    '/dashboard/smart-reply/:path*',
-    '/dashboard/contacts',
-    '/dashboard/contacts/:path*',
-    '/dashboard/analytics',
-    '/dashboard/analytics/:path*',
-    '/onboarding',
-    '/onboarding/:path*',
+    '/dashboard/:path*',
     '/login',
     '/signup',
   ],
