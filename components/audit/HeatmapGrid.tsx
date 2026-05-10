@@ -1,33 +1,36 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { DAY_NAMES, heatmapOpacity } from '@/lib/utils';
+import { useState, useCallback } from 'react';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export interface PostForHeatmap {
+  date: string;           // ISO timestamp string (UTC)
+  engagementRate: number;
+  [key: string]: unknown;
+}
+
+export interface HeatmapCell {
+  day: number;      // 0=Sun … 6=Sat
+  hour: number;     // 0–23 IST
+  avgER: number;
+  postCount: number;
+  isBestTime: boolean;
+}
 
 interface HeatmapGridProps {
-  data: number[][];
-  highlightSlots?: Array<{ day: string; hour: number; label: string }>;
+  posts: PostForHeatmap[];
 }
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const DAY_NAMES  = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const FULL_DAYS  = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const HOUR_LABELS = ['12a', '3a', '6a', '9a', '12p', '3p', '6p', '9p'];
 const HOUR_COLS   = [0, 3, 6, 9, 12, 15, 18, 21];
+export const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // UTC+5:30
 const DAY_W = 32;
 const GAP   = 3;
-
-function formatHour(h: number) {
-  if (h === 0) return '12 AM';
-  if (h === 12) return '12 PM';
-  return h < 12 ? `${h} AM` : `${h - 12} PM`;
-}
-
-function cellColor(val: number, max: number, isHl: boolean): string {
-  if (isHl) return '#ec4899';
-  if (val === 0) return 'rgba(139,92,246,0.12)';
-  const t = val / max;
-  if (t < 0.25) return 'rgba(139,92,246,0.25)';
-  if (t < 0.50) return 'rgba(139,92,246,0.45)';
-  if (t < 0.75) return 'rgba(139,92,246,0.70)';
-  return '#7c3aed';
-}
 
 const CELL_GRID: React.CSSProperties = {
   flex: 1,
@@ -36,33 +39,116 @@ const CELL_GRID: React.CSSProperties = {
   gap: GAP,
 };
 
-export default function HeatmapGrid({ data, highlightSlots = [] }: HeatmapGridProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+// ── Data computation (exported for use in PaidReport) ─────────────────────────
+
+export function computeHeatmap(posts: PostForHeatmap[]): HeatmapCell[][] {
+  const grid: { totalER: number; count: number }[][] = Array.from(
+    { length: 7 },
+    () => Array.from({ length: 24 }, () => ({ totalER: 0, count: 0 }))
+  );
+
+  for (const post of posts) {
+    if (!post.date) continue;
+    const utc = new Date(post.date);
+    if (isNaN(utc.getTime())) continue;
+    const ist = new Date(utc.getTime() + IST_OFFSET_MS);
+    const day  = ist.getUTCDay();
+    const hour = ist.getUTCHours();
+    const er   = typeof post.engagementRate === 'number' ? post.engagementRate : 0;
+    grid[day][hour].totalER += er;
+    grid[day][hour].count   += 1;
+  }
+
+  const cells: HeatmapCell[][] = grid.map((dayRow, day) =>
+    dayRow.map((cell, hour) => ({
+      day,
+      hour,
+      avgER:     cell.count > 0 ? cell.totalER / cell.count : 0,
+      postCount: cell.count,
+      isBestTime: false,
+    }))
+  );
+
+  // Mark top-3 cells by avgER (min 1 post) as best time
+  const withPosts = cells.flat().filter(c => c.postCount >= 1);
+  withPosts.sort((a, b) => b.avgER - a.avgER);
+  withPosts.slice(0, 3).forEach(top => {
+    cells[top.day][top.hour].isBestTime = true;
+  });
+
+  return cells;
+}
+
+// ── Colour helpers ────────────────────────────────────────────────────────────
+
+function getCellBackground(cell: HeatmapCell, maxER: number): string {
+  if (cell.isBestTime) return '#f9607a';
+  if (cell.avgER === 0 || maxER === 0) return 'rgba(255,255,255,0.03)';
+  const intensity = Math.pow(cell.avgER / maxER, 0.6); // power curve for contrast
+  const alpha = 0.08 + intensity * 0.75;
+  return `rgba(124,58,237,${alpha.toFixed(2)})`;
+}
+
+// ── Format helpers (exported) ─────────────────────────────────────────────────
+
+export function formatHour12(h: number): string {
+  if (h === 0)  return '12 AM';
+  if (h === 12) return '12 PM';
+  return h < 12 ? `${h} AM` : `${h - 12} PM`;
+}
+
+// ── Derive recommendation text from best cells ─────────────────────────────────
+
+export function deriveRecommendation(cells: HeatmapCell[][]): string {
+  const best = cells.flat()
+    .filter(c => c.isBestTime)
+    .sort((a, b) => b.avgER - a.avgER);
+  if (best.length === 0) return '';
+  const day1 = FULL_DAYS[best[0].day];
+  const day2 = best[1] && best[1].day !== best[0].day
+    ? ` & ${FULL_DAYS[best[1].day]}` : '';
+  const h = best[0].hour;
+  return `${day1}${day2}, ${formatHour12(h)}–${formatHour12(h + 1)} IST`;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export default function HeatmapGrid({ posts }: HeatmapGridProps) {
   const [tooltip, setTooltip] = useState<{
-    day: string; hour: number; val: number; max: number; left: number; top: number;
+    cell: HeatmapCell; x: number; y: number;
   } | null>(null);
 
-  if (!data || data.length === 0) return null;
+  const cells  = computeHeatmap(posts);
+  const maxER  = Math.max(...cells.flat().map(c => c.avgER), 0.01);
 
-  const flat = data.flat().filter(v => v > 0);
-  const max  = flat.length > 0 ? Math.max(...flat) : 1;
+  const onEnter = useCallback((e: React.MouseEvent, cell: HeatmapCell) => {
+    if (cell.postCount === 0) return;
+    setTooltip({ cell, x: e.clientX, y: e.clientY });
+  }, []);
 
-  const isHighlighted = (di: number, hi: number) =>
-    highlightSlots.some(s => DAY_NAMES.indexOf(s.day.slice(0, 3)) === di && s.hour === hi);
+  const onMove = useCallback((e: React.MouseEvent, cell: HeatmapCell) => {
+    if (cell.postCount === 0) return;
+    setTooltip(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : prev);
+  }, []);
+
+  const onLeave = useCallback(() => setTooltip(null), []);
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
+    <div style={{ position: 'relative', width: '100%' }}>
 
-      {/* Hour tick labels row */}
+      {/* Hour tick labels */}
       <div style={{ display: 'flex', marginBottom: 6, alignItems: 'center' }}>
         <div style={{ width: DAY_W, flexShrink: 0, marginRight: GAP }} />
         <div style={{ ...CELL_GRID }}>
           {Array.from({ length: 24 }, (_, hi) => {
             const labelIdx = HOUR_COLS.indexOf(hi);
+            const is6pm    = hi === 18;
             return (
               <div key={hi} style={{
-                fontSize: 9, fontWeight: 500,
-                color: labelIdx >= 0 ? 'rgba(255,255,255,0.28)' : 'transparent',
+                fontSize: 9, fontWeight: is6pm ? 700 : 500,
+                color: labelIdx >= 0
+                  ? (is6pm ? '#f9607a' : 'rgba(255,255,255,0.28)')
+                  : 'transparent',
                 textAlign: 'center',
                 userSelect: 'none',
                 overflow: 'hidden',
@@ -78,7 +164,6 @@ export default function HeatmapGrid({ data, highlightSlots = [] }: HeatmapGridPr
       {/* Day rows */}
       {DAY_NAMES.map((day, di) => (
         <div key={day} style={{ display: 'flex', marginBottom: di < 6 ? GAP : 0, alignItems: 'stretch' }}>
-          {/* Day label */}
           <div style={{
             width: DAY_W, flexShrink: 0, marginRight: GAP,
             display: 'flex', alignItems: 'center',
@@ -88,43 +173,28 @@ export default function HeatmapGrid({ data, highlightSlots = [] }: HeatmapGridPr
           }}>
             {day}
           </div>
-
-          {/* 24-column fluid grid */}
           <div style={{ ...CELL_GRID }}>
-            {Array.from({ length: 24 }, (_, hi) => {
-              const val = data[di]?.[hi] ?? 0;
-              const isHl = isHighlighted(di, hi);
-              const bg = cellColor(val, max, isHl);
+            {cells[di].map(cell => {
+              const bg = getCellBackground(cell, maxER);
               return (
                 <div
-                  key={hi}
-                  onMouseEnter={(e) => {
-                    const cellRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                    const contRect = containerRef.current?.getBoundingClientRect();
-                    if (!contRect) return;
-                    setTooltip({
-                      day, hour: hi, val, max,
-                      left: cellRect.left - contRect.left + cellRect.width / 2,
-                      top: cellRect.top  - contRect.top,
-                    });
-                    (e.currentTarget as HTMLElement).style.transform = 'scale(1.25)';
-                    (e.currentTarget as HTMLElement).style.zIndex = '10';
-                  }}
-                  onMouseLeave={(e) => {
-                    setTooltip(null);
-                    (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
-                    (e.currentTarget as HTMLElement).style.zIndex = '1';
-                  }}
+                  key={cell.hour}
+                  onMouseEnter={e => onEnter(e, cell)}
+                  onMouseMove={e  => onMove(e,  cell)}
+                  onMouseLeave={onLeave}
                   style={{
                     aspectRatio: '1',
                     borderRadius: 4,
                     background: bg,
-                    border: isHl
-                      ? '1.5px solid rgba(236,72,153,0.7)'
-                      : '1px solid rgba(255,255,255,0.04)',
-                    boxShadow: isHl ? '0 0 8px rgba(236,72,153,0.5)' : 'none',
-                    cursor: 'default',
-                    transition: 'transform 0.12s ease, box-shadow 0.12s ease',
+                    border: cell.isBestTime
+                      ? '1.5px solid rgba(249,96,122,0.7)'
+                      : cell.postCount > 0
+                        ? '1px solid rgba(255,255,255,0.08)'
+                        : '1px solid rgba(255,255,255,0.03)',
+                    boxShadow: cell.isBestTime
+                      ? '0 0 8px rgba(249,96,122,0.5)' : 'none',
+                    cursor: cell.postCount > 0 ? 'pointer' : 'default',
+                    transition: 'transform 0.12s ease',
                     position: 'relative',
                   }}
                 />
@@ -134,53 +204,63 @@ export default function HeatmapGrid({ data, highlightSlots = [] }: HeatmapGridPr
         </div>
       ))}
 
-      {/* Floating tooltip */}
+      {/* Fixed tooltip — avoids overflow clipping */}
       {tooltip && (
         <div style={{
-          position: 'absolute',
-          left: tooltip.left,
-          top: tooltip.top - 46,
-          transform: 'translateX(-50%)',
-          background: 'rgba(14,14,22,0.96)',
+          position: 'fixed',
+          left: tooltip.x + 14,
+          top: tooltip.y - 10,
+          background: '#1a1a2e',
           border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 9,
-          padding: '6px 11px',
-          fontSize: 11, fontWeight: 600,
+          borderRadius: 8,
+          padding: '8px 12px',
+          fontSize: 12,
           color: 'white',
-          whiteSpace: 'nowrap',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+          zIndex: 9999,
           pointerEvents: 'none',
-          zIndex: 30,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.55)',
-          letterSpacing: '-0.01em',
+          whiteSpace: 'nowrap',
         }}>
-          {tooltip.day} · {formatHour(tooltip.hour)}
-          <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 400, marginLeft: 8 }}>
-            {tooltip.val > 0 ? `${Math.round((tooltip.val / tooltip.max) * 100)}% active` : 'Inactive'}
-          </span>
-          <div style={{
-            position: 'absolute', bottom: -5, left: '50%', transform: 'translateX(-50%)',
-            width: 8, height: 8, background: 'rgba(14,14,22,0.96)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderTop: 'none', borderLeft: 'none',
-            rotate: '45deg',
-          }} />
+          <div style={{ fontWeight: 600, marginBottom: 2 }}>
+            {DAY_NAMES[tooltip.cell.day]} · {formatHour12(tooltip.cell.hour)} IST
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11 }}>
+            {tooltip.cell.postCount} post{tooltip.cell.postCount !== 1 ? 's' : ''} published
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11 }}>
+            avg ER: {tooltip.cell.avgER.toFixed(1)}%
+          </div>
+          {tooltip.cell.isBestTime && (
+            <div style={{ color: '#f9607a', fontSize: 11, fontWeight: 600, marginTop: 3 }}>
+              ⚡ Your best time to post
+            </div>
+          )}
         </div>
       )}
 
       {/* Legend */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap', fontSize: 11, color: '#6b7280' }}>
-        <span>Less active</span>
-        <div style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(139,92,246,0.12)' }} />
-        <div style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(139,92,246,0.30)' }} />
-        <div style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(139,92,246,0.55)' }} />
-        <div style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(139,92,246,0.80)' }} />
-        <span>More active</span>
-        {highlightSlots.length > 0 && (
-          <>
-            <div style={{ width: 12, height: 12, borderRadius: 3, background: '#ec4899' }} />
-            <span>Best time to post</span>
-          </>
-        )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Low ER</span>
+        {[0.1, 0.3, 0.5, 0.75, 1].map((t, i) => (
+          <div key={i} style={{
+            width: 14, height: 14, borderRadius: 3,
+            background: `rgba(124,58,237,${(0.08 + t * 0.75).toFixed(2)})`,
+          }} />
+        ))}
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>High ER</span>
+        <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.1)' }} />
+        <div style={{
+          width: 14, height: 14, borderRadius: 3, background: '#f9607a',
+          boxShadow: '0 0 6px rgba(249,96,122,0.5)',
+        }} />
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Best time to post</span>
+        <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.1)' }} />
+        <div style={{
+          width: 14, height: 14, borderRadius: 3,
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.08)',
+        }} />
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>No posts</span>
       </div>
     </div>
   );

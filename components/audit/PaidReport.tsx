@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Clock, Hash, Zap, IndianRupee, Search, TrendingUp } from 'lucide-react';
-import HeatmapGrid from '@/components/audit/HeatmapGrid';
+import HeatmapGrid, { computeHeatmap, deriveRecommendation, PostForHeatmap } from '@/components/audit/HeatmapGrid';
 import { ContentTimeline, GrowthProjection, ViralReverseEngineering } from '@/components/audit/InsightSections';
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -121,6 +121,8 @@ const hookColor = (s: number) => s >= 7 ? '#22C55E' : s >= 5 ? '#F59E0B' : '#EF4
 const hookVerdict = (s: number) => s >= 9 ? 'Great' : s >= 7 ? 'Strong' : s >= 5 ? 'Average' : 'Weak';
 
 export default function PaidReport({ ai, m }: PaidReportProps) {
+  const _posts = (m.allPostsTimeline || []) as PostForHeatmap[];
+  const recommendationText = deriveRecommendation(computeHeatmap(_posts)) || ai.best_posting_time;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
 
@@ -139,11 +141,11 @@ export default function PaidReport({ ai, m }: PaidReportProps) {
         <p style={{ fontSize: 13, color: '#9ca3af', marginBottom: 20, lineHeight: 1.6 }}>
           Based on your audience&apos;s real activity patterns — not a generic guide.
         </p>
-        <HeatmapGrid data={ai.heatmap_data || []} highlightSlots={ai.best_posting_times || []} />
+        <HeatmapGrid posts={_posts} />
         <div style={{ height: 3, width: '100%', background: 'linear-gradient(90deg, transparent, rgba(139,92,246,0.6) 50%, transparent)', borderRadius: 2, margin: '14px 0' }} />
         <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '16px 20px', marginTop: 6 }}>
           <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', color: '#a78bfa', textTransform: 'uppercase' as const, marginBottom: 6 }}>AI Recommendation</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'white', marginBottom: 6 }}>{ai.best_posting_time}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'white', marginBottom: 6 }}>{recommendationText}</div>
           <div style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6 }}>{ai.best_posting_time_reason}</div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 6 }}>
