@@ -393,7 +393,7 @@ export default function AuditReportPage({ params, searchParams }: { params: { ig
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 100, background: 'linear-gradient(to bottom, transparent, var(--bg-base))' }} />
           </div>
 
-          <div style={{ position: 'relative', zIndex: 1, maxWidth: 760, margin: '0 auto', padding: '0 24px' }}>
+          <div style={{ position: 'relative', zIndex: 1, maxWidth: 960, margin: '0 auto', padding: '0 24px' }}>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -464,7 +464,7 @@ export default function AuditReportPage({ params, searchParams }: { params: { ig
                     )}
 
                     {/* Stat grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, maxWidth: 340 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
                       <Stat
                         label="Engagement"
                         value={`${m.engagementRate}%`}
@@ -498,7 +498,7 @@ export default function AuditReportPage({ params, searchParams }: { params: { ig
         {/* ═══════════════════════════════════════════════════════════
             BODY CONTENT
         ═══════════════════════════════════════════════════════════ */}
-        <div style={{ maxWidth: 760, margin: '0 auto', padding: '0 24px' }}>
+        <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 24px' }}>
 
           {/* Free metrics */}
           <div style={{ marginTop: 32 }}>
