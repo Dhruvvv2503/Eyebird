@@ -197,22 +197,6 @@ export default function AutomationsClient({ initialAutomations, igAccount }: Pro
           ))}
         </div>
 
-        {/* TEST MODE BANNER */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          background: 'rgba(245,158,11,0.08)',
-          border: '1px solid rgba(245,158,11,0.2)',
-          borderRadius: 12, padding: '12px 18px',
-          marginBottom: 20,
-        }}>
-          <span style={{ fontSize: 16 }}>🧪</span>
-          <div style={{ flex: 1 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#fcd34d' }}>Test Mode Active</span>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>All DMs are sent to @dhruvv.bhaii only — not real commenters</span>
-          </div>
-          <span style={{ fontSize: 11, color: '#fcd34d', fontWeight: 600 }}>Pending App Review</span>
-        </div>
-
         {/* AUTOMATION CARDS */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {automations.map(automation => {
@@ -256,11 +240,6 @@ export default function AutomationsClient({ initialAutomations, igAccount }: Pro
                     }}>
                       {automation.status}
                     </span>
-                    {automation.test_mode && (
-                      <span style={{ fontSize: 10, fontWeight: 600, color: '#fcd34d', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 100, padding: '2px 8px' }}>
-                        🧪 Test
-                      </span>
-                    )}
                   </div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>
                     {getTriggerSummary(automation)}

@@ -297,16 +297,6 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
           onBlur={e => { if (!nameError) e.target.style.borderColor = 'transparent'; }}
         />
 
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          background: 'rgba(245,158,11,0.08)',
-          border: '1px solid rgba(245,158,11,0.2)',
-          borderRadius: 8, padding: '5px 12px',
-          fontSize: 11, fontWeight: 700, color: '#fcd34d',
-        }}>
-          🧪 Test Mode
-        </div>
-
         <button
           onClick={() => handleSave('draft')}
           disabled={saving}
