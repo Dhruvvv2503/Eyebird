@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AutomationFormState, InstagramPost } from '@/types/automations';
 
@@ -73,6 +73,7 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
   const [showPostPicker, setShowPostPicker] = useState(false);
   const [nameError, setNameError] = useState('');
   const [dmError, setDmError] = useState('');
+  const [dmUsage, setDmUsage] = useState<{ used: number; limit: number } | null>(null);
 
   const loadPosts = useCallback(async (cursor?: string) => {
     setLoadingPosts(true);
@@ -93,6 +94,20 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
     } finally {
       setLoadingPosts(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/automations')
+      .then(r => r.json())
+      .then(data => {
+        if (data.automations) {
+          const used = (data.automations as { total_dms_sent?: number }[]).reduce(
+            (sum, a) => sum + (a.total_dms_sent || 0), 0
+          );
+          setDmUsage({ used, limit: 5000 });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   function addKeyword(kw: string) {
@@ -212,7 +227,8 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
 
   return (
     <div style={{
-      minHeight: '100vh',
+      height: '100vh',
+      overflow: 'hidden',
       background: '#07060F',
       fontFamily: 'var(--font-body)',
       display: 'flex',
@@ -355,56 +371,150 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
                 <div style={{ fontSize: 10, color: '#fff', display: 'flex', gap: 3 }}>●●●</div>
               </div>
 
-              {/* DM Header */}
-              <div style={{ background: '#000', padding: '8px 14px 12px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid #222' }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', background: '#333', flexShrink: 0 }}>
-                  {igAccount?.profile_picture_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={igAccount.profile_picture_url} alt="profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  )}
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>@{igAccount?.username || 'your_account'}</div>
-                  <div style={{ fontSize: 10, color: '#666' }}>Instagram · Just now</div>
-                </div>
-              </div>
-
-              {/* Messages area */}
-              <div style={{ background: '#000', minHeight: 320, padding: '20px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {form.opening_dm_enabled && form.opening_dm_text && (
-                  <div style={{ alignSelf: 'flex-start', maxWidth: '80%' }}>
-                    <div style={{ background: '#1a1a1a', borderRadius: '18px 18px 18px 4px', padding: '10px 14px', fontSize: 12, color: '#fff', lineHeight: 1.5 }}>
-                      {form.opening_dm_text.replace('{first_name}', 'there')}
+              {activePreviewTab === 'dm' ? (
+                <>
+                  {/* DM Header */}
+                  <div style={{ background: '#000', padding: '8px 14px 12px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid #222' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden', background: '#333', flexShrink: 0 }}>
+                      {igAccount?.profile_picture_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={igAccount.profile_picture_url} alt="profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      )}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>@{igAccount?.username || 'your_account'}</div>
+                      <div style={{ fontSize: 10, color: '#666' }}>Instagram · Just now</div>
                     </div>
                   </div>
-                )}
-                {form.main_dm_text ? (
-                  <div style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
-                    <div style={{ background: '#1a1a1a', borderRadius: '18px 18px 18px 4px', padding: '10px 14px', fontSize: 12, color: '#fff', lineHeight: 1.5 }}>
-                      {getPreviewDmText()}
-                    </div>
-                    {form.main_dm_link_text && form.main_dm_link_url && (
-                      <div style={{ background: '#1C1C1E', border: '1px solid #333', borderRadius: 12, padding: '10px 14px', marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{form.main_dm_link_text}</div>
-                          <div style={{ fontSize: 10, color: '#666', marginTop: 2 }}>{form.main_dm_link_url}</div>
+
+                  {/* Messages area */}
+                  <div style={{ background: '#000', minHeight: 320, padding: '20px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {form.opening_dm_enabled && form.opening_dm_text && (
+                      <div style={{ alignSelf: 'flex-start', maxWidth: '80%' }}>
+                        <div style={{ background: '#1a1a1a', borderRadius: '18px 18px 18px 4px', padding: '10px 14px', fontSize: 12, color: '#fff', lineHeight: 1.5 }}>
+                          {form.opening_dm_text.replace('{first_name}', 'there')}
                         </div>
-                        <div style={{ fontSize: 16 }}>→</div>
+                      </div>
+                    )}
+                    {form.main_dm_text ? (
+                      <div style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
+                        <div style={{ background: '#1a1a1a', borderRadius: '18px 18px 18px 4px', padding: '10px 14px', fontSize: 12, color: '#fff', lineHeight: 1.5 }}>
+                          {getPreviewDmText()}
+                        </div>
+                        {form.main_dm_link_text && form.main_dm_link_url && (
+                          <div style={{ background: '#1C1C1E', border: '1px solid #333', borderRadius: 12, padding: '10px 14px', marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{form.main_dm_link_text}</div>
+                              <div style={{ fontSize: 10, color: '#666', marginTop: 2 }}>{form.main_dm_link_url}</div>
+                            </div>
+                            <div style={{ fontSize: 16 }}>→</div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, paddingTop: 60 }}>
+                        <div style={{ fontSize: 24, marginBottom: 8 }}>💬</div>
+                        <div style={{ fontSize: 11, color: '#444', textAlign: 'center' }}>Your DM will<br />appear here</div>
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, paddingTop: 60 }}>
-                    <div style={{ fontSize: 24, marginBottom: 8 }}>💬</div>
-                    <div style={{ fontSize: 11, color: '#444', textAlign: 'center' }}>Your DM will<br />appear here</div>
-                  </div>
-                )}
-              </div>
 
-              {/* Input bar */}
-              <div style={{ background: '#000', padding: '10px 14px 20px', borderTop: '1px solid #222', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ flex: 1, background: '#1a1a1a', borderRadius: 20, padding: '8px 14px', fontSize: 11, color: '#555' }}>Message...</div>
-              </div>
+                  {/* Input bar */}
+                  <div style={{ background: '#000', padding: '10px 14px 20px', borderTop: '1px solid #222', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ flex: 1, background: '#1a1a1a', borderRadius: 20, padding: '8px 14px', fontSize: 11, color: '#555' }}>Message...</div>
+                  </div>
+                </>
+              ) : activePreviewTab === 'post' ? (
+                <>
+                  {/* Post header */}
+                  <div style={{ background: '#000', padding: '8px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #111' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', overflow: 'hidden', background: '#333', flexShrink: 0 }}>
+                        {igAccount?.profile_picture_url && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={igAccount.profile_picture_url} alt="profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        )}
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>@{igAccount?.username || 'your_account'}</span>
+                    </div>
+                    <span style={{ fontSize: 14, color: '#666', letterSpacing: 2 }}>···</span>
+                  </div>
+                  {/* Post image */}
+                  <div style={{ width: '100%', aspectRatio: '1', background: '#111', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {form.trigger_post_thumbnail ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={form.trigger_post_thumbnail} alt="post" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    ) : (
+                      <div style={{ textAlign: 'center', color: '#333' }}>
+                        <div style={{ fontSize: 28 }}>🖼</div>
+                        <div style={{ fontSize: 10, marginTop: 6, color: '#444' }}>Select a post above</div>
+                      </div>
+                    )}
+                  </div>
+                  {/* Post actions */}
+                  <div style={{ background: '#000', padding: '10px 14px 16px' }}>
+                    <div style={{ display: 'flex', gap: 14, marginBottom: 8, fontSize: 18 }}>
+                      <span>♡</span><span style={{ fontSize: 16 }}>💬</span><span style={{ fontSize: 16 }}>↗</span>
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', marginBottom: 4 }}>1,234 likes</div>
+                    <div style={{ fontSize: 11, color: '#555' }}>View all 56 comments</div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Comments header */}
+                  <div style={{ background: '#000', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #111' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', overflow: 'hidden', background: '#333', flexShrink: 0 }}>
+                      {igAccount?.profile_picture_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={igAccount.profile_picture_url} alt="profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      )}
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>Comments</span>
+                  </div>
+                  {/* Comments list */}
+                  <div style={{ background: '#000', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 14, minHeight: 300 }}>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#2a2a2a', flexShrink: 0 }} />
+                      <div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>user123 </span>
+                        <span style={{ fontSize: 11, color: '#999' }}>Love this! ❤️</span>
+                        <div style={{ fontSize: 10, color: '#444', marginTop: 2 }}>2 min ago</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#2a2a2a', flexShrink: 0 }} />
+                      <div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>rahul_k </span>
+                        <span style={{ fontSize: 11, color: '#999' }}>Send me the </span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#c4b5fd', background: 'rgba(139,92,246,0.15)', borderRadius: 4, padding: '1px 4px' }}>
+                          {form.trigger_keywords[0] || 'LINK'}
+                        </span>
+                        <div style={{ fontSize: 10, color: '#444', marginTop: 2 }}>Just now</div>
+                      </div>
+                    </div>
+                    {form.reply_to_comment_publicly && (
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <div style={{ width: 24, height: 24, borderRadius: '50%', overflow: 'hidden', background: '#333', flexShrink: 0 }}>
+                          {igAccount?.profile_picture_url && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={igAccount.profile_picture_url} alt="profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          )}
+                        </div>
+                        <div>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>@{igAccount?.username || 'you'} </span>
+                          <span style={{ fontSize: 11, color: '#999' }}>Sent you a DM! 📩</span>
+                          <div style={{ fontSize: 10, color: '#444', marginTop: 2 }}>Just now · <span style={{ color: '#8B5CF6' }}>Automated</span></div>
+                        </div>
+                      </div>
+                    )}
+                    <div style={{ padding: '10px 12px', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 14 }}>📨</span>
+                      <span style={{ fontSize: 11, color: '#c4b5fd' }}>DM sent automatically</span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Preview tabs */}
@@ -440,6 +550,29 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
           overflowY: 'auto',
           padding: '24px 22px',
         }}>
+
+          {/* DM USAGE BAR */}
+          {dmUsage && (
+            <div style={{ marginBottom: 22, padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>DMs this month</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: dmUsage.used / dmUsage.limit > 0.8 ? '#f87171' : 'rgba(255,255,255,0.6)' }}>
+                  {dmUsage.used.toLocaleString()} / {dmUsage.limit.toLocaleString()}
+                </span>
+              </div>
+              <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 100, overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%',
+                  width: `${Math.min(100, (dmUsage.used / dmUsage.limit) * 100)}%`,
+                  background: dmUsage.used / dmUsage.limit > 0.8
+                    ? 'linear-gradient(90deg, #f87171, #ef4444)'
+                    : 'linear-gradient(90deg, #8B5CF6, #EC4899)',
+                  borderRadius: 100,
+                  transition: 'width 0.5s ease',
+                }} />
+              </div>
+            </div>
+          )}
 
           {/* STEP 1: TRIGGER POST */}
           <div style={{ marginBottom: 28 }}>
