@@ -312,7 +312,7 @@ export default function DashboardShell({
               { href: '/dashboard/audit', icon: 'activity', name: 'Audit', locked: false },
             ]},
             { label: 'Growth', items: [
-              { href: '/dashboard/automations',  icon: 'zap',     name: 'Automations', locked: plan !== 'creator' },
+              { href: '/dashboard/automations',  icon: 'zap',     name: 'Automations', locked: false },
               { href: '/dashboard/smart-reply',  icon: 'message', name: 'Smart Reply', locked: plan !== 'creator' },
               { href: '/dashboard/contacts',     icon: 'users',   name: 'Contacts',    locked: plan !== 'creator' },
             ]},
