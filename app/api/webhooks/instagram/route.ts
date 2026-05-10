@@ -152,8 +152,10 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
         continue;
       }
 
-      // test_mode = true → send to the creator's own account for testing
-      const recipientIgId = automation.test_mode ? igAccount.ig_user_id : commenterIgId;
+      // Always send to commenterIgId — this is the IGSID from the webhook, correct format for Messaging API
+      // In test_mode the creator uses a secondary account to comment, so they receive the DM naturally
+      const recipientIgId = commenterIgId;
+      console.log(`Sending DM to commenter IGSID: ${recipientIgId} (@${commenterUsername}), test_mode: ${automation.test_mode}`);
 
       const firstName = commenterUsername?.split('_')[0] || commenterUsername || 'there';
       const dmText = (automation.main_dm_text || '').replace(/\{first_name\}/gi, firstName);
