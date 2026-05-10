@@ -74,6 +74,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [fullName, setFullName] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [notifications, setNotifications] = useState({
     weekly_report: true,
     audit_completed: true,
@@ -104,10 +105,26 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const handleDeleteAccount = () => {
-    const confirmed = window.confirm('Are you sure? This will permanently delete your Eyebird account and all audit data. This cannot be undone.');
-    if (confirmed) {
-      alert('To delete your account, please email support@eyebird.in with subject "Delete my account".');
+  const handleDeleteAccount = async () => {
+    const step1 = window.confirm('Are you sure? This will permanently delete your Eyebird account and all associated data. This cannot be undone.');
+    if (!step1) return;
+
+    const confirmation = window.prompt('Type DELETE to confirm permanent account deletion:');
+    if (confirmation !== 'DELETE') return;
+
+    setDeletingAccount(true);
+    try {
+      const res = await fetch('/api/user/delete', { method: 'DELETE' });
+      if (res.ok) {
+        window.location.href = '/account-deleted';
+      } else {
+        const err = await res.json();
+        alert('Deletion failed: ' + (err.error || 'Unknown error. Please try again.'));
+        setDeletingAccount(false);
+      }
+    } catch {
+      alert('Network error. Please try again.');
+      setDeletingAccount(false);
     }
   };
 
@@ -181,11 +198,12 @@ export default function SettingsPage() {
               </p>
               <button
                 onClick={handleDeleteAccount}
-                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 9, background: 'transparent', border: '1px solid var(--danger-border)', color: 'var(--danger)', fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease' }}
-                onMouseEnter={e => { (e.currentTarget.style.background = 'rgba(239,68,68,0.1)'); }}
+                disabled={deletingAccount}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 9, background: 'transparent', border: '1px solid var(--danger-border)', color: 'var(--danger)', fontSize: 13, fontWeight: 600, cursor: deletingAccount ? 'not-allowed' : 'pointer', transition: 'all 0.15s ease', opacity: deletingAccount ? 0.6 : 1 }}
+                onMouseEnter={e => { if (!deletingAccount) (e.currentTarget.style.background = 'rgba(239,68,68,0.1)'); }}
                 onMouseLeave={e => { (e.currentTarget.style.background = 'transparent'); }}
               >
-                <Trash2 size={14} /> Delete my account
+                <Trash2 size={14} /> {deletingAccount ? 'Deleting…' : 'Delete my account'}
               </button>
             </div>
           </motion.div>

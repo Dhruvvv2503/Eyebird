@@ -9,6 +9,7 @@ const PUBLIC_PATHS = [
   '/privacy',
   '/terms',
   '/data-deletion',
+  '/account-deleted',
   '/api/auth/callback',
   '/api/instagram/callback',
   '/api/instagram/auth',

@@ -1,159 +1,142 @@
-import type { Metadata } from 'next';
+'use client';
+
+import { useState } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import { LEGAL_CONFIG } from '@/app/lib/legal-config';
-
-export const metadata: Metadata = {
-  title: `Data Deletion Instructions | ${LEGAL_CONFIG.businessName}`,
-  description: `How to request deletion of your personal data from ${LEGAL_CONFIG.businessName}, in line with India's DPDP Act 2023.`,
-};
-
-const lastUpdated = new Date().toLocaleDateString('en-IN', {
-  day: 'numeric', month: 'long', year: 'numeric',
-});
+import Link from 'next/link';
 
 const S = {
   page:      { background: '#0A0A10', minHeight: '100vh', color: '#FAFAFA' } as React.CSSProperties,
-  wrap:      { maxWidth: 780, margin: '0 auto', padding: '120px 24px 80px' } as React.CSSProperties,
+  wrap:      { maxWidth: 680, margin: '0 auto', padding: '120px 24px 80px' } as React.CSSProperties,
   h1:        { fontSize: 'clamp(28px,4vw,40px)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.1, marginBottom: 12 } as React.CSSProperties,
-  meta:      { fontSize: 13, color: 'rgba(255,255,255,0.3)', marginBottom: 56 } as React.CSSProperties,
-  h2:        { fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', color: '#FAFAFA', marginBottom: 12, marginTop: 40 } as React.CSSProperties,
+  meta:      { fontSize: 13, color: 'rgba(255,255,255,0.3)', marginBottom: 48 } as React.CSSProperties,
+  h2:        { fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', color: '#FAFAFA', marginBottom: 16, marginTop: 40 } as React.CSSProperties,
   p:         { fontSize: 15, lineHeight: 1.75, color: 'rgba(255,255,255,0.6)', marginBottom: 12 } as React.CSSProperties,
-  ol:        { paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 } as React.CSSProperties,
-  ul:        { paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 } as React.CSSProperties,
-  li:        { fontSize: 15, lineHeight: 1.7, color: 'rgba(255,255,255,0.6)' } as React.CSSProperties,
-  card:      {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 14,
-    padding: '20px 24px',
-    marginTop: 16,
-  } as React.CSSProperties,
-  highlight: {
-    background: 'rgba(168,85,247,0.08)',
-    border: '1px solid rgba(168,85,247,0.25)',
-    borderRadius: 14,
-    padding: '20px 24px',
-    marginTop: 16,
-  } as React.CSSProperties,
-  code:      {
-    fontFamily: 'monospace',
-    background: 'rgba(255,255,255,0.07)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 6,
-    padding: '3px 10px',
-    fontSize: 14,
-    color: '#FAFAFA',
-    display: 'inline-block',
-  } as React.CSSProperties,
-  label:     { fontSize: 12, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: 'rgba(255,255,255,0.25)', marginBottom: 4 },
-  value:     { fontSize: 15, color: 'rgba(255,255,255,0.75)', marginBottom: 10 } as React.CSSProperties,
-  divider:   { height: 1, background: 'rgba(255,255,255,0.06)', margin: '8px 0' } as React.CSSProperties,
+  card:      { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '24px' } as React.CSSProperties,
+  label:     { display: 'block', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', marginBottom: 6, letterSpacing: '0.04em' } as React.CSSProperties,
+  input:     { width: '100%', height: 44, borderRadius: 9, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#FAFAFA', fontSize: 14, padding: '0 14px', outline: 'none', boxSizing: 'border-box' as const },
+  textarea:  { width: '100%', minHeight: 90, borderRadius: 9, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#FAFAFA', fontSize: 14, padding: '12px 14px', outline: 'none', resize: 'vertical' as const, boxSizing: 'border-box' as const, fontFamily: 'inherit' },
+  divider:   { height: 1, background: 'rgba(255,255,255,0.07)', margin: '40px 0' } as React.CSSProperties,
 };
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section>
-      <h2 style={S.h2}>{title}</h2>
-      {children}
-    </section>
-  );
-}
-
-function GrievanceCard() {
-  return (
-    <div style={S.highlight}>
-      <p style={S.label}>Grievance Officer</p>
-      <div style={S.divider} />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
-        <div><p style={S.label}>Name</p><p style={S.value}>{LEGAL_CONFIG.ownerName}</p></div>
-        <div><p style={S.label}>Business</p><p style={S.value}>{LEGAL_CONFIG.businessName} (Udyam Registered)</p></div>
-        <div>
-          <p style={S.label}>Email</p>
-          <a href={`mailto:${LEGAL_CONFIG.supportEmail}`} style={{ fontSize: 15, color: '#A855F7', textDecoration: 'none' }}>
-            {LEGAL_CONFIG.supportEmail}
-          </a>
-        </div>
-        <div style={{ marginTop: 8 }}><p style={S.label}>Response Time</p><p style={{ ...S.value, marginBottom: 0 }}>7 business days</p></div>
-      </div>
-    </div>
-  );
-}
-
 export default function DataDeletionPage() {
+  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const [reason, setReason] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setStatus('loading');
+
+    const res = await fetch('/api/data-deletion-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, instagram_username: username, reason }),
+    });
+
+    if (res.ok) {
+      setStatus('sent');
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setErrorMsg(data.error || 'Something went wrong. Please try again.');
+      setStatus('error');
+    }
+  };
+
   return (
     <div style={S.page}>
       <Navbar />
       <main style={S.wrap}>
-        <h1 style={S.h1}>Data Deletion Instructions</h1>
-        <p style={S.meta}>Last updated: {lastUpdated}</p>
+        <h1 style={S.h1}>Data Deletion</h1>
+        <p style={S.meta}>In accordance with India's DPDP Act 2023 and Meta's platform requirements.</p>
 
-        <Section title="1. Your Right to Deletion">
-          <p style={S.p}>
-            {LEGAL_CONFIG.businessName} fully respects your right to control your personal data. Under India's Digital Personal Data Protection (DPDP) Act 2023, you have the right to request erasure of all personal data we hold about you, at any time, without giving a reason.
+        {/* Option 1: delete via dashboard */}
+        <h2 style={S.h2}>Option 1 — Delete instantly from your dashboard</h2>
+        <p style={S.p}>
+          If you have an Eyebird account, you can delete it immediately — no waiting period.
+        </p>
+        <div style={S.card}>
+          <p style={{ ...S.p, marginBottom: 16 }}>
+            Go to <strong style={{ color: '#FAFAFA' }}>Dashboard → Settings → Account → Danger Zone</strong> and click <strong style={{ color: '#FAFAFA' }}>Delete my account</strong>.
           </p>
-        </Section>
+          <Link
+            href="/dashboard/settings"
+            style={{ display: 'inline-block', padding: '10px 22px', borderRadius: 9, background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.3)', color: '#A855F7', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}
+          >
+            Go to Settings →
+          </Link>
+        </div>
 
-        <Section title="2. How to Request Deletion">
-          <p style={S.p}>Follow these steps to request complete deletion of your data:</p>
-          <div style={S.card}>
-            <ol style={{ ...S.ol, paddingLeft: 24 }}>
-              <li style={S.li}>
-                Email us at{' '}
-                <a href={`mailto:${LEGAL_CONFIG.supportEmail}`} style={{ color: '#A855F7', textDecoration: 'none' }}>
-                  {LEGAL_CONFIG.supportEmail}
-                </a>
-              </li>
-              <li style={S.li}>
-                Use the subject line: <span style={S.code}>Data Deletion Request</span>
-              </li>
-              <li style={S.li}>Include your Instagram username and the email address you used at signup</li>
-              <li style={S.li}>You will receive a confirmation within <strong style={{ color: '#FAFAFA' }}>24 hours</strong></li>
-              <li style={S.li}>Deletion will be completed within <strong style={{ color: '#FAFAFA' }}>7 business days</strong></li>
-              <li style={S.li}>A final confirmation email will be sent once deletion is complete</li>
-            </ol>
+        <div style={S.divider} />
+
+        {/* Option 2: email form */}
+        <h2 style={S.h2}>Option 2 — Submit a deletion request</h2>
+        <p style={S.p}>
+          If you no longer have access to your account, submit the form below. We will process your request within 7 business days.
+        </p>
+
+        {status === 'sent' ? (
+          <div style={{ ...S.card, background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.25)' }}>
+            <p style={{ ...S.p, color: '#22C55E', marginBottom: 4, fontWeight: 700 }}>Request received</p>
+            <p style={{ ...S.p, marginBottom: 0 }}>
+              We sent a confirmation to <strong style={{ color: '#FAFAFA' }}>{email}</strong>. Deletion will be completed within 7 business days.
+            </p>
           </div>
-        </Section>
+        ) : (
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={S.label}>Email address *</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="you@email.com"
+                style={S.input}
+              />
+            </div>
+            <div>
+              <label style={S.label}>Instagram username (if applicable)</label>
+              <input
+                type="text"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                placeholder="@yourhandle"
+                style={S.input}
+              />
+            </div>
+            <div>
+              <label style={S.label}>Reason (optional)</label>
+              <textarea
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                placeholder="Let us know why you're leaving (optional)."
+                style={S.textarea}
+              />
+            </div>
+            {status === 'error' && (
+              <p style={{ fontSize: 13, color: '#EF4444', margin: 0 }}>{errorMsg}</p>
+            )}
+            <button
+              type="submit"
+              disabled={status === 'loading'}
+              style={{ height: 46, borderRadius: 10, background: 'linear-gradient(135deg,#FF3E80,#A855F7)', border: 'none', color: 'white', fontSize: 15, fontWeight: 700, cursor: status === 'loading' ? 'not-allowed' : 'pointer', opacity: status === 'loading' ? 0.7 : 1 }}
+            >
+              {status === 'loading' ? 'Submitting…' : 'Submit deletion request'}
+            </button>
+          </form>
+        )}
 
-        <Section title="3. What Gets Deleted">
-          <p style={S.p}>Upon a successful deletion request, we will permanently remove:</p>
-          <ul style={S.ul}>
-            <li style={S.li}>Your Instagram connection and access token</li>
-            <li style={S.li}>All cached posts, engagement metrics, and audience data</li>
-            <li style={S.li}>Your audit report and AI-generated analysis</li>
-            <li style={S.li}>Your email address and account information</li>
-            <li style={S.li}>Payment confirmation records held by us</li>
-          </ul>
-          <p style={{ ...S.p, color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
-            Note: Minimal transactional metadata may be retained for up to 8 years as required by Indian tax law. This data is anonymised and cannot be used to identify you personally.
-          </p>
-        </Section>
+        <div style={S.divider} />
 
-        <Section title="4. Revoking Instagram Access">
-          <p style={S.p}>You can also revoke {LEGAL_CONFIG.businessName}'s access to your Instagram account directly:</p>
-          <div style={S.card}>
-            <ol style={{ ...S.ol, paddingLeft: 24 }}>
-              <li style={S.li}>Open the <strong style={{ color: '#FAFAFA' }}>Instagram</strong> app</li>
-              <li style={S.li}>Go to <strong style={{ color: '#FAFAFA' }}>Settings → Apps and Websites</strong></li>
-              <li style={S.li}>Find <strong style={{ color: '#FAFAFA' }}>{LEGAL_CONFIG.businessName}</strong> in the list</li>
-              <li style={S.li}>Tap <strong style={{ color: '#FAFAFA' }}>Remove</strong></li>
-            </ol>
-          </div>
-          <p style={{ ...S.p, marginTop: 12 }}>
-            ⚠️ Revoking Instagram access stops <em>future</em> data collection but does <strong style={{ color: '#FAFAFA' }}>not</strong> delete data already collected. To delete existing data, please use the email process described above.
-          </p>
-        </Section>
-
-        <Section title="5. Data Kept for Legal Reasons">
-          <p style={S.p}>
-            In compliance with the Income Tax Act 1961 and applicable Indian tax regulations, we may retain minimal transactional data (e.g., payment amount, date, transaction ID) for up to 8 years. This data is anonymised, securely stored, and cannot be used to identify you personally.
-          </p>
-        </Section>
-
-        <Section title="6. Grievance Officer">
-          <p style={S.p}>For any questions or concerns about data deletion, contact our Grievance Officer:</p>
-          <GrievanceCard />
-        </Section>
+        <p style={{ ...S.p, fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
+          Questions? Contact us at{' '}
+          <a href="mailto:support@eyebird.in" style={{ color: '#A855F7', textDecoration: 'none' }}>support@eyebird.in</a>.
+          Eyebird · Karnal, Haryana, India.
+        </p>
       </main>
       <Footer />
     </div>
