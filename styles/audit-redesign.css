@@ -1,0 +1,158 @@
+/* ══════════════════════════════════════════
+   AUDIT REDESIGN — Design Tokens & Classes
+   ══════════════════════════════════════════ */
+
+/* Audit color tokens */
+:root {
+  --audit-bg: #0A0A0F;
+  --audit-surface: #111118;
+  --audit-surface-2: #16161F;
+  --audit-green: #00E5A0;
+  --audit-orange: #FF6B35;
+  --audit-violet: #A78BFA;
+  --audit-pink: #FF3CAC;
+  --audit-blue: #60A5FA;
+}
+
+/* Gradient text utilities */
+.grad-growth {
+  background: linear-gradient(135deg, #00E5A0, #00B4D8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.grad-viral {
+  background: linear-gradient(135deg, #FF3CAC, #FF6B35);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.grad-premium {
+  background: linear-gradient(135deg, #A78BFA, #6366F1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.grad-brand-audit {
+  background: linear-gradient(135deg, #FF3CAC, #A78BFA, #00E5A0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* KPI 4-card grid */
+.audit-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+/* Audit card base */
+.audit-card {
+  background: #111118;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  padding: 24px;
+}
+.audit-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Shimmer keyframe for buttons */
+@keyframes btn-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+/* "+ Run new audit" button */
+.btn-audit-new {
+  background: linear-gradient(135deg, #6366F1, #A78BFA, #6366F1);
+  background-size: 200% auto;
+  animation: btn-shimmer 3s linear infinite;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.35);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  font-family: inherit;
+}
+.btn-audit-new:hover {
+  box-shadow: 0 0 32px rgba(99, 102, 241, 0.55);
+  transform: scale(1.02);
+}
+
+/* Paywall unlock CTA */
+.btn-paywall-unlock {
+  background: linear-gradient(135deg, #6366F1, #A78BFA, #6366F1);
+  background-size: 200% auto;
+  animation: btn-shimmer 3s linear infinite;
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 24px rgba(99, 102, 241, 0.4);
+  transition: box-shadow 0.2s ease;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-paywall-unlock:hover {
+  box-shadow: 0 8px 40px rgba(99, 102, 241, 0.6);
+}
+
+/* Sticky scroll progress bar */
+.audit-sticky-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 100;
+}
+
+/* Hero flex (header row) */
+.audit-hero-flex {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* Score layout: ring card + KPI grid */
+.audit-score-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1023px) {
+  .audit-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .audit-score-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .audit-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .audit-sticky-bar {
+    display: none !important;
+  }
+  .audit-hero-flex {
+    flex-direction: column !important;
+  }
+}

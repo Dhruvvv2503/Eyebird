@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowRight, TrendingUp, TrendingDown, Lock } from 'lucide-react';
+import { motion, useScroll, useSpring } from 'framer-motion';
 import PremiumLoadingScreen from '@/components/audit/PremiumLoadingScreen';
 import FreeMetricsSection from '@/components/audit/FreeMetricsSection';
-import PaywallTeaser from '@/components/audit/PaywallTeaser';
 import PaymentModal from '@/components/audit/PaymentModal';
 import PaidReport from '@/components/audit/PaidReport';
 
@@ -24,6 +24,35 @@ const LOADING_STEPS = [
   'Generating your action plan…',
 ];
 
+const LOCKED_ITEMS = [
+  { emoji: '📅', label: 'Best Time to Post Heatmap', hint: 'Hour-by-hour engagement heatmap for your audience' },
+  { emoji: '🎣', label: 'Hook Quality Report', hint: 'Line-by-line hook analysis with AI rewrites' },
+  { emoji: '#️⃣', label: 'Hashtag Strategy', hint: '30 targeted hashtags ranked by reach potential' },
+  { emoji: '💰', label: 'Creator Rate Card', hint: 'What brands should actually pay you' },
+  { emoji: '✍️', label: 'Bio Rewrite', hint: 'AI-optimized bio that converts profile visitors' },
+  { emoji: '🗓️', label: '90-Day Action Plan', hint: 'Week-by-week growth roadmap personalized for you' },
+];
+
+const RING_R = 41;
+const RING_CIRC = 2 * Math.PI * RING_R;
+
+function ChapterDivider() {
+  return (
+    <motion.div
+      initial={{ scaleX: 0 }}
+      whileInView={{ scaleX: 1 }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.6, ease: 'easeInOut' }}
+      style={{
+        height: 1,
+        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)',
+        marginBlock: '48px',
+        transformOrigin: 'left center',
+      }}
+    />
+  );
+}
+
 export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
   const router = useRouter();
   const [state, setState] = useState<'empty' | 'loading' | 'report' | 'history'>('empty');
@@ -32,6 +61,9 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
   const [isPaid, setIsPaid] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paidLoading, setPaidLoading] = useState(false);
+
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
 
   useEffect(() => {
     if (audits.length > 0) {
@@ -44,7 +76,6 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Advance loading step every 6s to sync PremiumLoadingScreen
   useEffect(() => {
     if (state !== 'loading') return;
     const interval = setInterval(() => {
@@ -152,7 +183,7 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
     );
   }
 
-  /* ─── LOADING (audit generation) ────────────────────────────── */
+  /* ─── LOADING ────────────────────────────────────────────── */
   if (state === 'loading') {
     return (
       <PremiumLoadingScreen
@@ -167,7 +198,6 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
   if (state === 'report' && currentAudit) {
     const igUsername = currentAudit?.username || igAccount?.username || '';
 
-    // Brief loading screen while re-fetching paid audit data
     if (paidLoading) {
       return (
         <PremiumLoadingScreen
@@ -200,181 +230,291 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
     else if (bestFormatKey === 'IMAGE') formatName = 'Photos';
     const formatAvgEr = parseFloat(bestFormatData?.avgEngagementRate || '0').toFixed(1);
 
-    // FreeMetricsSection + PaidReport expect Record<string, number> (post counts per format)
     const formatBreakdownCounts: Record<string, number> = {};
     Object.entries(rawFormatBreakdown).forEach(([k, v]: [string, any]) => {
       formatBreakdownCounts[k] = typeof v === 'number' ? v : (v?.count ?? v?.postCount ?? 0);
     });
 
+    const ringColor1 = overallScore >= 70 ? '#00E5A0' : overallScore >= 50 ? '#FF6B35' : '#FF3CAC';
+    const ringColor2 = overallScore >= 70 ? '#00B4D8' : overallScore >= 50 ? '#FBBF24' : '#A78BFA';
+
     return (
-      <div style={{ fontFamily: 'var(--font-body)', minHeight: '100vh', background: 'var(--bg)', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ fontFamily: 'var(--font-body)', minHeight: '100vh', background: '#0A0A0F', position: 'relative' }}>
 
-        {/* ATMOSPHERE */}
+        {/* Sticky scroll progress bar */}
+        <motion.div
+          className="audit-sticky-bar"
+          style={{
+            scaleX,
+            background: 'linear-gradient(90deg, #00E5A0, #A78BFA, #FF3CAC)',
+            transformOrigin: 'left center',
+          }}
+        />
+
+        {/* Atmosphere */}
         <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
-          background: `radial-gradient(ellipse 65% 50% at 10% -5%, rgba(139,92,246,0.14) 0%, transparent 60%),
-            radial-gradient(ellipse 45% 35% at 90% 10%, rgba(236,72,153,0.08) 0%, transparent 55%)` }} />
+          background: `radial-gradient(ellipse 60% 45% at 8% -5%, rgba(0,229,160,0.09) 0%, transparent 55%),
+            radial-gradient(ellipse 40% 35% at 92% 8%, rgba(167,139,250,0.07) 0%, transparent 55%)` }} />
         <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.012) 1px,transparent 1px)',
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.01) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.01) 1px, transparent 1px)',
           backgroundSize: '48px 48px',
-          maskImage: 'radial-gradient(ellipse 90% 50% at 50% 0%,black 0%,transparent 100%)',
-          WebkitMaskImage: 'radial-gradient(ellipse 90% 50% at 50% 0%,black 0%,transparent 100%)' }} />
+          maskImage: 'radial-gradient(ellipse 90% 50% at 50% 0%, black 0%, transparent 100%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 90% 50% at 50% 0%, black 0%, transparent 100%)' }} />
 
-        <div style={{ position: 'relative', zIndex: 1, padding: '32px 32px 120px', maxWidth: 1280, marginInline: 'auto' }}>
+        <div style={{ position: 'relative', zIndex: 1, padding: 'clamp(24px, 4vw, 48px) clamp(20px, 5vw, 48px) 120px', maxWidth: 1200, marginInline: 'auto' }}>
 
           {/* ═══════════════════════════════════════
-              HEADER
+              CHAPTER 1 — HERO HEADER
           ═══════════════════════════════════════ */}
-          <div className="ov-fadein" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 36 }}>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--m1)', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 6 }}>Instagram Audit</div>
-              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: '#fff', letterSpacing: '-0.7px', lineHeight: 1, margin: 0, marginBottom: 7 }}>Your Audit Report</h1>
-              <div style={{ fontSize: 12, color: 'var(--m1)', fontWeight: 500 }}>@{igUsername} · Audited {auditDate}</div>
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setState('history')}
-                style={{ padding: '10px 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 12, fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.65)', cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.2s' }}
-                onMouseOver={e=>{const el=e.currentTarget;el.style.background='rgba(255,255,255,0.09)';el.style.color='#fff';}}
-                onMouseOut={e=>{const el=e.currentTarget;el.style.background='rgba(255,255,255,0.05)';el.style.color='rgba(255,255,255,0.65)';}}>
+          <div className="audit-hero-flex" style={{ marginBottom: 48 }}>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#8B8B9E', letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginBottom: 8 }}>
+                Instagram Audit
+              </div>
+              <h1
+                className="grad-brand-audit"
+                style={{ fontFamily: "'Syne', sans-serif", fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.1, margin: '0 0 10px', display: 'inline-block' }}
+              >
+                Your Audit Report
+              </h1>
+              <div style={{ fontSize: 13, color: '#8B8B9E', fontWeight: 500 }}>
+                @{igUsername} · Audited {auditDate}
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.12 }}
+              style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}
+            >
+              <button
+                onClick={() => setState('history')}
+                style={{ padding: '10px 18px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 12, fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.65)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}
+                onMouseOver={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = '#fff'; }}
+                onMouseOut={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'rgba(255,255,255,0.65)'; }}
+              >
                 View history
               </button>
-              <button onClick={startAudit}
-                style={{ padding: '10px 20px', background: 'linear-gradient(135deg,#8B5CF6,#A855F7,#EC4899)', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'var(--font-display)', boxShadow: '0 4px 20px rgba(139,92,246,0.35)', transition: 'all 0.2s' }}
-                onMouseOver={e=>{const el=e.currentTarget;el.style.opacity='0.88';el.style.transform='scale(1.02)';}}
-                onMouseOut={e=>{const el=e.currentTarget;el.style.opacity='1';el.style.transform='scale(1)';}}>
+              <button onClick={startAudit} className="btn-audit-new">
                 + Run new audit
               </button>
-            </div>
+            </motion.div>
           </div>
 
           {/* ═══════════════════════════════════════
-              HERO ROW — Score ring + 4 stat tiles
+              CHAPTER 2 — ACCOUNT HEALTH + KPI CARDS
           ═══════════════════════════════════════ */}
-          <div className="ov-fadein" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 16, marginBottom: 28 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.18 }}
+            className="audit-score-layout"
+            style={{ marginBottom: 16 }}
+          >
+            {/* Score ring card */}
+            <div
+              className="audit-card"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
+                background: `linear-gradient(165deg, ${ringColor1}14 0%, #111118 60%)`,
+                borderColor: `${ringColor1}30`,
+                position: 'relative', overflow: 'hidden',
+              }}
+            >
+              <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '80%', height: 1, background: `linear-gradient(90deg, transparent, ${ringColor1}60, transparent)` }} />
 
-            {/* Score card */}
-            <div style={{ background: 'linear-gradient(165deg,rgba(139,92,246,0.13) 0%,rgba(13,12,30,0.98) 55%)', border: '1px solid rgba(139,92,246,0.22)', borderRadius: 28, padding: '32px 26px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, position: 'relative', overflow: 'hidden', boxShadow: '0 8px 48px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.055)' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg,transparent,rgba(139,92,246,0.85),rgba(236,72,153,0.85),transparent)' }} />
-              <div style={{ position: 'absolute', bottom: -60, left: '50%', transform: 'translateX(-50%)', width: 240, height: 240, background: 'radial-gradient(circle,rgba(139,92,246,0.16) 0%,transparent 65%)', pointerEvents: 'none' }} />
+              <div style={{ fontSize: 10, fontWeight: 700, color: ringColor1, letterSpacing: '0.12em', textTransform: 'uppercase' as const, alignSelf: 'flex-start' }}>
+                Account Health
+              </div>
 
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--m1)', textTransform: 'uppercase' as const, letterSpacing: '0.12em', alignSelf: 'flex-start' }}>Account Health</div>
-
-              <div style={{ position: 'relative', width: 140, height: 140 }}>
-                <svg width="140" height="140" viewBox="0 0 140 140" style={{ transform: 'rotate(-90deg)' }}>
+              <div style={{ position: 'relative', width: 100, height: 100 }}>
+                <svg width="100" height="100" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
                   <defs>
-                    <linearGradient id="ar1" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#8B5CF6"/><stop offset="50%" stopColor="#A855F7"/><stop offset="100%" stopColor="#EC4899"/>
+                    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor={ringColor1} />
+                      <stop offset="100%" stopColor={ringColor2} />
                     </linearGradient>
-                    <filter id="ag1"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
                   </defs>
-                  <circle cx="70" cy="70" r="58" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="11"/>
-                  <circle cx="70" cy="70" r="58" fill="none" stroke="url(#ar1)" strokeWidth="11" strokeLinecap="round"
-                    strokeDasharray="364" strokeDashoffset={364-(364*overallScore/100)}
-                    filter="url(#ag1)" style={{transition:'stroke-dashoffset 1.8s cubic-bezier(0.34,1.2,0.64,1)'}}/>
+                  <circle cx="50" cy="50" r={RING_R} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
+                  <motion.circle
+                    cx="50" cy="50" r={RING_R}
+                    fill="none"
+                    stroke="url(#ringGrad)"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={RING_CIRC}
+                    initial={{ strokeDashoffset: RING_CIRC }}
+                    animate={{ strokeDashoffset: RING_CIRC * (1 - overallScore / 100) }}
+                    transition={{ duration: 1.5, ease: [0.34, 1.2, 0.64, 1], delay: 0.3 }}
+                  />
                 </svg>
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 800, color: '#fff', letterSpacing: '-3px', lineHeight: 1 }}>{overallScore}</span>
-                  <span style={{ fontSize: 11, color: 'var(--m1)', marginTop: 4 }}>/100</span>
+                  <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 36, fontWeight: 800, color: '#F0F0F5', letterSpacing: '-2px', lineHeight: 1 }}>
+                    {overallScore}
+                  </span>
+                  <span style={{ fontSize: 10, color: '#4A4A5E', marginTop: 2 }}>/100</span>
                 </div>
               </div>
 
-              <div style={{ padding: '7px 22px', borderRadius: 100, fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700,
-                color: overallScore>=70?'#4ade80':overallScore>=50?'#fcd34d':'#f87171',
-                background: overallScore>=70?'rgba(34,197,94,0.09)':overallScore>=50?'rgba(245,158,11,0.09)':'rgba(239,68,68,0.09)',
-                border:`1px solid ${overallScore>=70?'rgba(34,197,94,0.28)':overallScore>=50?'rgba(245,158,11,0.28)':'rgba(239,68,68,0.28)'}`,
-                boxShadow:overallScore>=70?'0 0 20px rgba(34,197,94,0.12)':'none' }}>
-                {overallScore>=70?'⚡ Strong Performance':overallScore>=50?'📈 Growing':'🔧 Needs Work'}
+              <div style={{
+                padding: '5px 14px', borderRadius: 100, fontSize: 12, fontWeight: 700, fontFamily: "'Syne', sans-serif",
+                color: ringColor1,
+                background: `${ringColor1}18`,
+                border: `1px solid ${ringColor1}40`,
+              }}>
+                {overallScore >= 70 ? '⚡ Strong' : overallScore >= 50 ? '📈 Growing' : '🔧 Needs Work'}
               </div>
 
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 11 }}>
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {[
-                  { label: 'Engagement',   pct: Math.min((erNum/15)*100,100), color: '#22C55E' },
-                  { label: 'Hook quality', pct: (hookNum/10)*100,              color: '#F59E0B' },
-                  { label: 'Hashtags',     pct: hashtagScore,                  color: '#8B5CF6' },
-                ].map(b=>(
+                  { label: 'Engagement', pct: Math.min((erNum / 15) * 100, 100), color: '#00E5A0' },
+                  { label: 'Hook quality', pct: (hookNum / 10) * 100, color: '#FF3CAC' },
+                  { label: 'Hashtags', pct: hashtagScore, color: '#A78BFA' },
+                ].map(b => (
                   <div key={b.label}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <span style={{ fontSize: 10, color: 'var(--m1)', fontWeight: 500 }}>{b.label}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 10, color: '#8B8B9E', fontWeight: 500 }}>{b.label}</span>
                       <span style={{ fontSize: 10, color: b.color, fontWeight: 700 }}>{Math.round(b.pct)}%</span>
                     </div>
-                    <div style={{ height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
-                      <div style={{ width:`${b.pct}%`, height:'100%', background:`linear-gradient(90deg,${b.color}70,${b.color})`, borderRadius:2, transition:'width 1.8s cubic-bezier(0.4,0,0.2,1)', boxShadow:`0 0 8px ${b.color}35` }}/>
+                    <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${b.pct}%` }}
+                        transition={{ duration: 1.2, delay: 0.5 + 0.1 * ['Engagement', 'Hook quality', 'Hashtags'].indexOf(b.label), ease: 'easeOut' }}
+                        style={{ height: '100%', background: `linear-gradient(90deg, ${b.color}80, ${b.color})`, borderRadius: 2 }}
+                      />
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* 4 stat tiles */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 16 }}>
+            {/* 4 KPI cards */}
+            <div className="audit-kpi-grid">
 
-              {/* ER */}
-              <div style={{ background: 'linear-gradient(135deg,rgba(34,197,94,0.07) 0%,rgba(13,12,30,0.98) 60%)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: 24, padding: '24px 26px', position: 'relative', overflow: 'hidden', boxShadow: '0 4px 28px rgba(0,0,0,0.45)' }}>
-                <div style={{ position: 'absolute', top:0,left:0,right:0,height:2,background:'linear-gradient(90deg,#22C55E,rgba(34,197,94,0.08))',borderRadius:'24px 24px 0 0' }}/>
-                <div style={{ fontSize:10,fontWeight:700,color:'rgba(34,197,94,0.65)',textTransform:'uppercase' as const,letterSpacing:'0.09em',marginBottom:10,display:'flex',alignItems:'center',gap:6 }}>
-                  <span style={{ width:6,height:6,borderRadius:'50%',background:'#22C55E',display:'inline-block',boxShadow:'0 0 7px #22C55E' }}/>
+              {/* Engagement Rate */}
+              <div
+                className="audit-card"
+                style={{ background: 'linear-gradient(135deg, rgba(0,229,160,0.07) 0%, #111118 60%)', borderColor: 'rgba(0,229,160,0.15)', position: 'relative', overflow: 'hidden' }}
+              >
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #00E5A0, transparent)', borderRadius: '16px 16px 0 0' }} />
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(0,229,160,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#00E5A0', boxShadow: '0 0 6px #00E5A0', display: 'inline-block', flexShrink: 0 }} />
                   Engagement Rate
                 </div>
-                <div style={{ fontFamily:'var(--font-display)',fontSize:44,fontWeight:800,color:'#fff',letterSpacing:'-2.5px',lineHeight:1,marginBottom:6,display:'flex',alignItems:'flex-end',gap:3 }}>
-                  {erNum.toFixed(1)}<span style={{ fontSize:20,color:'rgba(255,255,255,0.3)',fontFamily:'var(--font-body)',marginBottom:7,fontWeight:400 }}>%</span>
+                <div style={{ marginBottom: 10 }}>
+                  <span className="grad-growth" style={{ fontFamily: "'Syne', sans-serif", fontSize: 42, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1 }}>
+                    {erNum.toFixed(1)}
+                  </span>
+                  <span style={{ fontSize: 18, color: '#4A4A5E', marginLeft: 3 }}>%</span>
                 </div>
-                <div style={{ display:'flex',alignItems:'center',gap:8 }}>
-                  <div style={{ fontFamily:'var(--font-display)',fontSize:22,fontWeight:800,color:'#4ade80',letterSpacing:'-1px' }}>{(erNum/3).toFixed(1)}×</div>
-                  <div style={{ fontSize:11,color:'var(--m1)',fontWeight:500,lineHeight:1.4 }}>above<br/>industry avg</div>
+                <div style={{ display: 'flex', gap: 5, alignItems: 'center', marginBottom: 10 }}>
+                  {[...Array(5)].map((_, i) => {
+                    const filled = i < Math.round(Math.min((erNum / 15) * 5, 5));
+                    return <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', background: filled ? '#00E5A0' : 'rgba(255,255,255,0.1)', boxShadow: filled ? '0 0 5px #00E5A0' : 'none', transition: 'all 0.3s' }} />;
+                  })}
+                </div>
+                <div style={{ fontSize: 12, color: '#8B8B9E', fontWeight: 500, lineHeight: 1.5 }}>
+                  {(erNum / 3).toFixed(1)}× above industry avg
                 </div>
               </div>
 
-              {/* Hook */}
-              <div style={{ background: 'linear-gradient(135deg,rgba(236,72,153,0.07) 0%,rgba(13,12,30,0.98) 60%)', border: '1px solid rgba(236,72,153,0.15)', borderRadius: 24, padding: '24px 26px', position: 'relative', overflow: 'hidden', boxShadow: '0 4px 28px rgba(0,0,0,0.45)' }}>
-                <div style={{ position: 'absolute', top:0,left:0,right:0,height:2,background:'linear-gradient(90deg,#EC4899,rgba(236,72,153,0.08))',borderRadius:'24px 24px 0 0' }}/>
-                <div style={{ fontSize:10,fontWeight:700,color:'rgba(236,72,153,0.65)',textTransform:'uppercase' as const,letterSpacing:'0.09em',marginBottom:10,display:'flex',alignItems:'center',gap:6 }}>
-                  <span style={{ width:6,height:6,borderRadius:'50%',background:'#EC4899',display:'inline-block',boxShadow:'0 0 7px #EC4899' }}/>
+              {/* Hook Strength */}
+              <div
+                className="audit-card"
+                style={{ background: 'linear-gradient(135deg, rgba(255,60,172,0.07) 0%, #111118 60%)', borderColor: 'rgba(255,60,172,0.15)', position: 'relative', overflow: 'hidden' }}
+              >
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #FF3CAC, transparent)', borderRadius: '16px 16px 0 0' }} />
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,60,172,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#FF3CAC', boxShadow: '0 0 6px #FF3CAC', display: 'inline-block', flexShrink: 0 }} />
                   Hook Strength
                 </div>
-                <div style={{ fontFamily:'var(--font-display)',fontSize:44,fontWeight:800,color:'#fff',letterSpacing:'-2.5px',lineHeight:1,marginBottom:6,display:'flex',alignItems:'flex-end',gap:3 }}>
-                  {hookNum.toFixed(1)}<span style={{ fontSize:20,color:'rgba(255,255,255,0.3)',fontFamily:'var(--font-body)',marginBottom:7,fontWeight:400 }}>/10</span>
+                <div style={{ marginBottom: 10 }}>
+                  <span className="grad-viral" style={{ fontFamily: "'Syne', sans-serif", fontSize: 42, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1 }}>
+                    {hookNum.toFixed(1)}
+                  </span>
+                  <span style={{ fontSize: 18, color: '#4A4A5E', marginLeft: 3 }}>/10</span>
                 </div>
-                <div style={{ fontSize:12,color:'var(--m2)',fontWeight:500,lineHeight:1.5 }}>
-                  {hookNum>=8?'Hooks retaining viewers well':hookNum>=6?'Some hooks losing viewers early':'Losing viewers in first 3s'}
+                <div style={{ display: 'flex', gap: 5, alignItems: 'center', marginBottom: 10 }}>
+                  {[...Array(10)].map((_, i) => {
+                    const filled = i < Math.round(hookNum);
+                    return <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', background: filled ? '#FF3CAC' : 'rgba(255,255,255,0.1)', boxShadow: filled ? '0 0 5px #FF3CAC' : 'none', transition: 'all 0.3s' }} />;
+                  })}
+                </div>
+                <div style={{ fontSize: 12, color: '#8B8B9E', fontWeight: 500, lineHeight: 1.5 }}>
+                  {hookNum >= 8 ? 'Retaining viewers well' : hookNum >= 6 ? 'Some hooks losing viewers early' : 'Losing viewers in first 3s'}
                 </div>
               </div>
 
               {/* Best Format */}
-              <div style={{ background: 'linear-gradient(135deg,rgba(139,92,246,0.07) 0%,rgba(13,12,30,0.98) 60%)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 24, padding: '24px 26px', position: 'relative', overflow: 'hidden', boxShadow: '0 4px 28px rgba(0,0,0,0.45)' }}>
-                <div style={{ position: 'absolute', top:0,left:0,right:0,height:2,background:'linear-gradient(90deg,#8B5CF6,rgba(139,92,246,0.08))',borderRadius:'24px 24px 0 0' }}/>
-                <div style={{ fontSize:10,fontWeight:700,color:'rgba(139,92,246,0.65)',textTransform:'uppercase' as const,letterSpacing:'0.09em',marginBottom:10,display:'flex',alignItems:'center',gap:6 }}>
-                  <span style={{ width:6,height:6,borderRadius:'50%',background:'#8B5CF6',display:'inline-block',boxShadow:'0 0 7px #8B5CF6' }}/>
+              <div
+                className="audit-card"
+                style={{ background: 'linear-gradient(135deg, rgba(167,139,250,0.07) 0%, #111118 60%)', borderColor: 'rgba(167,139,250,0.15)', position: 'relative', overflow: 'hidden' }}
+              >
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #A78BFA, transparent)', borderRadius: '16px 16px 0 0' }} />
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(167,139,250,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#A78BFA', boxShadow: '0 0 6px #A78BFA', display: 'inline-block', flexShrink: 0 }} />
                   Best Format
                 </div>
-                <div style={{ display:'flex',alignItems:'center',gap:14,marginBottom:6 }}>
-                  <div style={{ width:44,height:44,borderRadius:14,background:'linear-gradient(135deg,rgba(139,92,246,0.2),rgba(139,92,246,0.07))',border:'1px solid rgba(139,92,246,0.22)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
                     {formatEmoji}
                   </div>
-                  <span style={{ fontFamily:'var(--font-display)',fontSize:30,fontWeight:800,color:'#fff',letterSpacing:'-1px',lineHeight:1 }}>{formatName}</span>
+                  <span className="grad-premium" style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1 }}>
+                    {formatName}
+                  </span>
                 </div>
-                <div style={{ fontSize:12,color:'var(--m2)',fontWeight:500 }}>{formatAvgEr&&formatAvgEr!=='0.0'?`${formatAvgEr}% avg ER — strongest format`:'Highest-performing content type'}</div>
+                <div style={{ fontSize: 12, color: '#8B8B9E', fontWeight: 500, lineHeight: 1.5 }}>
+                  {formatAvgEr && formatAvgEr !== '0.0' ? `${formatAvgEr}% avg ER — your strongest format` : 'Highest-performing content type'}
+                </div>
               </div>
 
-              {/* Hashtags */}
-              <div style={{ background: 'linear-gradient(135deg,rgba(245,158,11,0.07) 0%,rgba(13,12,30,0.98) 60%)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 24, padding: '24px 26px', position: 'relative', overflow: 'hidden', boxShadow: '0 4px 28px rgba(0,0,0,0.45)' }}>
-                <div style={{ position: 'absolute', top:0,left:0,right:0,height:2,background:'linear-gradient(90deg,#F59E0B,rgba(245,158,11,0.08))',borderRadius:'24px 24px 0 0' }}/>
-                <div style={{ fontSize:10,fontWeight:700,color:'rgba(245,158,11,0.65)',textTransform:'uppercase' as const,letterSpacing:'0.09em',marginBottom:10,display:'flex',alignItems:'center',gap:6 }}>
-                  <span style={{ width:6,height:6,borderRadius:'50%',background:'#F59E0B',display:'inline-block',boxShadow:'0 0 7px #F59E0B' }}/>
+              {/* Hashtag Health */}
+              <div
+                className="audit-card"
+                style={{ background: 'linear-gradient(135deg, rgba(255,107,53,0.07) 0%, #111118 60%)', borderColor: 'rgba(255,107,53,0.15)', position: 'relative', overflow: 'hidden' }}
+              >
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #FF6B35, transparent)', borderRadius: '16px 16px 0 0' }} />
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,107,53,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#FF6B35', boxShadow: '0 0 6px #FF6B35', display: 'inline-block', flexShrink: 0 }} />
                   Hashtag Health
                 </div>
-                <div style={{ fontFamily:'var(--font-display)',fontSize:44,fontWeight:800,color:'#fff',letterSpacing:'-2.5px',lineHeight:1,marginBottom:6,display:'flex',alignItems:'flex-end',gap:3 }}>
-                  {hashtagScore}<span style={{ fontSize:20,color:'rgba(255,255,255,0.3)',fontFamily:'var(--font-body)',marginBottom:7,fontWeight:400 }}>/100</span>
+                <div style={{ marginBottom: 10 }}>
+                  <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 42, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1, color: '#FF6B35' }}>
+                    {hashtagScore}
+                  </span>
+                  <span style={{ fontSize: 18, color: '#4A4A5E', marginLeft: 3 }}>/100</span>
                 </div>
-                <div style={{ fontSize:12,color:'var(--m2)',fontWeight:500,lineHeight:1.5 }}>
-                  {hashtagScore>=70?'Good niche targeting':hashtagScore>=50?'Some over-saturated tags':'Using too many mass hashtags'}
+                <div style={{ display: 'flex', gap: 5, alignItems: 'center', marginBottom: 10 }}>
+                  {[...Array(5)].map((_, i) => {
+                    const filled = i < Math.round(hashtagScore / 20);
+                    return <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', background: filled ? '#FF6B35' : 'rgba(255,255,255,0.1)', boxShadow: filled ? '0 0 5px #FF6B35' : 'none', transition: 'all 0.3s' }} />;
+                  })}
+                </div>
+                <div style={{ fontSize: 12, color: '#8B8B9E', fontWeight: 500, lineHeight: 1.5 }}>
+                  {hashtagScore >= 70 ? 'Good niche targeting' : hashtagScore >= 50 ? 'Some over-saturated tags' : 'Using too many mass hashtags'}
                 </div>
               </div>
+
             </div>
-          </div>
+          </motion.div>
+
+          <ChapterDivider />
 
           {/* ═══════════════════════════════════════
-              FREE METRICS — visible to all users
+              CHAPTERS 3+4 — FREE METRICS
           ═══════════════════════════════════════ */}
-          <div className="ov-fadein-1" style={{ marginBottom: 24 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.5 }}
+          >
             <FreeMetricsSection
               engagementRate={erNum}
               benchmark="5.5"
@@ -387,13 +527,22 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
               estimatedReelMin={currentAudit?.ai_analysis?.estimated_rates?.reel?.min}
               estimatedReelMax={currentAudit?.ai_analysis?.estimated_rates?.reel?.max}
             />
-          </div>
+          </motion.div>
+
+          <ChapterDivider />
 
           {/* ═══════════════════════════════════════
-              PAID REPORT or PAYWALL
+              CHAPTERS 5-13 — PAID REPORT
+              or
+              CHAPTER 14 — PAYWALL GATE
           ═══════════════════════════════════════ */}
           {isPaid ? (
-            <div className="ov-fadein-2">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.5 }}
+            >
               <PaidReport
                 ai={currentAudit?.ai_analysis}
                 m={{
@@ -405,17 +554,104 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
                   allPostsTimeline: currentAudit?.computed_metrics?.allPostsTimeline,
                 }}
               />
-            </div>
+            </motion.div>
           ) : (
-            <div className="ov-fadein-2">
-              <PaywallTeaser
-                username={igUsername}
-                followers={followers}
-                estimatedReelMin={currentAudit?.ai_analysis?.estimated_rates?.reel?.min}
-                estimatedReelMax={currentAudit?.ai_analysis?.estimated_rates?.reel?.max}
-                onUnlock={() => setShowPaymentModal(true)}
-              />
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.5 }}
+            >
+              {/* Locked chapters list */}
+              <div style={{ marginBottom: 40 }}>
+                <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 700, color: '#F0F0F5', marginBottom: 6 }}>
+                  What&apos;s inside the full report
+                </h2>
+                <p style={{ fontSize: 14, color: '#8B8B9E', marginBottom: 28 }}>
+                  6 more chapters. Personalised for @{igUsername}.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {LOCKED_ITEMS.map((item, i) => (
+                    <motion.div
+                      key={item.label}
+                      initial={{ opacity: 0, x: -16 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.35, delay: i * 0.07 }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', background: '#111118', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14 }}
+                    >
+                      <span style={{ fontSize: 20, flexShrink: 0 }}>{item.emoji}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: '#8B8B9E', marginBottom: 2 }}>{item.label}</div>
+                        <div style={{ fontSize: 12, color: '#4A4A5E' }}>{item.hint}</div>
+                      </div>
+                      <Lock size={14} color="#4A4A5E" />
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Unlock card */}
+              <div
+                className="audit-card"
+                style={{
+                  textAlign: 'center', padding: '48px 32px',
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, #111118 60%)',
+                  borderColor: 'rgba(99,102,241,0.25)',
+                  position: 'relative', overflow: 'hidden',
+                }}
+              >
+                <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '60%', height: 1, background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.6), transparent)' }} />
+                <div style={{ position: 'absolute', bottom: -80, left: '50%', transform: 'translateX(-50%)', width: 300, height: 300, background: 'radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 65%)', pointerEvents: 'none' }} />
+
+                {/* Crown SVG */}
+                <div style={{ marginBottom: 20, position: 'relative', zIndex: 1 }}>
+                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <path d="M8 36L4 16L16 24L24 8L32 24L44 16L40 36H8Z" fill="url(#crownGrad)" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" strokeLinejoin="round" />
+                    <rect x="7" y="37" width="34" height="4" rx="2" fill="url(#crownGrad)" opacity="0.7" />
+                    <defs>
+                      <linearGradient id="crownGrad" x1="4" y1="8" x2="44" y2="36" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#A78BFA" />
+                        <stop offset="1" stopColor="#6366F1" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+
+                <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800, color: '#F0F0F5', letterSpacing: '-0.5px', marginBottom: 10, position: 'relative', zIndex: 1 }}>
+                  Unlock your full report
+                </h2>
+                <p style={{ fontSize: 15, color: '#8B8B9E', marginBottom: 6, maxWidth: 420, marginInline: 'auto', lineHeight: 1.6, position: 'relative', zIndex: 1 }}>
+                  Get 6 more chapters — heatmap, hook rewrites, hashtag strategy, rate card, bio rewrite, and your 90-day plan.
+                </p>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 28, flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
+                  <span style={{ fontSize: 15, color: '#4A4A5E', textDecoration: 'line-through' }}>₹299</span>
+                  <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 38, fontWeight: 800, color: '#F0F0F5', letterSpacing: '-1px' }}>₹99</span>
+                  <span style={{ fontSize: 12, background: 'rgba(0,229,160,0.12)', color: '#00E5A0', border: '1px solid rgba(0,229,160,0.25)', borderRadius: 8, padding: '3px 10px', fontWeight: 700 }}>
+                    Save 67%
+                  </span>
+                </div>
+
+                <button
+                  className="btn-paywall-unlock"
+                  onClick={() => setShowPaymentModal(true)}
+                  style={{ padding: '14px 44px', fontSize: 16, fontWeight: 700, position: 'relative', zIndex: 1 }}
+                >
+                  Unlock for ₹99 →
+                </button>
+
+                <div style={{ marginTop: 16, fontSize: 12, color: '#4A4A5E', position: 'relative', zIndex: 1 }}>
+                  One-time payment · Instant access ·{' '}
+                  <button
+                    onClick={() => setShowPaymentModal(true)}
+                    style={{ background: 'none', border: 'none', color: '#A78BFA', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', padding: 0, textDecoration: 'underline' }}
+                  >
+                    Have a promo code?
+                  </button>
+                </div>
+              </div>
+            </motion.div>
           )}
 
         </div>
@@ -437,7 +673,6 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
             onClick={e => { if (e.target === e.currentTarget) setShowPaymentModal(false); }}
           >
             <div style={{ width: '100%', maxWidth: 520, position: 'relative', margin: 'auto' }}>
-              {/* Close button */}
               <button
                 onClick={() => setShowPaymentModal(false)}
                 style={{
@@ -445,7 +680,7 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
                   width: 36, height: 36, borderRadius: '50%',
                   background: 'rgba(20,20,32,0.95)',
                   border: '1px solid rgba(255,255,255,0.15)',
-                  color: 'rgba(255,255,255,0.75)', fontSize: 20, lineHeight: 1,
+                  color: 'rgba(255,255,255,0.75)', fontSize: 20, lineHeight: '1',
                   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: 'var(--font-body)',
                 }}
@@ -481,7 +716,7 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
 
         {audits.length >= 2 && (
           <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Score trend</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 8, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>Score trend</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               {audits.slice().reverse().map((audit: any, i: number) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
