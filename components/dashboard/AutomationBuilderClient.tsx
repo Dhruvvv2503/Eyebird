@@ -185,6 +185,20 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
+      if (status === 'active') {
+        try {
+          const webhookRes = await fetch('/api/automations/register-webhook', { method: 'POST' });
+          const webhookData = await webhookRes.json();
+          if (webhookData.success) {
+            console.log('Webhook registered successfully');
+          } else {
+            console.log('Webhook registration note:', webhookData.note || webhookData.error);
+          }
+        } catch (webhookErr) {
+          console.log('Webhook registration failed silently:', webhookErr);
+        }
+      }
+
       setSaveStatus('saved');
       setTimeout(() => router.push('/dashboard/automations'), 800);
     } catch (err: unknown) {
