@@ -2,38 +2,17 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
-async function getSession() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet: { name: string; value: string; options: Record<string, unknown> }[]) => {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            cookieStore.set(name, value, options as any)
-          );
-        },
-      },
-    }
-  );
-  const { data: { session } } = await supabase.auth.getSession();
-  return session;
-}
+const TEST_SECRET = process.env.ADMIN_SECRET || 'eyebird_admin_2024';
 
 // POST /api/webhooks/instagram/test
 // Simulates a comment event for testing the automation pipeline without needing
-// a real Instagram comment. Requires auth — only the creator can trigger this.
+// a real Instagram comment. Protected by ADMIN_SECRET header.
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const secret = req.headers.get('x-admin-secret');
+    if (secret !== TEST_SECRET) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
     const {
