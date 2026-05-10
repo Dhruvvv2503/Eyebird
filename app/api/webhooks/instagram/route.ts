@@ -152,18 +152,18 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
         continue;
       }
 
-      // Always send to commenterIgId — this is the IGSID from the webhook, correct format for Messaging API
-      // In test_mode the creator uses a secondary account to comment, so they receive the DM naturally
-      const recipientIgId = commenterIgId;
-      console.log(`Sending DM to commenter IGSID: ${recipientIgId} (@${commenterUsername}), test_mode: ${automation.test_mode}`);
-
       const firstName = commenterUsername?.split('_')[0] || commenterUsername || 'there';
       const dmText = (automation.main_dm_text || '').replace(/\{first_name\}/gi, firstName);
 
+      console.log(`Sending DM via Private Reply to comment ${commentId} (@${commenterUsername})`);
+
+      // Use comment_id as recipient — Instagram Private Reply API for comment-to-DM flows
+      // This bypasses the 24-hour messaging window and works without prior contact
       const dmResult = await sendInstagramDM(
         igAccount.ig_user_id,
         igAccount.access_token,
-        recipientIgId,
+        commenterIgId,
+        commentId,
         dmText,
         automation.main_dm_link_text,
         automation.main_dm_link_url
@@ -220,11 +220,19 @@ async function sendInstagramDM(
   senderIgUserId: string,
   accessToken: string,
   recipientIgId: string,
+  commentId: string,
   text: string,
   linkText?: string | null,
   linkUrl?: string | null
 ): Promise<{ success: boolean; error?: string; messageId?: string }> {
   try {
+    // Primary: use comment_id as recipient (Private Reply — works without 24h window)
+    const primaryPayload = {
+      recipient: { comment_id: commentId },
+      message: { text },
+    };
+
+    console.log('Attempting Private Reply with comment_id:', commentId);
     const response = await fetch(
       `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
       {
@@ -233,14 +241,31 @@ async function sendInstagramDM(
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({
-          recipient: { id: recipientIgId },
-          message: { text },
-        }),
+        body: JSON.stringify(primaryPayload),
       }
     );
 
-    const data = await response.json();
+    let data = await response.json();
+
+    // Fallback: if comment_id fails, try with user IGSID directly
+    if (data.error) {
+      console.log('Private Reply failed, trying with user IGSID:', recipientIgId);
+      const fallbackResponse = await fetch(
+        `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            recipient: { id: recipientIgId },
+            message: { text },
+          }),
+        }
+      );
+      data = await fallbackResponse.json();
+    }
 
     if (data.error) {
       console.error('Instagram DM API error:', data.error);
