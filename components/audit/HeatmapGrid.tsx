@@ -22,18 +22,13 @@ function formatHour(h: number) {
 }
 
 function cellColor(val: number, max: number, isHl: boolean): string {
-  if (val === 0) return 'rgba(255,255,255,0.04)';
+  if (isHl) return '#ec4899';
+  if (val === 0) return 'rgba(139,92,246,0.12)';
   const t = val / max;
-  if (isHl) {
-    const a = Math.max(0.8, t);
-    return `linear-gradient(135deg, rgba(255,62,128,${a}), rgba(168,85,247,${a}))`;
-  }
-  // purple gradient: dim → vivid
-  const r = Math.round(80  + t * 88);
-  const g = Math.round(20  + t * 65);
-  const b = Math.round(140 + t * 107);
-  const a = 0.1 + t * 0.9;
-  return `rgba(${r},${g},${b},${a})`;
+  if (t < 0.25) return 'rgba(139,92,246,0.25)';
+  if (t < 0.50) return 'rgba(139,92,246,0.45)';
+  if (t < 0.75) return 'rgba(139,92,246,0.70)';
+  return '#7c3aed';
 }
 
 export default function HeatmapGrid({ data, highlightSlots = [] }: HeatmapGridProps) {
@@ -126,14 +121,14 @@ export default function HeatmapGrid({ data, highlightSlots = [] }: HeatmapGridPr
                     }}
                     style={{
                       width: CELL, height: CELL,
-                      borderRadius: 5,
+                      borderRadius: 4,
                       flexShrink: 0,
                       background: bg,
                       border: isHl
-                        ? '1.5px solid rgba(255,62,128,0.75)'
-                        : '1px solid rgba(255,255,255,0.045)',
+                        ? '1.5px solid rgba(236,72,153,0.7)'
+                        : '1px solid rgba(255,255,255,0.04)',
                       boxShadow: isHl
-                        ? '0 0 10px rgba(255,62,128,0.5), 0 0 20px rgba(168,85,247,0.3)'
+                        ? '0 0 8px rgba(236,72,153,0.5)'
                         : 'none',
                       cursor: 'default',
                       transition: 'transform 0.12s ease, box-shadow 0.12s ease',
@@ -182,35 +177,18 @@ export default function HeatmapGrid({ data, highlightSlots = [] }: HeatmapGridPr
       )}
 
       {/* Legend */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 14, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', fontWeight: 500 }}>Less active</span>
-        <div style={{ display: 'flex', gap: 3 }}>
-          {[0, 0.2, 0.4, 0.6, 0.8, 1].map((t, i) => {
-            const r = Math.round(80  + t * 88);
-            const g = Math.round(20  + t * 65);
-            const b = Math.round(140 + t * 107);
-            const a = t === 0 ? 0 : 0.1 + t * 0.9;
-            return (
-              <div key={i} style={{
-                width: 13, height: 13, borderRadius: 3,
-                background: t === 0 ? 'rgba(255,255,255,0.04)' : `rgba(${r},${g},${b},${a})`,
-                border: '1px solid rgba(255,255,255,0.05)',
-              }} />
-            );
-          })}
-        </div>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)', fontWeight: 500 }}>More active</span>
-
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap', fontSize: 11, color: '#6b7280' }}>
+        <span>Less active</span>
+        <div style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(139,92,246,0.12)' }} />
+        <div style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(139,92,246,0.30)' }} />
+        <div style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(139,92,246,0.55)' }} />
+        <div style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(139,92,246,0.80)' }} />
+        <span>More active</span>
         {highlightSlots.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 10 }}>
-            <div style={{
-              width: 13, height: 13, borderRadius: 3,
-              background: 'linear-gradient(135deg,#FF3E80,#A855F7)',
-              border: '1.5px solid rgba(255,62,128,0.7)',
-              boxShadow: '0 0 7px rgba(255,62,128,0.45)',
-            }} />
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>Best time to post</span>
-          </div>
+          <>
+            <div style={{ width: 12, height: 12, borderRadius: 3, background: '#ec4899' }} />
+            <span>Best time to post</span>
+          </>
         )}
       </div>
     </div>

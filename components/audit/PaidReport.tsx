@@ -9,21 +9,20 @@ const FORMAT_LABELS: Record<string, string> = {
   VIDEO: 'Reels', IMAGE: 'Static', CAROUSEL_ALBUM: 'Carousel', REELS: 'Reels',
 };
 
-/* ── Shared shell matching FreeMetricsSection MetricCard ── */
-function PCard({ children, accent, delay = 0 }: { children: React.ReactNode; accent: string; delay?: number }) {
+/* ── Section divider ── */
+function SDivider() {
+  return (
+    <div style={{ height: 1, width: '100%', background: 'linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.45) 50%, transparent 100%)', margin: '4px 0' }} />
+  );
+}
+
+/* ── Section wrapper (no card — sits on page bg) ── */
+function PCard({ children, delay = 0 }: { children: React.ReactNode; accent?: string; delay?: number }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }} transition={{ duration: 0.45, delay, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={{ y: -2, transition: { duration: 0.2 } }}
-      style={{
-        borderRadius: 20, overflow: 'hidden',
-        background: 'var(--bg-surface)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
-      }}
     >
-      <div style={{ height: 2, background: accent }} />
       {children}
     </motion.div>
   );
@@ -33,15 +32,15 @@ function PCard({ children, accent, delay = 0 }: { children: React.ReactNode; acc
 function SHead({ icon: Icon, label, title }: { icon: React.ElementType; label: string; title: string }) {
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <div style={{ width: 3, height: 14, borderRadius: 2, background: 'linear-gradient(180deg, #FF3E80, #A855F7)' }} />
-        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--brand-mid)', margin: 0 }}>{label}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <div style={{ width: 3, height: 16, borderRadius: 2, background: '#7c3aed' }} />
+        <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9ca3af', margin: 0 }}>{label}</p>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 11 }}>
-        <div style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Icon size={15} style={{ color: 'var(--brand-mid)' }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon size={16} style={{ color: '#a78bfa' }} />
         </div>
-        <h3 style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.03em', color: 'white', margin: 0 }}>{title}</h3>
+        <h3 style={{ fontSize: 20, fontWeight: 700, color: 'white', margin: 0 }}>{title}</h3>
       </div>
     </div>
   );
@@ -49,18 +48,18 @@ function SHead({ icon: Icon, label, title }: { icon: React.ElementType; label: s
 
 /* ── Animated progress bar ── */
 function PBar({ score, label }: { score: number; label: string }) {
-  const color = score >= 70 ? '#22C55E' : score >= 50 ? '#F59E0B' : '#EF4444';
+  const color = score >= 70 ? '#22c55e' : score >= 50 ? '#f59e0b' : '#ef4444';
   return (
     <div style={{ marginTop: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>{label}</span>
-        <span style={{ fontSize: 13, fontWeight: 800, color }}>{score}/100</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+        <span style={{ fontSize: 13, color: '#9ca3af' }}>{label}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color }}>{score}/100</span>
       </div>
-      <div style={{ height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+      <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
         <motion.div
           initial={{ width: 0 }} whileInView={{ width: `${score}%` }} viewport={{ once: true }}
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
-          style={{ height: '100%', borderRadius: 99, background: color }}
+          style={{ height: '100%', borderRadius: 2, background: color }}
         />
       </div>
     </div>
@@ -123,7 +122,7 @@ const hookVerdict = (s: number) => s >= 9 ? 'Great' : s >= 7 ? 'Strong' : s >= 5
 
 export default function PaidReport({ ai, m }: PaidReportProps) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
 
       {/* ── NEW: Content Performance Timeline ── */}
       <ContentTimeline allPostsTimeline={m.allPostsTimeline || []} />
@@ -135,230 +134,215 @@ export default function PaidReport({ ai, m }: PaidReportProps) {
       <ViralReverseEngineering viral={ai.viral_reverse_engineering} />
 
       {/* ── A: Best Time to Post ── */}
-      <PCard accent="linear-gradient(90deg,#A855F7,#7C3AED)" delay={0}>
-        <div style={{ padding: '24px 28px' }}>
-          <SHead icon={Clock} label="Best Time to Post" title="When your audience is most active" />
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 16, lineHeight: 1.6 }}>
-            Based on your audience's real activity patterns — not a generic guide.
-          </p>
-          <HeatmapGrid data={ai.heatmap_data || []} highlightSlots={ai.best_posting_times || []} />
-          <div style={{ marginTop: 16, padding: '14px 16px', borderRadius: 14, background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.2)', borderLeft: '3px solid #A855F7' }}>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#A855F7', marginBottom: 4 }}>AI Recommendation</p>
-            <p style={{ fontSize: 14, fontWeight: 700, color: 'white', marginBottom: 3 }}>{ai.best_posting_time}</p>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>{ai.best_posting_time_reason}</p>
-          </div>
-          <PBar score={ai.posting_frequency_score} label="Posting Frequency" />
+      <PCard delay={0}>
+        <SHead icon={Clock} label="Best Time to Post" title="When your audience is most active" />
+        <p style={{ fontSize: 13, color: '#9ca3af', marginBottom: 20, lineHeight: 1.6 }}>
+          Based on your audience&apos;s real activity patterns — not a generic guide.
+        </p>
+        <HeatmapGrid data={ai.heatmap_data || []} highlightSlots={ai.best_posting_times || []} />
+        <div style={{ height: 3, width: '100%', background: 'linear-gradient(90deg, transparent, rgba(139,92,246,0.6) 50%, transparent)', borderRadius: 2, margin: '14px 0' }} />
+        <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '16px 20px', marginTop: 6 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', color: '#a78bfa', textTransform: 'uppercase' as const, marginBottom: 6 }}>AI Recommendation</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'white', marginBottom: 6 }}>{ai.best_posting_time}</div>
+          <div style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6 }}>{ai.best_posting_time_reason}</div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 6 }}>
+          <span style={{ fontSize: 13, color: '#9ca3af' }}>Posting Frequency</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: ai.posting_frequency_score >= 70 ? '#22c55e' : ai.posting_frequency_score >= 50 ? '#f59e0b' : '#f97316' }}>{ai.posting_frequency_score}/100</span>
+        </div>
+        <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+          <div style={{ height: '100%', width: `${ai.posting_frequency_score}%`, background: '#f97316', borderRadius: 2 }} />
         </div>
       </PCard>
 
       {/* ── B: Hook Quality ── */}
-      <PCard accent="linear-gradient(90deg,#F59E0B,#EF4444)" delay={0.05}>
-        <div style={{ padding: '24px 28px' }}>
-          <SHead icon={Zap} label="Hook Quality Analysis" title="How well your hooks stop the scroll" />
-          {ai.hook_scores && ai.hook_scores.length > 0 ? (
-            <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)', marginBottom: 16 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', padding: '10px 16px', background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)' }}>Hook</span>
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginRight: 16 }}>Score</span>
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)' }}>Grade</span>
-              </div>
-              {ai.hook_scores.slice(0, 10).map((h, i) => {
-                const c = hookColor(h.score);
-                return (
-                  <div key={i} style={{
-                    display: 'grid', gridTemplateColumns: '1fr auto auto',
-                    padding: '12px 16px', alignItems: 'center',
-                    borderBottom: i < ai.hook_scores!.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                    background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
-                  }}>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4, paddingRight: 12 }}>
-                      "{h.hook.length > 55 ? h.hook.slice(0, 52) + '…' : h.hook}"
-                    </p>
-                    <span style={{ fontSize: 16, fontWeight: 900, color: c, marginRight: 16, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
-                      {h.score}/10
-                    </span>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: `${c}18`, color: c, border: `1px solid ${c}30`, whiteSpace: 'nowrap' }}>
+      <PCard delay={0.05}>
+        <SHead icon={Zap} label="Hook Quality Analysis" title="How well your hooks stop the scroll" />
+        {ai.hook_scores && ai.hook_scores.length > 0 ? (
+          <div style={{ width: '100%', marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 90px', padding: '0 0 10px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#6b7280' }}>Hook</span>
+              <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#6b7280', textAlign: 'right' as const }}>Score</span>
+              <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: '#6b7280', textAlign: 'right' as const }}>Grade</span>
+            </div>
+            {ai.hook_scores.slice(0, 10).map((h, i) => {
+              const c = hookColor(h.score);
+              return (
+                <div key={i} style={{
+                  display: 'grid', gridTemplateColumns: '1fr 80px 90px',
+                  padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'center',
+                }}>
+                  <p style={{ fontSize: 13, color: '#d1d5db', lineHeight: 1.4, paddingRight: 12 }}>
+                    &ldquo;{h.hook.length > 55 ? h.hook.slice(0, 52) + '…' : h.hook}&rdquo;
+                  </p>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: c, textAlign: 'right' as const }}>
+                    {h.score}/10
+                  </span>
+                  <div style={{ textAlign: 'right' as const }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 9999, background: `${c}1e`, color: c, border: `1px solid ${c}33`, whiteSpace: 'nowrap' as const }}>
                       {hookVerdict(h.score)}
                     </span>
                   </div>
-                );
-              })}
-            </div>
-          ) : null}
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
 
-          {/* Weakest hook rewrite */}
-          {ai.weakest_hook_rewrite && (
-            <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(168,85,247,0.25)' }}>
-              <div style={{ height: 2, background: 'linear-gradient(90deg,#FF3E80,#A855F7)' }} />
-              <div style={{ padding: '16px 18px', background: 'rgba(168,85,247,0.06)' }}>
-                <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#A855F7', marginBottom: 10 }}>🔁 Your weakest hook — rewritten by AI</p>
-                {ai.weakest_hook && (
-                  <div style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>Original:</p>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', textDecoration: 'line-through', fontStyle: 'italic' }}>"{ai.weakest_hook}"</p>
-                  </div>
-                )}
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#A855F7', marginBottom: 6 }}>AI Rewrite ✨</p>
-                <p style={{ fontSize: 14, fontWeight: 700, color: 'white', lineHeight: 1.6 }}>"{ai.weakest_hook_rewrite}"</p>
-              </div>
+        {/* Weakest hook rewrite */}
+        {ai.weakest_hook_rewrite && (
+          <div style={{ background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 12, padding: '18px 22px', marginTop: 6 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', color: '#a78bfa', textTransform: 'uppercase' as const, marginBottom: 12 }}>
+              ✏ Your Weakest Hook — Rewritten by AI
             </div>
-          )}
-        </div>
+            {ai.weakest_hook && (
+              <>
+                <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Original:</div>
+                <div style={{ fontSize: 13, color: '#6b7280', textDecoration: 'line-through', marginBottom: 14 }}>&ldquo;{ai.weakest_hook}&rdquo;</div>
+              </>
+            )}
+            <div style={{ fontSize: 12, color: '#a78bfa', fontWeight: 600, marginBottom: 6 }}>AI Rewrite ✨</div>
+            <div style={{ fontSize: 14, color: 'white', fontWeight: 500 }}>&ldquo;{ai.weakest_hook_rewrite}&rdquo;</div>
+          </div>
+        )}
       </PCard>
 
       {/* ── C: Hashtag Strategy ── */}
-      <PCard accent="linear-gradient(90deg,#3B82F6,#A855F7)" delay={0.05}>
-        <div style={{ padding: '24px 28px' }}>
-          <SHead icon={Hash} label="Hashtag Strategy" title="Niche-matched tags for Explore reach" />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 16, marginBottom: 16 }}>
-            {m.topHashtags && m.topHashtags.length > 0 && (
-              <div>
-                <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Your current hashtags</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                  {m.topHashtags.slice(0, 12).map((h) => (
-                    <span key={h.tag} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 99, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}>#{h.tag}</span>
-                  ))}
-                </div>
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', lineHeight: 1.6 }}>{ai.hashtag_verdict}</p>
-              </div>
-            )}
+      <PCard delay={0.05}>
+        <SHead icon={Hash} label="Hashtag Strategy" title="Niche-matched tags for Explore reach" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginBottom: 16 }}>
+          {m.topHashtags && m.topHashtags.length > 0 ? (
             <div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: '#22C55E', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Recommended goldzone hashtags</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                {ai.recommended_hashtags.map(tag => (
-                  <span key={tag} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 99, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', color: '#22C55E', fontFamily: 'monospace' }}>{tag}</span>
+              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: '#6b7280', textTransform: 'uppercase' as const, marginBottom: 12 }}>Your Current Hashtags</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                {m.topHashtags.slice(0, 12).map((h) => (
+                  <span key={h.tag} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 9999, padding: '4px 12px', fontSize: 12, color: '#9ca3af' }}>#{h.tag}</span>
                 ))}
               </div>
-              {ai.recommended_hashtags_reason && (
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', lineHeight: 1.6 }}>{ai.recommended_hashtags_reason}</p>
-              )}
+              <p style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.6, fontStyle: 'italic' }}>{ai.hashtag_verdict}</p>
             </div>
+          ) : <div />}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: '#6b7280', textTransform: 'uppercase' as const, marginBottom: 12 }}>Recommended Goldzone Hashtags</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+              {ai.recommended_hashtags.map(tag => (
+                <span key={tag} style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.25)', borderRadius: 9999, padding: '4px 12px', fontSize: 12, color: '#a78bfa' }}>{tag}</span>
+              ))}
+            </div>
+            {ai.recommended_hashtags_reason && (
+              <p style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.6 }}>{ai.recommended_hashtags_reason}</p>
+            )}
           </div>
-          <PBar score={ai.hashtag_score} label="Hashtag Score" />
+        </div>
+        <div style={{ marginTop: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <span style={{ fontSize: 13, color: '#9ca3af' }}>Hashtag Score</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b' }}>{ai.hashtag_score}/100</span>
+          </div>
+          <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+            <div style={{ height: '100%', width: `${ai.hashtag_score}%`, background: '#f59e0b', borderRadius: 2 }} />
+          </div>
         </div>
       </PCard>
 
       {/* ── D: Rate Card ── */}
-      <PCard accent="linear-gradient(90deg,#22C55E,#A855F7)" delay={0.05}>
-        <div style={{ padding: '24px 28px' }}>
-          <SHead icon={IndianRupee} label="Your Brand Rate Card" title="What brands should pay you" />
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 16, lineHeight: 1.6 }}>
-            Based on your {m.engagementRate}% ER and {(m.followers || 0).toLocaleString('en-IN')} followers.
-          </p>
-          <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)', marginBottom: 14 }}>
-            {[
-              { label: 'Instagram Story', rates: ai.estimated_rates?.story, highlight: false, emoji: '📖' },
-              { label: 'Dedicated Reel', rates: ai.estimated_rates?.reel, highlight: true, emoji: '🎬' },
-              { label: 'Carousel Post', rates: ai.estimated_rates?.carousel, highlight: false, emoji: '🎠' },
-              { label: 'Monthly Retainer', rates: ai.estimated_rates?.monthly_package, highlight: false, emoji: '📅' },
-            ].filter(r => r.rates).map((row, i, arr) => (
-              <div key={row.label} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '14px 18px',
-                background: row.highlight ? 'rgba(168,85,247,0.07)' : 'transparent',
-                borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 16 }}>{row.emoji}</span>
-                  <span style={{ fontSize: 14, fontWeight: row.highlight ? 700 : 500, color: row.highlight ? 'white' : 'rgba(255,255,255,0.6)' }}>{row.label}</span>
-                  {row.highlight && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: 'rgba(168,85,247,0.15)', color: '#A855F7', border: '1px solid rgba(168,85,247,0.3)' }}>Most popular</span>}
-                </div>
-                <span style={{ fontSize: 14, fontWeight: 800, color: row.highlight ? '#A855F7' : 'white', fontVariantNumeric: 'tabular-nums' }}>
-                  ₹{row.rates!.min.toLocaleString('en-IN')} – ₹{row.rates!.max.toLocaleString('en-IN')}
-                </span>
-              </div>
-            ))}
+      <PCard delay={0.05}>
+        <SHead icon={IndianRupee} label="Your Brand Rate Card" title="What brands should pay you" />
+        <p style={{ fontSize: 13, color: '#9ca3af', marginBottom: 20, lineHeight: 1.6 }}>
+          Based on your {m.engagementRate}% ER and {(m.followers || 0).toLocaleString('en-IN')} followers.
+        </p>
+        {[
+          { label: 'Instagram Story', rates: ai.estimated_rates?.story, emoji: '📖', priceColor: '#9ca3af' },
+          { label: 'Dedicated Reel', rates: ai.estimated_rates?.reel, emoji: '🎬', priceColor: '#ec4899', popular: true },
+          { label: 'Carousel Post', rates: ai.estimated_rates?.carousel, emoji: '🎠', priceColor: '#a78bfa' },
+          { label: 'Monthly Retainer', rates: ai.estimated_rates?.monthly_package, emoji: '📅', priceColor: '#22c55e' },
+        ].filter(r => r.rates).map((row, i, arr) => (
+          <div key={row.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 28, height: 28, background: 'rgba(255,255,255,0.04)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>{row.emoji}</div>
+              <span style={{ fontSize: 14, color: 'white' }}>{row.label}</span>
+              {row.popular && <span style={{ background: 'rgba(139,92,246,0.15)', color: '#a78bfa', borderRadius: 9999, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>Most popular</span>}
+            </div>
+            <span style={{ fontSize: 14, fontWeight: 700, color: row.priceColor }}>
+              ₹{row.rates!.min.toLocaleString('en-IN')} – ₹{row.rates!.max.toLocaleString('en-IN')}
+            </span>
           </div>
-          <div style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)' }}>
-            <p style={{ fontSize: 13, color: '#22C55E', lineHeight: 1.6 }}>
-              💡 Most creators in your niche charge 40% less than what brands are willing to pay. Don't undersell yourself.
-            </p>
-          </div>
-          <PBar score={ai.brand_readiness_score} label="Brand Readiness Score" />
+        ))}
+        <div style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)', borderRadius: 10, padding: '12px 16px', marginTop: 16, fontSize: 12, color: '#eab308', lineHeight: 1.6 }}>
+          💡 Most creators in your niche charge 40% less than what brands are willing to pay. Don&apos;t undersell yourself.
         </div>
+        <PBar score={ai.brand_readiness_score} label="Brand Readiness Score" />
       </PCard>
 
       {/* ── E: Bio Rewrite ── */}
-      <PCard accent="linear-gradient(90deg,#FF3E80,#A855F7)" delay={0.05}>
-        <div style={{ padding: '24px 28px' }}>
-          <SHead icon={Search} label="Bio Rewrite" title="Your bio — rewritten by AI" />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12, marginBottom: 14 }}>
-            <div style={{ padding: '16px', borderRadius: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>Current Bio</p>
-              <p style={{ fontSize: 13, lineHeight: 1.7, color: 'rgba(255,255,255,0.35)', textDecoration: 'line-through', whiteSpace: 'pre-wrap' }}>{m.bio || 'No bio found.'}</p>
-            </div>
-            <div style={{ padding: '16px', borderRadius: 14, background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.25)' }}>
-              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#A855F7', marginBottom: 8 }}>AI Rewrite ✨</p>
-              <p style={{ fontSize: 13, lineHeight: 1.7, color: 'white', fontWeight: 600, whiteSpace: 'pre-wrap' }}>{ai.bio_rewrite || '—'}</p>
-            </div>
+      <PCard delay={0.05}>
+        <SHead icon={Search} label="Bio Rewrite" title="Your bio — rewritten by AI" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '16px 18px' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', color: '#6b7280', textTransform: 'uppercase' as const, marginBottom: 12 }}>Current Bio</div>
+            <div style={{ fontSize: 13, color: '#4b5563', textDecoration: 'line-through', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{m.bio || 'No bio found.'}</div>
           </div>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', lineHeight: 1.6 }}>Why: {ai.bio_rewrite_reason}</p>
-          <PBar score={ai.profile_completeness_score} label="Profile Completeness" />
+          <div style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 10, padding: '16px 18px' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', color: '#a78bfa', textTransform: 'uppercase' as const, marginBottom: 12 }}>AI Rewrite ✨</div>
+            <div style={{ fontSize: 14, color: 'white', fontWeight: 500, lineHeight: 1.9, whiteSpace: 'pre-wrap' }}>{ai.bio_rewrite || '—'}</div>
+          </div>
         </div>
+        <p style={{ fontSize: 12, color: '#6b7280', fontStyle: 'italic', lineHeight: 1.6, marginTop: 14 }}>Why: {ai.bio_rewrite_reason}</p>
+        <PBar score={ai.profile_completeness_score} label="Profile Completeness" />
       </PCard>
 
       {/* ── F: Growth Roadmap ── */}
       <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
-        <div style={{ textAlign: 'center', padding: '12px 0 24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', marginBottom: 6 }}>
-            <div style={{ width: 3, height: 16, borderRadius: 2, background: 'linear-gradient(180deg,#FF3E80,#A855F7)' }} />
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--brand-mid)', margin: 0 }}>Your Roadmap</p>
-          </div>
-          <h2 style={{ fontSize: 'clamp(22px,4vw,34px)', fontWeight: 900, letterSpacing: '-0.04em', color: 'white', marginBottom: 8 }}>
-            3 moves that will change your numbers.
-          </h2>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', maxWidth: 400, margin: '0 auto' }}>
-            Not generic advice. Pulled directly from your account's data. Ranked by impact.
-          </p>
+        <div style={{ height: 1, width: '100%', background: 'linear-gradient(90deg, transparent, rgba(139,92,246,0.45), transparent)', marginBottom: 24 }} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 12 }}>
+          <div style={{ width: 3, height: 16, borderRadius: 2, background: '#7c3aed' }} />
+          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: '#9ca3af', textTransform: 'uppercase' as const }}>Your Roadmap</span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <h2 style={{ fontSize: 40, fontWeight: 800, color: 'white', textAlign: 'center' as const, marginBottom: 12, lineHeight: 1.2 }}>
+          3 moves that will change your numbers.
+        </h2>
+        <p style={{ fontSize: 13, color: '#9ca3af', textAlign: 'center' as const, marginBottom: 4 }}>Not generic advice. Pulled directly from your account&apos;s data.</p>
+        <p style={{ fontSize: 13, color: '#9ca3af', textAlign: 'center' as const, marginBottom: 36 }}>Ranked by impact.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {ai.action_plan.map((action, i) => {
-            const COLORS = [
-              { from: '#FF3E80', to: '#A855F7', accent: 'rgba(255,62,128,0.12)', border: 'rgba(255,62,128,0.25)', bar: 'linear-gradient(90deg,#FF3E80,#A855F7)' },
-              { from: '#A855F7', to: '#7C3AED', accent: 'rgba(168,85,247,0.1)', border: 'rgba(168,85,247,0.25)', bar: 'linear-gradient(90deg,#A855F7,#7C3AED)' },
-              { from: '#3B82F6', to: '#7C3AED', accent: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.25)', bar: 'linear-gradient(90deg,#3B82F6,#7C3AED)' },
-            ];
-            const c = COLORS[i] || COLORS[2];
             const isHigh = action.impact === 'HIGH';
             return (
-              <motion.div
-                key={action.rank}
-                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }} transition={{ duration: 0.4, delay: i * 0.08 }}
-                whileHover={{ y: -2, transition: { duration: 0.2 } }}
-                style={{ borderRadius: 20, overflow: 'hidden', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 8px 32px rgba(0,0,0,0.35)' }}
-              >
-                <div style={{ height: 2, background: c.bar }} />
-                <div style={{ padding: '22px 24px' }}>
+              <div key={action.rank}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }} transition={{ duration: 0.4, delay: i * 0.08 }}
+                  style={{ background: '#111118', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '24px 28px' }}
+                >
                   {/* Header row */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 12, flexShrink: 0, background: `linear-gradient(135deg,${c.from},${c.to})`, boxShadow: `0 4px 16px ${c.from}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: 'white', fontSize: 15 }}>
-                        {action.rank}
-                      </div>
-                      <h3 style={{ fontSize: 16, fontWeight: 800, color: 'white', lineHeight: 1.35, letterSpacing: '-0.02em', marginTop: 2 }}>{action.problem}</h3>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 9999, flexShrink: 0, background: 'linear-gradient(135deg,#7c3aed,#a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: 'white', fontSize: 16, marginTop: 2 }}>
+                      {action.rank}
                     </div>
-                    <span style={{ fontSize: 10, fontWeight: 800, padding: '3px 9px', borderRadius: 99, whiteSpace: 'nowrap', flexShrink: 0, letterSpacing: '0.06em', textTransform: 'uppercase', background: isHigh ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)', color: isHigh ? '#EF4444' : '#F59E0B', border: `1px solid ${isHigh ? 'rgba(239,68,68,0.25)' : 'rgba(245,158,11,0.25)'}` }}>
+                    <p style={{ fontSize: 15, fontWeight: 500, color: 'white', lineHeight: 1.5, flex: 1 }}>{action.problem}</p>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 9999, whiteSpace: 'nowrap' as const, flexShrink: 0, background: isHigh ? 'rgba(239,68,68,0.15)' : 'rgba(249,115,22,0.15)', color: isHigh ? '#f87171' : '#fb923c', border: `1px solid ${isHigh ? 'rgba(239,68,68,0.3)' : 'rgba(249,115,22,0.3)'}` }}>
                       {action.impact}
                     </span>
                   </div>
                   {/* Root cause */}
-                  <div style={{ marginBottom: 12 }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 5 }}>Root Cause</p>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.65 }}>{action.root_cause}</p>
+                  <div style={{ marginTop: 18 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', color: '#6b7280', textTransform: 'uppercase' as const, marginBottom: 5 }}>Root Cause</div>
+                    <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.6 }}>{action.root_cause}</p>
                   </div>
                   {/* Exact fix */}
-                  <div style={{ padding: '14px 16px', borderRadius: 12, background: c.accent, border: `1px solid ${c.border}`, marginBottom: 12 }}>
-                    <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)', marginBottom: 6 }}>Exact Fix</p>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: 'white', lineHeight: 1.65 }}>{action.exact_fix}</p>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '14px 16px', marginTop: 12 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', color: '#6b7280', textTransform: 'uppercase' as const, marginBottom: 7 }}>Exact Fix</div>
+                    <p style={{ fontSize: 13, color: '#d1d5db', lineHeight: 1.6 }}>{action.exact_fix}</p>
                   </div>
                   {/* Expected result */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                    <TrendingUp size={14} style={{ color: '#22C55E', marginTop: 2, flexShrink: 0 }} />
-                    <p style={{ fontSize: 13, fontWeight: 600, color: '#22C55E', lineHeight: 1.6 }}>{action.expected_result}</p>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 14 }}>
+                    <span style={{ color: '#22c55e', fontSize: 14, flexShrink: 0 }}>↗</span>
+                    <p style={{ fontSize: 13, color: '#22c55e', lineHeight: 1.6 }}>{action.expected_result}</p>
                   </div>
-                </div>
-              </motion.div>
+                </motion.div>
+                {i < ai.action_plan.length - 1 && (
+                  <div style={{ height: 1, width: '100%', background: 'linear-gradient(90deg, transparent, rgba(139,92,246,0.3), transparent)', margin: '4px 0' }} />
+                )}
+              </div>
             );
           })}
         </div>

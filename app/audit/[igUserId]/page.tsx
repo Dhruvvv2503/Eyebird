@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   AlertTriangle, RefreshCw, Lock, CheckCircle2,
-  ArrowDown, TrendingUp, TrendingDown, Zap, Mail, Send, Loader2,
+  ArrowDown, Mail, Send, Loader2,
 } from 'lucide-react';
 import ScoreRing from '@/components/ui/ScoreRing';
 import PaymentModal from '@/components/audit/PaymentModal';
@@ -119,18 +119,18 @@ function Stat({ label, value, sub, accent }: { label: string; value: string; sub
     <div
       style={{
         padding: '14px 16px',
-        borderRadius: 12,
-        background: accent ? 'rgba(168,85,247,0.08)' : 'rgba(255,255,255,0.04)',
-        border: `1px solid ${accent ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.07)'}`,
+        borderRadius: 10,
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.07)',
       }}
     >
-      <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
+      <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#6b7280', marginBottom: 6 }}>
         {label}
       </p>
-      <p style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.03em', color: accent ? 'var(--brand-mid)' : 'white', lineHeight: 1 }}>
+      <p style={{ fontSize: 22, fontWeight: 700, color: accent ? '#22c55e' : 'white', lineHeight: 1 }}>
         {value}
       </p>
-      {sub && <p style={{ fontSize: 11, marginTop: 3, color: 'rgba(255,255,255,0.35)' }}>{sub}</p>}
+      {sub && <p style={{ fontSize: 11, marginTop: 3, color: '#9ca3af' }}>{sub}</p>}
     </div>
   );
 }
@@ -399,19 +399,15 @@ export default function AuditReportPage({ params, searchParams }: { params: { ig
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             >
-              {/* Glassmorphic hero card */}
+              {/* Hero card */}
               <div
                 style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 24,
-                  padding: '32px 32px 28px',
-                  backdropFilter: 'blur(12px)',
-                  boxShadow: '0 8px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)',
+                  background: '#111118',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: 16,
+                  padding: '28px 32px',
                 }}
               >
-                {/* Brand gradient top border */}
-                <div style={{ height: 1, background: 'linear-gradient(90deg, rgba(168,85,247,0.8) 0%, rgba(255,62,128,0.4) 50%, transparent 100%)', marginBottom: 28, borderRadius: 1 }} />
 
                 {/* Profile row */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 28 }}>
@@ -445,7 +441,7 @@ export default function AuditReportPage({ params, searchParams }: { params: { ig
 
                   {/* Left: Score ring */}
                   <div style={{ flexShrink: 0 }}>
-                    <ScoreRing score={overall_score} size={164} strokeWidth={10} />
+                    <ScoreRing score={overall_score} size={200} strokeWidth={14} />
                   </div>
 
                   {/* Right: Verdict + stats */}
@@ -464,7 +460,7 @@ export default function AuditReportPage({ params, searchParams }: { params: { ig
                     )}
 
                     {/* Stat grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
                       <Stat
                         label="Engagement"
                         value={`${m.engagementRate}%`}
@@ -500,6 +496,9 @@ export default function AuditReportPage({ params, searchParams }: { params: { ig
         ═══════════════════════════════════════════════════════════ */}
         <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 24px' }}>
 
+          {/* Section divider */}
+          <div style={{ height: 1, width: '100%', background: 'linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.45) 50%, transparent 100%)', margin: '32px 0 0' }} />
+
           {/* Free metrics */}
           <div style={{ marginTop: 32 }}>
             <FreeMetricsSection
@@ -515,6 +514,9 @@ export default function AuditReportPage({ params, searchParams }: { params: { ig
               estimatedReelMax={ai.estimated_rates?.reel?.max}
             />
           </div>
+
+          {/* Section divider */}
+          <div style={{ height: 1, width: '100%', background: 'linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.45) 50%, transparent 100%)', margin: '32px 0' }} />
 
           {/* Paywall zone */}
           {!is_paid && (
@@ -537,20 +539,17 @@ export default function AuditReportPage({ params, searchParams }: { params: { ig
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              style={{ marginTop: 32 }}
             >
               <div
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '14px 20px', borderRadius: 14, marginBottom: 32,
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '14px 20px', borderRadius: 10, marginBottom: 32,
                   background: 'rgba(34,197,94,0.06)',
                   border: '1px solid rgba(34,197,94,0.2)',
+                  fontSize: 13, color: '#86efac',
                 }}
               >
-                <CheckCircle2 size={18} style={{ color: 'var(--success)', flexShrink: 0 }} />
-                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--success)' }}>
-                  Full report unlocked — your personalised playbook is below 👇
-                </p>
+                ✅ Full report unlocked — your personalised playbook is below 🎯
               </div>
               <PaidReport ai={ai} m={m} />
 

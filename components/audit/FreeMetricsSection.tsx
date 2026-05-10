@@ -56,13 +56,11 @@ function MetricCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.45, delay, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={{ y: -2, transition: { duration: 0.2 } }}
       style={{
-        borderRadius: 20,
+        borderRadius: 14,
         overflow: 'hidden',
-        background: 'var(--bg-surface)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+        background: '#111118',
+        border: '1px solid rgba(255,255,255,0.07)',
         position: 'relative',
       }}
     >
@@ -117,19 +115,19 @@ export default function FreeMetricsSection({
         viewport={{ once: true }} transition={{ duration: 0.4 }}
         style={{ marginBottom: 24 }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-          <div style={{ width: 3, height: 16, borderRadius: 2, background: 'linear-gradient(180deg, #FF3E80 0%, #A855F7 100%)' }} />
-          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--brand-mid)', margin: 0 }}>
-            Your snapshot
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <div style={{ width: 3, height: 16, borderRadius: 2, background: '#7c3aed' }} />
+          <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9ca3af', margin: 0 }}>
+            Your Snapshot
           </p>
         </div>
-        <h2 style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.035em', color: 'white', margin: 0, paddingLeft: 13 }}>
-          Here's what we found.
+        <h2 style={{ fontSize: 32, fontWeight: 700, color: 'white', margin: '8px 0 0 0', paddingLeft: 13 }}>
+          Here&apos;s what we found.
         </h2>
       </motion.div>
 
       {/* ── CARD 1: Engagement Rate — full width ── */}
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: 16 }}>
         <MetricCard accentColor={isHigh ? '#22C55E' : '#EF4444'} delay={0.05}>
           <div style={{ padding: '24px 28px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -200,7 +198,7 @@ export default function FreeMetricsSection({
       </div>
 
       {/* ── CARDS 2 + 3: Side by side ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
 
         {/* Card 2: Content Superpower */}
         <MetricCard accentColor="linear-gradient(90deg, #A855F7, #7C3AED)" delay={0.1}>
