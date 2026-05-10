@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { Activity, PlaySquare, Image as ImageIcon, Lock, CheckCircle2, ArrowRight, Zap, TrendingUp, Clock, Hash, IndianRupee, PenLine, Sparkles, BarChart3, AlertCircle } from 'lucide-react'
 
 interface Props {
   igAccount: any
@@ -18,45 +19,37 @@ function safeGet(obj: any, path: string, fallback: any = null) {
   }
 }
 
-function formatNumber(n: any): string {
-  const num = Number(n)
-  if (isNaN(num)) return '0'
-  if (num >= 100000) return `${(num / 100000).toFixed(1)}L`
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-  return num.toLocaleString('en-IN')
+function formatNumber(n: number): string {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M'
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'K'
+  return String(n)
 }
 
-function useCountUp(target: number, duration = 1200) {
-  const [count, setCount] = useState(0)
+function useCountUp(target: number, duration = 1400, decimals = 0) {
+  const [val, setVal] = useState(0)
   useEffect(() => {
     if (!target) return
-    let start = 0
-    const step = target / (duration / 16)
+    const steps = duration / 16
+    const increment = target / steps
+    let current = 0
     const timer = setInterval(() => {
-      start += step
-      if (start >= target) {
-        setCount(target)
-        clearInterval(timer)
-      } else {
-        setCount(Math.floor(start))
-      }
+      current = Math.min(current + increment, target)
+      setVal(parseFloat(current.toFixed(decimals)))
+      if (current >= target) clearInterval(timer)
     }, 16)
     return () => clearInterval(timer)
-  }, [target, duration])
-  return count
+  }, [target, duration, decimals])
+  return val
 }
 
 const LOADING_FACTS = [
-  '📊 Reading your last 20 posts',
-  '🕐 Finding your best posting time',
-  '🎯 Scoring your hook quality',
-  '#️⃣ Checking your hashtag health',
-  '💰 Calculating your brand rate card',
-  '🧠 Generating your action plan',
+  'Reading your last 20 posts...',
+  'Finding your best posting time...',
+  'Scoring your hook quality...',
+  'Checking your hashtag health...',
+  'Calculating your brand rate card...',
+  'Generating your action plan...',
 ]
-
-const ACCENT = '#8B5CF6'
-const GRADIENT = 'linear-gradient(135deg, #8B5CF6, #EC4899)'
 
 export function DashboardOverviewClient({ igAccount, audit, userProfile, autoStart, userId }: Props) {
   const [loading, setLoading] = useState(false)
@@ -64,11 +57,17 @@ export function DashboardOverviewClient({ igAccount, audit, userProfile, autoSta
   const [factIndex, setFactIndex] = useState(0)
   const [currentAudit, setCurrentAudit] = useState(audit)
 
-  // Hooks must be called unconditionally — fallback to 0 when no audit yet
+  // Derive metrics early so hooks can use them
   const overallScore = currentAudit?.overall_score || 0
-  const erRaw = parseFloat(String(currentAudit?.computed_metrics?.engagementRate || 0))
-  const animatedScore = useCountUp(overallScore, 1500)
-  const animatedEr = useCountUp(Math.round(erRaw * 10), 1000)
+  const metrics = currentAudit?.computed_metrics || {}
+  const aiAnalysis = currentAudit?.ai_analysis || {}
+  const erNum = parseFloat(String(metrics?.engagementRate || 0))
+  const hookNum = parseFloat(String(aiAnalysis?.hook_avg_score || metrics?.hookScore || 5))
+
+  // Animated counts
+  const animatedScore = useCountUp(overallScore || 0, 1400, 0)
+  const animatedEr = useCountUp(erNum, 1200, 1)
+  const animatedHook = useCountUp(hookNum, 1300, 1)
 
   useEffect(() => {
     if (autoStart) {
@@ -80,7 +79,7 @@ export function DashboardOverviewClient({ igAccount, audit, userProfile, autoSta
     if (!loading) return
     const timer = setInterval(() => {
       setFactIndex(i => (i + 1) % LOADING_FACTS.length)
-    }, 4000)
+    }, 3000)
     return () => clearInterval(timer)
   }, [loading])
 
@@ -119,44 +118,19 @@ export function DashboardOverviewClient({ igAccount, audit, userProfile, autoSta
   // ─── STATE 1: NO INSTAGRAM CONNECTED ───────────────────────────
   if (!igAccount) {
     return (
-      <div style={{
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        minHeight: '75vh', textAlign: 'center',
-        padding: '40px 24px',
-        animation: 'fade-up 0.4s ease both',
-      }}>
-        <div style={{
-          width: 80, height: 80, borderRadius: 20,
-          background: GRADIENT,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: 'var(--font-display)',
-          fontSize: 28, fontWeight: 800, color: 'white',
-          marginBottom: 32,
-          boxShadow: '0 12px 40px rgba(139,92,246,0.35)',
-        }}>EB</div>
-        <h1 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 26, fontWeight: 800, color: 'white',
-          marginBottom: 10, letterSpacing: '-0.03em', lineHeight: 1.2,
-        }}>Connect your Instagram</h1>
-        <p style={{
-          fontSize: 15, color: 'rgba(255,255,255,0.4)',
-          lineHeight: 1.65, maxWidth: 300, marginBottom: 36,
-        }}>Takes 10 seconds · Read-only · We never post anything</p>
-        <a href="/api/instagram/auth" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 10,
-          padding: '14px 32px',
-          background: GRADIENT,
-          borderRadius: 12, fontSize: 15, fontWeight: 700,
-          color: 'white', textDecoration: 'none',
-          boxShadow: '0 8px 28px rgba(139,92,246,0.3)',
-          transition: 'all 0.2s',
-        }}
-          onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 12px 36px rgba(139,92,246,0.45)' }}
-          onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(139,92,246,0.3)' }}
+      <div className="flex flex-col items-center justify-center min-h-[75vh] text-center px-6 font-sans text-gray-100">
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-3xl font-bold text-white mb-8 shadow-xl shadow-purple-500/20">
+          EB
+        </div>
+        <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">Connect your Instagram</h1>
+        <p className="text-base text-gray-400 max-w-sm mb-8 leading-relaxed">
+          Takes 10 seconds. Read-only access. We never post anything on your behalf.
+        </p>
+        <a
+          href="/api/instagram/auth"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-white hover:bg-gray-100 text-black rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
         >
-          Connect Instagram →
+          Connect Instagram <ArrowRight className="w-4 h-4" />
         </a>
       </div>
     )
@@ -165,37 +139,15 @@ export function DashboardOverviewClient({ igAccount, audit, userProfile, autoSta
   // ─── STATE 2: LOADING / AUDIT RUNNING ──────────────────────────
   if (loading) {
     return (
-      <div style={{
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        minHeight: '75vh', textAlign: 'center',
-        padding: '40px 24px',
-      }}>
-        <div style={{
-          width: 72, height: 72, borderRadius: '50%',
-          border: '3px solid rgba(139,92,246,0.15)',
-          borderTop: '3px solid #8B5CF6',
-          animation: 'spin 1s linear infinite',
-          marginBottom: 32,
-        }} />
-        <h2 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 22, fontWeight: 800, color: 'white',
-          marginBottom: 8, letterSpacing: '-0.02em',
-        }}>Analysing @{igAccount?.username}</h2>
-        <p style={{
-          fontSize: 14, color: 'rgba(255,255,255,0.35)',
-          marginBottom: 36, lineHeight: 1.6,
-        }}>
-          Reading 22 things simultaneously<br />takes about 60 seconds
+      <div className="flex flex-col items-center justify-center min-h-[75vh] text-center px-6 font-sans text-gray-100">
+        <div className="w-16 h-16 rounded-full border-4 border-white/5 border-t-purple-500 animate-spin mb-8" />
+        <h2 className="text-2xl font-bold text-white mb-3 tracking-tight">
+          Analysing @{igAccount?.username}
+        </h2>
+        <p className="text-gray-400 mb-8 leading-relaxed text-sm">
+          Reading 22 signals simultaneously.<br />This takes about 60 seconds.
         </p>
-        <div key={factIndex} style={{
-          background: 'rgba(139,92,246,0.08)',
-          border: '1px solid rgba(139,92,246,0.15)',
-          borderRadius: 12, padding: '14px 24px',
-          fontSize: 14, color: 'rgba(255,255,255,0.6)',
-          animation: 'fact-in 0.4s ease', maxWidth: 340,
-        }}>
+        <div className="bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-sm text-gray-400 min-w-[280px] max-w-md animate-pulse">
           {LOADING_FACTS[factIndex]}
         </div>
       </div>
@@ -205,27 +157,15 @@ export function DashboardOverviewClient({ igAccount, audit, userProfile, autoSta
   // ─── ERROR STATE ────────────────────────────────────────────────
   if (error) {
     return (
-      <div style={{
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        minHeight: '50vh', textAlign: 'center', padding: '40px 24px',
-      }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: 'white', marginBottom: 8 }}>
-          Something went wrong
-        </h2>
-        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', marginBottom: 24 }}>{error}</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 font-sans text-gray-100">
+        <AlertCircle className="w-16 h-16 text-red-500 mb-6" />
+        <h2 className="text-2xl font-bold text-white mb-3 tracking-tight">Something went wrong</h2>
+        <p className="text-gray-400 mb-8">{error}</p>
         <button
           onClick={() => { setError(null); runAudit() }}
-          style={{
-            padding: '12px 28px',
-            background: GRADIENT,
-            border: 'none', borderRadius: 10,
-            fontSize: 14, fontWeight: 700, color: 'white',
-            cursor: 'pointer',
-          }}
+          className="px-6 py-3 bg-white/10 hover:bg-white/15 border border-white/20 text-white rounded-xl font-medium transition-all"
         >
-          Try again →
+          Try again
         </button>
       </div>
     )
@@ -234,782 +174,584 @@ export function DashboardOverviewClient({ igAccount, audit, userProfile, autoSta
   // ─── HAS INSTAGRAM BUT NO AUDIT ────────────────────────────────
   if (!currentAudit) {
     return (
-      <div style={{
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        minHeight: '70vh', textAlign: 'center', padding: '40px 24px',
-      }}>
-        <div style={{ fontSize: 40, marginBottom: 20 }}>🔍</div>
-        <h2 style={{ fontSize: 24, fontWeight: 800, color: 'white', marginBottom: 10 }}>
-          Ready to see your Instagram clearly?
-        </h2>
-        <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.4)', marginBottom: 32 }}>
-          We&apos;ll analyse 22 things about @{igAccount.username} in 60 seconds
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-6 font-sans text-gray-100">
+        <Sparkles className="w-16 h-16 text-purple-500 mb-6" />
+        <h2 className="text-3xl font-bold text-white mb-4 tracking-tight">Ready to see your Instagram clearly?</h2>
+        <p className="text-lg text-gray-400 mb-10 max-w-md mx-auto">
+          We&apos;ll analyse 22 unique metrics about @{igAccount.username} in under 60 seconds.
         </p>
         <button
           onClick={runAudit}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10,
-            padding: '15px 32px',
-            background: GRADIENT,
-            border: 'none', borderRadius: 14,
-            fontSize: 16, fontWeight: 700, color: 'white',
-            cursor: 'pointer',
-            boxShadow: '0 8px 32px rgba(139,92,246,0.3)',
-            transition: 'all 0.2s',
-          }}
+          className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-pink-500 hover:to-purple-500 text-white rounded-xl font-semibold shadow-xl shadow-purple-500/20 transition-all hover:-translate-y-0.5"
         >
-          Run my audit →
+          Run my audit <ArrowRight className="w-5 h-5" />
         </button>
       </div>
     )
   }
 
   // ─── FULL COCKPIT WITH AUDIT DATA ───────────────────────────────
-
-  const metrics = currentAudit?.computed_metrics || {}
-  const aiAnalysis = currentAudit?.ai_analysis || {}
   const formatBreakdown = metrics?.formatBreakdown || {}
-  const formats = Object.entries(formatBreakdown)
-  const bestFormatEntry = formats.sort(([, a]: any, [, b]: any) =>
+  const formats = Object.entries(formatBreakdown) as [string, any][]
+  const bestFormatEntry = formats.sort(([, a], [, b]) =>
     (parseFloat(b?.avgEngagementRate) || 0) - (parseFloat(a?.avgEngagementRate) || 0)
   )[0]
-  const bestFormatKey = (bestFormatEntry?.[0] || 'VIDEO') as string
+  const bestFormatKey = bestFormatEntry?.[0] || 'VIDEO'
   const bestFormatData = bestFormatEntry?.[1] as any
-  const formatEmoji = bestFormatKey === 'VIDEO' ? '📹' : bestFormatKey === 'CAROUSEL_ALBUM' ? '🖼️' : '📸'
-  const formatName = bestFormatKey === 'VIDEO' ? 'Reels' : bestFormatKey === 'CAROUSEL_ALBUM' ? 'Carousels' : 'Photos'
-  const formatAvgEr = parseFloat(bestFormatData?.avgEngagementRate || '0').toFixed(1)
+  
+  let FormatIcon = PlaySquare;
+  let formatName = 'Reels';
+  if (bestFormatKey === 'CAROUSEL_ALBUM') { FormatIcon = ImageIcon; formatName = 'Carousels'; }
+  else if (bestFormatKey === 'IMAGE') { FormatIcon = ImageIcon; formatName = 'Photos'; }
 
+  const formatEmoji = bestFormatKey === 'VIDEO' ? '🎬' : bestFormatKey === 'CAROUSEL_ALBUM' ? '🖼️' : '📸'
+
+  const formatAvgEr = parseFloat(bestFormatData?.avgEngagementRate || '0').toFixed(1)
   const auditDate = currentAudit?.created_at
     ? new Date(currentAudit.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
     : 'Recently'
-
-  const erNum = parseFloat(String(metrics?.engagementRate || 0))
-  const hookNum = parseFloat(String(aiAnalysis?.hook_avg_score || metrics?.hookScore || 5))
   const mediaCount = igAccount?.media_count || 0
-  const followers = safeGet(igAccount, 'followers_count', 0)
-  const username = safeGet(igAccount, 'username', 'creator')
-  const profilePic = safeGet(igAccount, 'profile_picture_url', null)
+  const followers = igAccount?.followers_count || 0
+
+  const hookSegs = Array.from({ length: 10 }).map((_, i) => {
+    const filled = Math.round(animatedHook)
+    if (i >= filled) return 'empty'
+    if (i < 3) return 'red'
+    if (i < 6) return 'amber'
+    return 'pink'
+  })
 
   return (
-    <div style={{ padding: '0 0 60px', fontFamily: 'var(--font-body)' }}>
+  <div style={{
+    fontFamily: 'var(--font-body)',
+    minHeight: '100vh',
+    background: 'var(--bg)',
+    position: 'relative',
+    overflow: 'hidden',
+  }}>
 
-      {/* ══ PROFILE HERO HEADER ══ */}
-      <div style={{
-        position: 'relative',
-        borderRadius: 24,
-        overflow: 'hidden',
-        marginBottom: 20,
-        background: 'linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(236,72,153,0.06) 50%, rgba(8,6,18,0) 100%)',
-        border: '1px solid rgba(139,92,246,0.2)',
-        padding: '28px 32px',
-        animation: 'fade-up 0.5s ease both',
-      }}>
-        {/* Subtle grid background */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0)',
-          backgroundSize: '32px 32px',
-          pointerEvents: 'none',
-        }} />
+    {/* ── ATMOSPHERIC BACKGROUND ── */}
+    <div style={{
+      position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
+      background: `
+        radial-gradient(ellipse 70% 55% at 15% -5%, rgba(139,92,246,0.16) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 35% at 85% 5%,  rgba(236,72,153,0.09) 0%, transparent 55%),
+        radial-gradient(ellipse 35% 30% at 50% 90%, rgba(139,92,246,0.05) 0%, transparent 60%)
+      `,
+    }} />
+    <div style={{
+      position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
+      backgroundImage: 'linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px)',
+      backgroundSize: '48px 48px',
+      maskImage: 'radial-gradient(ellipse 90% 50% at 50% 0%, black 0%, transparent 100%)',
+      WebkitMaskImage: 'radial-gradient(ellipse 90% 50% at 50% 0%, black 0%, transparent 100%)',
+    }} />
 
+    <div style={{ position: 'relative', zIndex: 1, padding: '32px 32px 80px', maxWidth: 1320, marginInline: 'auto' }}>
+
+      {/* ══════════════════════════════════════════
+          SECTION 1 — HERO ROW
+          Left: identity + stats pill
+          Right: health score ring
+      ══════════════════════════════════════════ */}
+      <div className="ov-fadein" style={{ display: 'flex', gap: 16, alignItems: 'stretch', marginBottom: 20 }}>
+
+        {/* ── HERO IDENTITY CARD ── */}
         <div style={{
+          flex: 1,
+          background: 'linear-gradient(135deg, rgba(139,92,246,0.09) 0%, rgba(13,12,30,0.97) 45%)',
+          border: '1px solid rgba(139,92,246,0.18)',
+          borderRadius: 28,
+          padding: '32px 36px',
           position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 20,
-          flexWrap: 'wrap',
+          overflow: 'hidden',
+          backdropFilter: 'blur(24px)',
+          boxShadow: '0 8px 48px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.055)',
         }}>
-          {/* Profile picture with animated gradient ring */}
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <div style={{
-              position: 'absolute', inset: -3,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #8B5CF6, #EC4899, #8B5CF6)',
-              backgroundSize: '200% 200%',
-              animation: 'shimmer 3s linear infinite',
-            }} />
-            {profilePic ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profilePic}
-                alt={username}
-                style={{
-                  position: 'relative',
-                  width: 76, height: 76,
-                  borderRadius: '50%',
-                  border: '3px solid #080612',
-                  objectFit: 'cover',
-                  display: 'block',
-                  zIndex: 1,
-                }}
-              />
-            ) : (
+          {/* Top shimmer border */}
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.75) 30%, rgba(236,72,153,0.75) 70%, transparent 100%)' }} />
+          {/* Corner ambient */}
+          <div style={{ position: 'absolute', top: -80, left: -80, width: 320, height: 320, background: 'radial-gradient(circle, rgba(139,92,246,0.11) 0%, transparent 65%)', pointerEvents: 'none' }} />
+
+          {/* Identity row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24, position: 'relative' }}>
+            {/* Avatar with rotating ring */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
               <div style={{
-                position: 'relative',
-                width: 76, height: 76,
-                borderRadius: '50%',
-                background: GRADIENT,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 30, fontWeight: 800, color: 'white',
-                border: '3px solid #080612',
-                zIndex: 1,
-                fontFamily: 'var(--font-display)',
-              }}>
-                {username[0]?.toUpperCase()}
+                position: 'absolute', inset: -3, borderRadius: '50%',
+                background: 'conic-gradient(from 0deg, #8B5CF6 0%, #EC4899 50%, #8B5CF6 100%)',
+                animation: 'rotateSlow 5s linear infinite',
+              }} />
+              <div style={{ position: 'relative', width: 72, height: 72, borderRadius: '50%', background: 'var(--bg)', padding: 3, zIndex: 1 }}>
+                {igAccount?.profile_picture_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={igAccount.profile_picture_url}
+                    alt={igAccount?.username}
+                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }}
+                  />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'linear-gradient(135deg, #1a1535, #0C0B1A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 800, color: '#c4b5fd' }}>
+                    {igAccount?.username?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                )}
               </div>
-            )}
-            {/* Live green dot */}
-            <div style={{
-              position: 'absolute', bottom: 4, right: 4,
-              width: 14, height: 14,
-              borderRadius: '50%',
-              background: '#22c55e',
-              border: '2px solid #080612',
-              zIndex: 2,
-              boxShadow: '0 0 8px rgba(34,197,94,0.6)',
-            }} />
-          </div>
-
-          {/* Identity */}
-          <div style={{ flex: 1, minWidth: 160 }}>
-            <div style={{
-              display: 'flex', alignItems: 'center',
-              gap: 10, marginBottom: 6, flexWrap: 'wrap',
-            }}>
-              <span style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 24, fontWeight: 800,
-                color: 'white',
-                letterSpacing: '-0.03em',
-              }}>
-                @{username}
-              </span>
-              <span style={{
-                fontSize: 10, fontWeight: 700,
-                color: '#22c55e',
-                background: 'rgba(34,197,94,0.12)',
-                border: '1px solid rgba(34,197,94,0.25)',
-                borderRadius: 6, padding: '3px 9px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-              }}>
-                ● Connected
-              </span>
+              <div style={{ position: 'absolute', bottom: 4, right: 4, width: 14, height: 14, borderRadius: '50%', background: '#22C55E', border: '2.5px solid var(--bg)', animation: 'pulseGreen 2.2s infinite', zIndex: 2 }} />
             </div>
 
-            {/* Stats row */}
-            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-              <div>
-                <span style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 18, fontWeight: 800,
-                  color: 'white', letterSpacing: '-0.02em',
-                }}>
-                  {formatNumber(followers)}
-                </span>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginLeft: 5 }}>followers</span>
+            {/* Name + badges */}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--m1)', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 7 }}>
+                {(() => {
+                  const h = new Date().getHours();
+                  return h < 12 ? 'Good morning 👋' : h < 17 ? 'Good afternoon 👋' : 'Good evening 👋';
+                })()}
               </div>
-              <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
-              <div>
-                <span style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 18, fontWeight: 800,
-                  color: 'white', letterSpacing: '-0.02em',
-                }}>
-                  {mediaCount}
-                </span>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginLeft: 5 }}>posts</span>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.6px', lineHeight: 1.1, marginBottom: 12 }}>
+                @{igAccount?.username}
               </div>
-              <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>
-                Audited {auditDate}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.18)', borderRadius: 100, padding: '4px 13px', fontSize: 10, fontWeight: 700, color: '#4ade80', letterSpacing: '0.06em', textTransform: 'uppercase' as const }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', display: 'inline-block', boxShadow: '0 0 7px #22C55E' }} />
+                  Live · Instagram Connected
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--m1)', fontWeight: 500 }}>
+                  Audited {auditDate}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Score ring — right side */}
-          <div className="score-ring-wrapper" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 8,
-            flexShrink: 0,
+          {/* Stats pill */}
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            marginTop: 28,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 18, padding: '18px 28px',
+            position: 'relative',
           }}>
-            <div style={{ position: 'relative', width: 100, height: 100 }}>
-              <svg width="100" height="100" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
-                <circle
-                  cx="50" cy="50" r="42"
-                  fill="none"
-                  stroke="url(#scoreGradient)"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  strokeDasharray="263.9"
-                  strokeDashoffset={263.9 - (263.9 * animatedScore) / 100}
-                  style={{ transition: 'stroke-dashoffset 1.5s cubic-bezier(0.4,0,0.2,1)' }}
-                />
-                <defs>
-                  <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#8B5CF6" />
-                    <stop offset="100%" stopColor="#EC4899" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div style={{
-                position: 'absolute', inset: 0,
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-              }}>
-                <span style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 30, fontWeight: 800,
-                  color: 'white', letterSpacing: '-0.04em',
-                  lineHeight: 1,
-                }}>
-                  {animatedScore}
-                </span>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>/100</span>
+            {[
+              { val: formatNumber(followers), label: 'Followers', color: '#c4b5fd' },
+              { val: String(mediaCount),       label: 'Posts',     color: '#93c5fd' },
+              { val: erNum.toFixed(1) + '%',   label: 'Avg ER',    color: '#4ade80' },
+            ].map((s, i) => (
+              <div key={i} style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+                {i > 0 && <div style={{ width: 1, height: 36, background: 'rgba(255,255,255,0.06)' }} />}
+                <div style={{ flex: 1, textAlign: 'center' as const }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, color: s.color, letterSpacing: '-0.5px', lineHeight: 1 }}>{s.val}</div>
+                  <div style={{ fontSize: 11, color: 'var(--m1)', marginTop: 5, fontWeight: 500, letterSpacing: '0.02em' }}>{s.label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── CREATOR PULSE STRIP ── */}
+          <div style={{
+            marginTop: 20,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 10,
+          }}>
+            {/* Reach potential */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(245,158,11,0.10) 0%, rgba(245,158,11,0.04) 100%)',
+              border: '1px solid rgba(245,158,11,0.18)',
+              borderRadius: 16,
+              padding: '14px 16px',
+              position: 'relative',
+              overflow: 'hidden',
+            }}>
+              <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, background: 'radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(245,158,11,0.65)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 8 }}>
+                Reach Potential
+              </div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: '#fcd34d', letterSpacing: '-0.8px', lineHeight: 1, marginBottom: 5 }}>
+                {Math.round(followers * (erNum / 100) * 4.2).toLocaleString('en-IN')}
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 500, lineHeight: 1.4 }}>
+                Est. eyes per reel at your ER
               </div>
             </div>
+
+            {/* Content velocity */}
             <div style={{
-              fontSize: 11, color: 'rgba(255,255,255,0.35)',
-              textTransform: 'uppercase', letterSpacing: '0.08em',
-            }}>Account Health</div>
-            <div style={{
-              fontSize: 12, fontWeight: 700,
-              color: overallScore >= 70 ? '#22c55e' : overallScore >= 50 ? '#eab308' : '#ef4444',
-              background: overallScore >= 70 ? 'rgba(34,197,94,0.1)' : overallScore >= 50 ? 'rgba(234,179,8,0.1)' : 'rgba(239,68,68,0.1)',
-              border: `1px solid ${overallScore >= 70 ? 'rgba(34,197,94,0.25)' : overallScore >= 50 ? 'rgba(234,179,8,0.25)' : 'rgba(239,68,68,0.25)'}`,
-              borderRadius: 8, padding: '3px 12px',
+              background: 'linear-gradient(135deg, rgba(251,146,60,0.10) 0%, rgba(251,146,60,0.04) 100%)',
+              border: '1px solid rgba(251,146,60,0.18)',
+              borderRadius: 16,
+              padding: '14px 16px',
+              position: 'relative',
+              overflow: 'hidden',
             }}>
-              {overallScore >= 70 ? '⚡ Strong' : overallScore >= 50 ? '📈 Growing' : '🔧 Needs work'}
+              <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, background: 'radial-gradient(circle, rgba(251,146,60,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(251,146,60,0.65)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 8 }}>
+                Content Ratio
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, marginBottom: 5 }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: '#fb923c', letterSpacing: '-0.8px', lineHeight: 1 }}>
+                  {mediaCount > 0 ? (followers / mediaCount).toFixed(0) : '—'}
+                </span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 2, fontWeight: 500 }}>/ post</span>
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 500, lineHeight: 1.4 }}>
+                Avg followers earned per post
+              </div>
             </div>
+
+            {/* Growth signal */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(234,179,8,0.10) 0%, rgba(234,179,8,0.04) 100%)',
+              border: '1px solid rgba(234,179,8,0.18)',
+              borderRadius: 16,
+              padding: '14px 16px',
+              position: 'relative',
+              overflow: 'hidden',
+            }}>
+              <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, background: 'radial-gradient(circle, rgba(234,179,8,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(234,179,8,0.65)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 8 }}>
+                ER vs Industry
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, marginBottom: 5 }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: '#fde047', letterSpacing: '-0.8px', lineHeight: 1 }}>
+                  {erNum > 0 ? `${(erNum / 3).toFixed(1)}×` : '—'}
+                </span>
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 500, lineHeight: 1.4 }}>
+                Above avg · top-tier creator
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── HEALTH SCORE CARD ── */}
+        <div style={{
+          width: 220, flexShrink: 0,
+          background: 'linear-gradient(165deg, rgba(139,92,246,0.13) 0%, rgba(13,12,30,0.98) 55%)',
+          border: '1px solid rgba(139,92,246,0.22)',
+          borderRadius: 28, padding: '28px 22px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+          position: 'relative', overflow: 'hidden',
+          boxShadow: '0 8px 48px rgba(0,0,0,0.55), 0 0 60px rgba(139,92,246,0.07), inset 0 1px 0 rgba(255,255,255,0.06)',
+        }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(139,92,246,0.85), rgba(236,72,153,0.85), transparent)' }} />
+          <div style={{ position: 'absolute', bottom: -60, left: '50%', transform: 'translateX(-50%)', width: 220, height: 220, background: 'radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 65%)', pointerEvents: 'none' }} />
+
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--m1)', textTransform: 'uppercase' as const, letterSpacing: '0.12em', alignSelf: 'flex-start' }}>Account Health</div>
+
+          {/* Score ring */}
+          <div style={{ position: 'relative', width: 116, height: 116 }}>
+            <svg width="116" height="116" viewBox="0 0 116 116" style={{ transform: 'rotate(-90deg)' }}>
+              <defs>
+                <linearGradient id="rg2" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#8B5CF6" />
+                  <stop offset="50%" stopColor="#A855F7" />
+                  <stop offset="100%" stopColor="#EC4899" />
+                </linearGradient>
+                <filter id="ringGlow">
+                  <feGaussianBlur stdDeviation="3.5" result="blur" />
+                  <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+              </defs>
+              <circle cx="58" cy="58" r="48" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="10" />
+              <circle cx="58" cy="58" r="48" fill="none" stroke="rgba(139,92,246,0.10)" strokeWidth="10" strokeDasharray="301" strokeDashoffset="0" />
+              <circle cx="58" cy="58" r="48" fill="none" stroke="url(#rg2)" strokeWidth="10" strokeLinecap="round"
+                strokeDasharray="301"
+                strokeDashoffset={301 - (301 * animatedScore / 100)}
+                filter="url(#ringGlow)"
+                style={{ transition: 'stroke-dashoffset 1.6s cubic-bezier(0.34,1.2,0.64,1)' }}
+              />
+            </svg>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 38, fontWeight: 800, color: '#fff', letterSpacing: '-2px', lineHeight: 1 }}>{animatedScore}</span>
+              <span style={{ fontSize: 10, color: 'var(--m1)', marginTop: 3 }}>/100</span>
+            </div>
+          </div>
+
+          {/* Status badge */}
+          <div style={{
+            padding: '6px 20px', borderRadius: 100,
+            fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 700,
+            color: overallScore >= 70 ? '#4ade80' : overallScore >= 50 ? '#fcd34d' : '#f87171',
+            background: overallScore >= 70 ? 'rgba(34,197,94,0.09)' : overallScore >= 50 ? 'rgba(245,158,11,0.09)' : 'rgba(239,68,68,0.09)',
+            border: `1px solid ${overallScore >= 70 ? 'rgba(34,197,94,0.28)' : overallScore >= 50 ? 'rgba(245,158,11,0.28)' : 'rgba(239,68,68,0.28)'}`,
+            boxShadow: overallScore >= 70 ? '0 0 18px rgba(34,197,94,0.12)' : 'none',
+          }}>
+            {overallScore >= 70 ? '⚡ Strong Performance' : overallScore >= 50 ? '📈 Growing' : '🔧 Needs Work'}
+          </div>
+
+          {/* Mini bars */}
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, marginTop: 2 }}>
+            {[
+              { label: 'Engagement', pct: Math.min((erNum / 15) * 100, 100), color: '#22C55E' },
+              { label: 'Hook quality', pct: (hookNum / 10) * 100,            color: '#F59E0B' },
+              { label: 'Post timing',  pct: 45,                               color: '#8B5CF6' },
+            ].map(b => (
+              <div key={b.label}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                  <span style={{ fontSize: 10, color: 'var(--m1)', fontWeight: 500 }}>{b.label}</span>
+                  <span style={{ fontSize: 10, color: b.color, fontWeight: 700 }}>{Math.round(b.pct)}%</span>
+                </div>
+                <div style={{ height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{ width: `${b.pct}%`, height: '100%', background: `linear-gradient(90deg, ${b.color}80, ${b.color})`, borderRadius: 2, transition: 'width 1.6s cubic-bezier(0.4,0,0.2,1)', boxShadow: `0 0 8px ${b.color}35` }} />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* ══ THREE METRIC CARDS ══ */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: 14,
-        marginBottom: 20,
-      }} className="dashboard-grid-3">
+      {/* ══════════════════════════════════════════
+          SECTION 2 — METRIC CARDS ROW (3 columns)
+          ER · Best Format · Hook Strength
+      ══════════════════════════════════════════ */}
+      <div className="ov-fadein-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
 
-        {/* CARD 1 — ENGAGEMENT RATE */}
+        {/* — ENGAGEMENT RATE — */}
         <div
-          className="stagger-1"
-          style={{
-            background: 'rgba(255,255,255,0.025)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 20,
-            padding: '24px',
-            cursor: 'default',
-            transition: 'border-color 0.2s, transform 0.2s, box-shadow 0.2s',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-          onMouseOver={e => {
-            e.currentTarget.style.borderColor = 'rgba(34,197,94,0.3)'
-            e.currentTarget.style.transform = 'translateY(-3px)'
-            e.currentTarget.style.boxShadow = '0 12px 32px rgba(34,197,94,0.08)'
-          }}
-          onMouseOut={e => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
-            e.currentTarget.style.transform = 'translateY(0)'
-            e.currentTarget.style.boxShadow = 'none'
-          }}
-        >
-          <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0,
-            height: 2,
-            background: 'linear-gradient(90deg, #22c55e, rgba(34,197,94,0))',
-            borderRadius: '20px 20px 0 0',
-          }} />
+          style={{ background: 'linear-gradient(150deg, rgba(34,197,94,0.05) 0%, rgba(13,12,30,0.98) 55%)', border: '1px solid rgba(34,197,94,0.13)', borderRadius: 24, padding: '26px 28px', position: 'relative', overflow: 'hidden', boxShadow: '0 4px 28px rgba(0,0,0,0.45)', transition: 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease', cursor: 'default' }}
+          onMouseOver={e => { const el = e.currentTarget as HTMLElement; el.style.transform='translateY(-5px)'; el.style.boxShadow='0 20px 48px rgba(34,197,94,0.1), 0 4px 28px rgba(0,0,0,0.45)'; el.style.borderColor='rgba(34,197,94,0.30)'; }}
+          onMouseOut={e  => { const el = e.currentTarget as HTMLElement; el.style.transform='translateY(0)';   el.style.boxShadow='0 4px 28px rgba(0,0,0,0.45)';                                                 el.style.borderColor='rgba(34,197,94,0.13)'; }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #22C55E, rgba(34,197,94,0.15))', borderRadius: '24px 24px 0 0' }} />
+          <div style={{ position: 'absolute', top: -40, right: -40, width: 140, height: 140, background: 'radial-gradient(circle, rgba(34,197,94,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-          <div style={{
-            fontSize: 10, fontWeight: 700,
-            color: 'rgba(255,255,255,0.3)',
-            textTransform: 'uppercase', letterSpacing: '0.1em',
-            marginBottom: 16,
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10, fontWeight: 700, color: 'rgba(34,197,94,0.65)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: 18 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', display: 'inline-block', boxShadow: '0 0 7px #22C55E' }} />
             Engagement Rate
           </div>
 
-          <div style={{ marginBottom: 16 }}>
-            <span className="metric-number" style={{ fontSize: 52, color: 'white' }}>
-              {(animatedEr / 10).toFixed(1)}
-            </span>
-            <span style={{
-              fontSize: 22, color: 'rgba(255,255,255,0.4)',
-              fontFamily: 'var(--font-display)', fontWeight: 800,
-            }}>%</span>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 58, fontWeight: 800, color: '#fff', letterSpacing: '-3px', lineHeight: 1, marginBottom: 22, display: 'flex', alignItems: 'flex-end', gap: 4 }}>
+            {animatedEr.toFixed(1)}
+            <span style={{ fontSize: 24, color: 'rgba(255,255,255,0.3)', letterSpacing: 0, fontFamily: 'var(--font-body)', marginBottom: 9, fontWeight: 400 }}>%</span>
           </div>
 
-          <div style={{ marginBottom: 6 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>You</span>
-              <span style={{ fontSize: 11, color: '#22c55e', fontWeight: 600 }}>{erNum.toFixed(1)}%</span>
-            </div>
-            <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
-              <div style={{
-                height: '100%',
-                width: `${Math.min((erNum / 15) * 100, 100)}%`,
-                background: 'linear-gradient(90deg, #22c55e, #4ade80)',
-                borderRadius: 3,
-                transition: 'width 1.5s cubic-bezier(0.4,0,0.2,1)',
-              }} />
-            </div>
-          </div>
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Industry avg</span>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>2–4%</span>
-            </div>
-            <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: '20%', background: 'rgba(255,255,255,0.15)', borderRadius: 3 }} />
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+            {[
+              { label: 'You',          val: erNum.toFixed(1)+'%', pct: Math.min((erNum/15)*100,100), grad: 'linear-gradient(90deg, #16a34a, #22C55E, #4ade80)', textCol: '#4ade80' },
+              { label: 'Industry avg', val: '2–4%',               pct: 22,                           grad: 'rgba(255,255,255,0.12)',                               textCol: 'rgba(255,255,255,0.18)' },
+            ].map(b => (
+              <div key={b.label}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 11, fontWeight: 500 }}>
+                  <span style={{ color: 'var(--m2)' }}>{b.label}</span>
+                  <span style={{ color: b.textCol, fontWeight: 700 }}>{b.val}</span>
+                </div>
+                <div style={{ height: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ width: `${b.pct}%`, height: '100%', background: b.grad, borderRadius: 3, transition: 'width 1.6s cubic-bezier(0.4,0,0.2,1)' }} />
+                </div>
+              </div>
+            ))}
           </div>
 
-          <div style={{
-            marginTop: 14,
-            fontSize: 12, fontWeight: 600,
-            color: erNum >= 3 ? '#22c55e' : '#eab308',
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}>
-            {erNum >= 3
-              ? '✓ Top tier — brands pay premium for this'
-              : '↗ Below average — fixable this week'}
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 -28px 18px' }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#4ade80' }}>✓ Brands pay premium for this</span>
+            <span style={{ fontSize: 10, fontWeight: 800, color: '#4ade80', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.22)', borderRadius: 100, padding: '3px 10px' }}>Top tier</span>
           </div>
         </div>
 
-        {/* CARD 2 — BEST FORMAT */}
+        {/* — BEST FORMAT — */}
         <div
-          className="stagger-2"
-          style={{
-            background: 'rgba(255,255,255,0.025)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 20,
-            padding: '24px',
-            transition: 'border-color 0.2s, transform 0.2s, box-shadow 0.2s',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-          onMouseOver={e => {
-            e.currentTarget.style.borderColor = 'rgba(139,92,246,0.3)'
-            e.currentTarget.style.transform = 'translateY(-3px)'
-            e.currentTarget.style.boxShadow = '0 12px 32px rgba(139,92,246,0.08)'
-          }}
-          onMouseOut={e => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
-            e.currentTarget.style.transform = 'translateY(0)'
-            e.currentTarget.style.boxShadow = 'none'
-          }}
-        >
-          <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0,
-            height: 2,
-            background: 'linear-gradient(90deg, #8B5CF6, rgba(139,92,246,0))',
-            borderRadius: '20px 20px 0 0',
-          }} />
+          style={{ background: 'linear-gradient(150deg, rgba(139,92,246,0.06) 0%, rgba(13,12,30,0.98) 55%)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 24, padding: '26px 28px', position: 'relative', overflow: 'hidden', boxShadow: '0 4px 28px rgba(0,0,0,0.45)', transition: 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease', cursor: 'default' }}
+          onMouseOver={e => { const el = e.currentTarget as HTMLElement; el.style.transform='translateY(-5px)'; el.style.boxShadow='0 20px 48px rgba(139,92,246,0.1), 0 4px 28px rgba(0,0,0,0.45)'; el.style.borderColor='rgba(139,92,246,0.35)'; }}
+          onMouseOut={e  => { const el = e.currentTarget as HTMLElement; el.style.transform='translateY(0)';   el.style.boxShadow='0 4px 28px rgba(0,0,0,0.45)';                                                   el.style.borderColor='rgba(139,92,246,0.15)'; }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #8B5CF6, rgba(139,92,246,0.15))', borderRadius: '24px 24px 0 0' }} />
+          <div style={{ position: 'absolute', top: -40, right: -40, width: 140, height: 140, background: 'radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-          <div style={{
-            fontSize: 10, fontWeight: 700,
-            color: 'rgba(255,255,255,0.3)',
-            textTransform: 'uppercase', letterSpacing: '0.1em',
-            marginBottom: 16,
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6' }} />
-            Your Best Format
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10, fontWeight: 700, color: 'rgba(139,92,246,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: 18 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6', display: 'inline-block', boxShadow: '0 0 7px #8B5CF6' }} />
+            Best Format
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <div style={{
-              width: 52, height: 52,
-              borderRadius: 14,
-              background: 'rgba(139,92,246,0.15)',
-              border: '1px solid rgba(139,92,246,0.2)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 26,
-            }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: 'linear-gradient(135deg, rgba(139,92,246,0.18), rgba(139,92,246,0.07))', border: '1px solid rgba(139,92,246,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0, boxShadow: '0 4px 20px rgba(139,92,246,0.18)' }}>
               {formatEmoji}
             </div>
-            <span className="metric-number" style={{ fontSize: 38, color: 'white' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 38, fontWeight: 800, color: '#fff', letterSpacing: '-1.5px', lineHeight: 1 }}>
               {formatName}
-            </span>
+            </div>
           </div>
 
-          <div style={{
-            background: 'rgba(139,92,246,0.08)',
-            border: '1px solid rgba(139,92,246,0.15)',
-            borderRadius: 10,
-            padding: '10px 14px',
-            fontSize: 13,
-            color: 'rgba(255,255,255,0.55)',
-            lineHeight: 1.55,
-            marginBottom: 14,
-          }}>
-            {parseFloat(formatAvgEr) > 0
-              ? `${formatAvgEr}% avg ER — your strongest content type`
-              : 'Gets the most engagement from your audience'}
+          <div style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.12)', borderRadius: 14, padding: '14px 16px', fontSize: 13, color: 'var(--m2)', lineHeight: 1.65, marginBottom: 18 }}>
+            {formatAvgEr !== '0.0'
+              ? `${formatAvgEr}% avg ER — your strongest content type for reach`
+              : 'Gets the most engagement from your audience consistently'}
           </div>
 
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#8B5CF6', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(139,92,246,0.09)', border: '1px solid rgba(139,92,246,0.18)', borderRadius: 100, padding: '6px 16px', fontSize: 12, fontWeight: 600, color: '#a78bfa' }}>
             → Double down on {formatName}
           </div>
         </div>
 
-        {/* CARD 3 — HOOK STRENGTH */}
+        {/* — HOOK STRENGTH — */}
         <div
-          className="stagger-3"
-          style={{
-            background: 'rgba(255,255,255,0.025)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 20,
-            padding: '24px',
-            transition: 'border-color 0.2s, transform 0.2s, box-shadow 0.2s',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-          onMouseOver={e => {
-            e.currentTarget.style.borderColor = 'rgba(236,72,153,0.3)'
-            e.currentTarget.style.transform = 'translateY(-3px)'
-            e.currentTarget.style.boxShadow = '0 12px 32px rgba(236,72,153,0.08)'
-          }}
-          onMouseOut={e => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
-            e.currentTarget.style.transform = 'translateY(0)'
-            e.currentTarget.style.boxShadow = 'none'
-          }}
-        >
-          <div style={{
-            position: 'absolute', top: 0, left: 0, right: 0,
-            height: 2,
-            background: 'linear-gradient(90deg, #EC4899, rgba(236,72,153,0))',
-            borderRadius: '20px 20px 0 0',
-          }} />
+          style={{ background: 'linear-gradient(150deg, rgba(236,72,153,0.06) 0%, rgba(13,12,30,0.98) 55%)', border: '1px solid rgba(236,72,153,0.13)', borderRadius: 24, padding: '26px 28px', position: 'relative', overflow: 'hidden', boxShadow: '0 4px 28px rgba(0,0,0,0.45)', transition: 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease', cursor: 'default' }}
+          onMouseOver={e => { const el = e.currentTarget as HTMLElement; el.style.transform='translateY(-5px)'; el.style.boxShadow='0 20px 48px rgba(236,72,153,0.09), 0 4px 28px rgba(0,0,0,0.45)'; el.style.borderColor='rgba(236,72,153,0.30)'; }}
+          onMouseOut={e  => { const el = e.currentTarget as HTMLElement; el.style.transform='translateY(0)';   el.style.boxShadow='0 4px 28px rgba(0,0,0,0.45)';                                                    el.style.borderColor='rgba(236,72,153,0.13)'; }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #EC4899, rgba(236,72,153,0.15))', borderRadius: '24px 24px 0 0' }} />
+          <div style={{ position: 'absolute', top: -40, right: -40, width: 140, height: 140, background: 'radial-gradient(circle, rgba(236,72,153,0.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-          <div style={{
-            fontSize: 10, fontWeight: 700,
-            color: 'rgba(255,255,255,0.3)',
-            textTransform: 'uppercase', letterSpacing: '0.1em',
-            marginBottom: 16,
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#EC4899' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10, fontWeight: 700, color: 'rgba(236,72,153,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: 18 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#EC4899', display: 'inline-block', boxShadow: '0 0 7px #EC4899' }} />
             Hook Strength
           </div>
 
-          <div style={{ marginBottom: 16 }}>
-            <span className="metric-number" style={{ fontSize: 52, color: 'white' }}>
-              {hookNum.toFixed(1)}
-            </span>
-            <span style={{
-              fontSize: 20, color: 'rgba(255,255,255,0.3)',
-              fontFamily: 'var(--font-display)', fontWeight: 800,
-            }}>/10</span>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 58, fontWeight: 800, color: '#fff', letterSpacing: '-3px', lineHeight: 1, marginBottom: 20, display: 'flex', alignItems: 'flex-end', gap: 4 }}>
+            {animatedHook.toFixed(1)}
+            <span style={{ fontSize: 22, color: 'rgba(255,255,255,0.3)', letterSpacing: 0, fontFamily: 'var(--font-body)', marginBottom: 10, fontWeight: 400 }}>/10</span>
           </div>
 
-          {/* Segmented bar */}
-          <div style={{ display: 'flex', gap: 4, marginBottom: 14 }}>
-            {Array.from({ length: 10 }).map((_, i) => (
+          {/* Segment bar */}
+          <div style={{ display: 'flex', gap: 4, marginBottom: 18 }}>
+            {hookSegs.map((state, i) => (
               <div key={i} style={{
-                flex: 1, height: 6,
-                borderRadius: 3,
-                background: i < Math.round(hookNum)
-                  ? i < 4 ? '#ef4444'
-                  : i < 7 ? '#eab308'
-                  : '#EC4899'
-                  : 'rgba(255,255,255,0.08)',
-                transition: `background 0.05s ${i * 0.04}s`,
+                flex: 1, height: 7, borderRadius: 4,
+                background: state === 'red'   ? 'linear-gradient(90deg, #dc2626, #EF4444)' :
+                             state === 'amber' ? 'linear-gradient(90deg, #d97706, #F59E0B)' :
+                             state === 'pink'  ? 'linear-gradient(90deg, #db2777, #EC4899)' :
+                                                 'rgba(255,255,255,0.07)',
+                boxShadow: state === 'red'   ? '0 0 8px rgba(239,68,68,0.35)'   :
+                            state === 'amber' ? '0 0 8px rgba(245,158,11,0.35)' :
+                            state === 'pink'  ? '0 0 8px rgba(236,72,153,0.35)' : 'none',
+                transition: `background 0.05s ${i * 0.04}s, box-shadow 0.05s ${i * 0.04}s`,
               }} />
             ))}
           </div>
 
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.55, marginBottom: 10 }}>
-            {hookNum >= 8
-              ? 'Excellent — hooks keeping viewers in'
-              : hookNum >= 6
-              ? 'Good — some hooks losing viewers early'
-              : 'Needs work — losing most viewers in 3s'}
+          <div style={{ fontSize: 13, color: 'var(--m2)', lineHeight: 1.65, marginBottom: 18, fontWeight: 500 }}>
+            {hookNum >= 8 ? 'Excellent — hooks retaining viewers effectively' :
+             hookNum >= 6 ? 'Good — some hooks losing viewers early' :
+             'Needs work — losing viewers in the first 3 seconds'}
           </div>
 
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#EC4899', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 -28px 18px' }} />
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#f472b6', display: 'flex', alignItems: 'center', gap: 7 }}>
             🔒 AI rewrites available in full report
           </div>
         </div>
       </div>
 
-      {/* ══ UPGRADE SECTION ══ */}
-      <div style={{
-        background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(236,72,153,0.04))',
-        border: '1px solid rgba(139,92,246,0.18)',
-        borderRadius: 24,
-        overflow: 'hidden',
-        animation: 'fade-up 0.5s ease 0.3s both',
-      }}>
+      {/* ══════════════════════════════════════════
+          SECTION 3 — INSIGHTS PANEL + PRICING
+          2/3 insights list · 1/3 upgrade cards
+      ══════════════════════════════════════════ */}
+      <div className="ov-fadein-2" style={{ display: 'grid', gridTemplateColumns: '1fr 296px', gap: 16 }}>
 
-        {/* Top bar */}
-        <div style={{
-          padding: '16px 28px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12,
-          background: 'rgba(139,92,246,0.06)',
-        }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            🔒 19 insights locked
-          </span>
-          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
-            Unlock all 22 metrics + your action plan
-          </span>
-        </div>
+        {/* ── INSIGHTS PANEL ── */}
+        <div style={{ background: 'linear-gradient(150deg, rgba(13,12,30,0.98), rgba(10,9,25,0.99))', border: '1px solid rgba(255,255,255,0.065)', borderRadius: 24, overflow: 'hidden', boxShadow: '0 4px 28px rgba(0,0,0,0.45)' }}>
 
-        <div className="upgrade-section-inner" style={{ display: 'flex', gap: 0, flexWrap: 'wrap' }}>
-
-          {/* LEFT: headline + locked items */}
-          <div className="upgrade-right-panel" style={{
-            flex: 1, minWidth: 300,
-            padding: '28px 28px',
-            borderRight: '1px solid rgba(255,255,255,0.06)',
-          }}>
-            <h3 className="dashboard-headline" style={{
-              fontSize: 'clamp(18px, 2.5vw, 22px)',
-              color: 'white',
-              marginBottom: 6,
-            }}>
-              Your audience peaks at a specific time
-            </h3>
-            <p style={{
-              fontSize: 14,
-              color: 'rgba(255,255,255,0.4)',
-              marginBottom: 24,
-              lineHeight: 1.6,
-            }}>
-              You&apos;re probably posting at the wrong one — and losing 40% of potential reach every day
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[
-                { icon: '🕐', color: '#8B5CF6', text: 'Your exact golden posting window', sub: "Not generic advice — YOUR audience's peak hours" },
-                { icon: '🎯', color: '#EC4899', text: 'The hook losing 60% of your viewers', sub: '+ the AI rewrite to fix it immediately' },
-                { icon: '#️⃣', color: '#eab308', text: '22 rankable hashtags in your niche', sub: 'Specific to your content, not #fitness with 500M posts' },
-                { icon: '💰', color: '#22c55e', text: 'Your brand rate card in ₹', sub: 'Story · Reel · Carousel — stop undercharging' },
-                { icon: '✏️', color: '#a78bfa', text: 'Your bio rewritten by AI', sub: 'Convert profile visitors into followers' },
-                { icon: '📈', color: '#38bdf8', text: '3 things to fix this week', sub: 'Ranked by impact on your reach and growth' },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '12px 14px',
-                    background: 'rgba(255,255,255,0.02)',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                    borderRadius: 12,
-                    transition: 'border-color 0.15s, background 0.15s',
-                    animation: `fade-up 0.4s ease ${0.05 * i + 0.3}s both`,
-                  }}
-                  onMouseOver={e => {
-                    e.currentTarget.style.borderColor = `${item.color}33`
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.035)'
-                  }}
-                  onMouseOut={e => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.02)'
-                  }}
-                >
-                  <div style={{
-                    width: 36, height: 36,
-                    borderRadius: 10,
-                    background: `${item.color}15`,
-                    border: `1px solid ${item.color}25`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 16, flexShrink: 0,
-                  }}>
-                    {item.icon}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: 2 }}>
-                      {item.text}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
-                      {item.sub}
-                    </div>
-                  </div>
-                  <div style={{
-                    width: 28, height: 28,
-                    borderRadius: 8,
-                    background: 'rgba(255,255,255,0.05)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 13, flexShrink: 0,
-                  }}>
-                    🔒
-                  </div>
-                </div>
-              ))}
+          {/* Panel header */}
+          <div style={{ padding: '22px 28px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'linear-gradient(90deg, rgba(139,92,246,0.055), rgba(236,72,153,0.025), transparent)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.18)', borderRadius: 100, padding: '4px 12px', fontSize: 10, fontWeight: 700, color: '#fcd34d', letterSpacing: '0.06em', textTransform: 'uppercase' as const, marginBottom: 11 }}>
+                🔒 19 insights locked
+              </div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', lineHeight: 1.3, marginBottom: 7 }}>
+                Your audience peaks at a specific time
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--m1)', lineHeight: 1.6, fontWeight: 500 }}>
+                {"You're probably posting at the wrong one — costing you 40% of reach daily"}
+              </div>
             </div>
+            <span
+              style={{ fontSize: 12, fontWeight: 700, color: '#a78bfa', whiteSpace: 'nowrap', cursor: 'pointer', marginTop: 2, flexShrink: 0, letterSpacing: '-0.1px', transition: 'color 0.15s' }}
+              onMouseOver={e => { (e.currentTarget as HTMLElement).style.color = '#c4b5fd'; }}
+              onMouseOut={e  => { (e.currentTarget as HTMLElement).style.color = '#a78bfa'; }}>
+              Unlock all 22 →
+            </span>
           </div>
 
-          {/* RIGHT: pricing options */}
-          <div style={{
-            width: 260,
-            padding: '28px 24px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 14,
-            flexShrink: 0,
-          }}>
-
-            {/* One-time */}
-            <div style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 16,
-              padding: '20px',
-            }}>
-              <div style={{
-                fontSize: 10, fontWeight: 700,
-                color: 'rgba(255,255,255,0.3)',
-                textTransform: 'uppercase', letterSpacing: '0.1em',
-                marginBottom: 10,
-              }}>One-time</div>
-
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-                <span style={{
-                  fontSize: 13, color: 'rgba(255,255,255,0.2)',
-                  textDecoration: 'line-through',
-                  fontFamily: 'var(--font-display)',
-                }}>₹299</span>
-                <span className="metric-number" style={{ fontSize: 40, color: 'white' }}>₹99</span>
+          {/* Insight list */}
+          <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {[
+              { icon: '⏰', color: '#8B5CF6', bg: 'rgba(139,92,246,0.09)', border: 'rgba(139,92,246,0.18)', name: 'Your exact golden posting window',   sub: "Not generic advice — YOUR audience's actual peak hours" },
+              { icon: '🎯', color: '#EC4899', bg: 'rgba(236,72,153,0.09)', border: 'rgba(236,72,153,0.18)', name: 'The hook losing 60% of your viewers', sub: '+ the AI rewrite to fix it immediately' },
+              { icon: '#️⃣', color: '#F59E0B', bg: 'rgba(245,158,11,0.09)', border: 'rgba(245,158,11,0.18)', name: '22 rankable hashtags in your niche',  sub: 'Specific to your content — not #fitness with 500M posts' },
+              { icon: '💰', color: '#22C55E', bg: 'rgba(34,197,94,0.09)',   border: 'rgba(34,197,94,0.18)',  name: 'Your brand rate card in ₹',           sub: 'Story · Reel · Carousel — stop undercharging for your reach' },
+              { icon: '✏️', color: '#38bdf8', bg: 'rgba(56,189,248,0.09)', border: 'rgba(56,189,248,0.18)',  name: 'Your bio rewritten by AI',            sub: 'Convert profile visitors into followers instantly' },
+              { icon: '📈', color: '#a78bfa', bg: 'rgba(167,139,250,0.09)', border: 'rgba(167,139,250,0.18)', name: '3 things to fix this week',          sub: 'Ranked by impact on your reach and growth' },
+            ].map((item, i) => (
+              <div key={i}
+                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 14, border: '1px solid transparent', transition: 'all 0.15s ease', cursor: 'pointer' }}
+                onMouseOver={e => { const el = e.currentTarget as HTMLElement; el.style.background='rgba(255,255,255,0.025)'; el.style.borderColor=`${item.color}18`; }}
+                onMouseOut={e  => { const el = e.currentTarget as HTMLElement; el.style.background='transparent'; el.style.borderColor='transparent'; }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: item.bg, border: `1px solid ${item.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, boxShadow: `0 4px 14px ${item.color}12` }}>
+                  {item.icon}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.62)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--m1)', marginTop: 3, fontWeight: 500 }}>{item.sub}</div>
+                </div>
+                <div style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.055)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12 }}>🔒</div>
               </div>
+            ))}
+          </div>
+        </div>
 
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginBottom: 10 }}>
-                Full audit · yours forever
-              </div>
+        {/* ── UPGRADE CARDS ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-              <div style={{
-                fontSize: 11, fontWeight: 600,
-                color: '#22c55e',
-                background: 'rgba(34,197,94,0.08)',
-                border: '1px solid rgba(34,197,94,0.15)',
-                borderRadius: 6, padding: '4px 10px',
-                marginBottom: 16,
-                display: 'inline-block',
-              }}>
-                Code LAUNCH — save ₹200
-              </div>
-
-              <a href="/dashboard/audit" style={{
-                display: 'block',
-                padding: '11px 0',
-                background: 'rgba(255,255,255,0.07)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 10,
-                textAlign: 'center',
-                fontSize: 14, fontWeight: 700,
-                color: 'rgba(255,255,255,0.8)',
-                textDecoration: 'none',
-                transition: 'all 0.2s',
-              }}
-                onMouseOver={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.11)'; e.currentTarget.style.color = 'white' }}
-                onMouseOut={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)' }}
-              >
-                Get full audit →
-              </a>
+          {/* One-time audit */}
+          <div style={{ background: 'linear-gradient(150deg, rgba(13,12,30,0.98), rgba(10,9,25,0.99))', border: '1px solid rgba(255,255,255,0.065)', borderRadius: 24, padding: '24px 22px', boxShadow: '0 4px 28px rgba(0,0,0,0.45)' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--m1)', textTransform: 'uppercase' as const, letterSpacing: '0.11em', marginBottom: 12 }}>One-time Report</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 5 }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, color: 'rgba(255,255,255,0.18)', textDecoration: 'line-through' }}>₹299</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 44, fontWeight: 800, color: '#fff', letterSpacing: '-2.5px', lineHeight: 1 }}>₹99</span>
             </div>
-
-            {/* Creator Plan */}
-            <div style={{
-              background: 'linear-gradient(135deg, rgba(139,92,246,0.18), rgba(236,72,153,0.12))',
-              border: '1.5px solid rgba(139,92,246,0.4)',
-              borderRadius: 16,
-              padding: '20px',
-              position: 'relative',
-              boxShadow: '0 8px 32px rgba(139,92,246,0.15)',
-            }}>
-              <div style={{
-                position: 'absolute', top: -11, left: '50%',
-                transform: 'translateX(-50%)',
-                background: GRADIENT,
-                borderRadius: 100,
-                padding: '4px 14px',
-                fontSize: 10, fontWeight: 700,
-                color: 'white', whiteSpace: 'nowrap',
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-                boxShadow: '0 4px 12px rgba(139,92,246,0.4)',
-              }}>
-                Best value
-              </div>
-
-              <div style={{
-                fontSize: 10, fontWeight: 700,
-                color: 'rgba(255,255,255,0.4)',
-                textTransform: 'uppercase', letterSpacing: '0.1em',
-                marginBottom: 10, marginTop: 6,
-              }}>Per month</div>
-
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-                <span style={{
-                  fontSize: 13, color: 'rgba(255,255,255,0.2)',
-                  textDecoration: 'line-through',
-                  fontFamily: 'var(--font-display)',
-                }}>₹1999</span>
-                <span className="metric-number" style={{ fontSize: 40, color: 'white' }}>₹799</span>
-              </div>
-
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 16 }}>
-                Everything · unlimited · 24/7
-              </div>
-
-              {[
-                'All 22 metrics unlocked',
-                'Unlimited DM automations',
-                'Smart Reply AI inbox',
-                'Monthly re-audit',
-              ].map((f, i) => (
-                <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 7, alignItems: 'center' }}>
-                  <span style={{ color: '#22c55e', fontSize: 12 }}>✓</span>
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>{f}</span>
+            <div style={{ fontSize: 12, color: 'var(--m1)', marginBottom: 12, fontWeight: 500 }}>Full audit · yours forever</div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg, rgba(245,158,11,0.12), rgba(251,146,60,0.08))', border: '1px solid rgba(245,158,11,0.28)', borderRadius: 9, padding: '5px 11px', fontSize: 11, fontWeight: 700, color: '#fcd34d', marginBottom: 16, boxShadow: '0 0 12px rgba(245,158,11,0.12)', letterSpacing: '0.01em' }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#F59E0B', display: 'inline-block', boxShadow: '0 0 6px #F59E0B', flexShrink: 0, animation: 'pulseGreen 2s infinite' }} />
+              🕐 Limited Period Offer
+            </div>
+            <div style={{ marginBottom: 18 }}>
+              {['All 22 metrics unlocked', 'AI hook rewrites', 'Brand rate card in ₹'].map(f => (
+                <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 12, color: 'var(--m2)', fontWeight: 500 }}>
+                  <span style={{ color: '#22C55E', fontWeight: 800, fontSize: 13 }}>✓</span>{f}
                 </div>
               ))}
+            </div>
+            <a
+              href="/dashboard/audit"
+              style={{ display: 'block', padding: '12px 0', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 14, textAlign: 'center' as const, fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.78)', textDecoration: 'none', fontFamily: 'var(--font-display)', transition: 'all 0.2s ease' }}
+              onMouseOver={e => { const el = e.currentTarget as HTMLElement; el.style.background='rgba(255,255,255,0.09)'; el.style.color='#fff'; el.style.borderColor='rgba(255,255,255,0.14)'; }}
+              onMouseOut={e  => { const el = e.currentTarget as HTMLElement; el.style.background='rgba(255,255,255,0.055)'; el.style.color='rgba(255,255,255,0.78)'; el.style.borderColor='rgba(255,255,255,0.09)'; }}>
+              Get full audit →
+            </a>
+          </div>
 
-              <a href="/dashboard/audit" style={{
-                display: 'block',
-                padding: '12px 0',
-                background: GRADIENT,
-                borderRadius: 10,
-                textAlign: 'center',
-                fontSize: 14, fontWeight: 700,
-                color: 'white',
-                textDecoration: 'none',
-                marginTop: 16,
-                boxShadow: '0 4px 16px rgba(139,92,246,0.3)',
-                transition: 'all 0.2s',
-              }}
-                onMouseOver={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'scale(1.01)' }}
-                onMouseOut={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1)' }}
-              >
+          {/* Creator Plan */}
+          <div style={{ background: 'linear-gradient(155deg, rgba(139,92,246,0.17) 0%, rgba(236,72,153,0.09) 55%, rgba(13,12,30,0.98) 100%)', border: '1.5px solid rgba(139,92,246,0.30)', borderRadius: 24, padding: '24px 22px', position: 'relative', overflow: 'hidden', boxShadow: '0 8px 48px rgba(139,92,246,0.16), 0 4px 28px rgba(0,0,0,0.45)' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, rgba(139,92,246,0.85), rgba(236,72,153,0.85), transparent)' }} />
+            <div style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(135deg, #8B5CF6, #EC4899)', borderRadius: '0 0 12px 12px', padding: '5px 20px', fontSize: 10, fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', letterSpacing: '0.09em', textTransform: 'uppercase' as const, boxShadow: '0 6px 24px rgba(139,92,246,0.48)' }}>
+              ★ Best Value
+            </div>
+            <div style={{ marginTop: 18 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(139,92,246,0.65)', textTransform: 'uppercase' as const, letterSpacing: '0.11em', marginBottom: 12 }}>Creator Plan</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 5 }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, color: 'rgba(255,255,255,0.18)', textDecoration: 'line-through' }}>₹1,999</span>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 44, fontWeight: 800, color: '#fff', letterSpacing: '-2.5px', lineHeight: 1 }}>₹799</span>
+                <span style={{ fontSize: 13, color: 'var(--m1)', fontWeight: 500 }}>/mo</span>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--m2)', marginBottom: 16, fontWeight: 500 }}>Everything, unlimited. No DM caps ever.</div>
+              <div style={{ marginBottom: 20 }}>
+                {['All 22 metrics + monthly re-audit', 'Unlimited DM automations', 'Smart Reply AI inbox', 'Priority support'].map(f => (
+                  <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 12, color: 'var(--m2)', fontWeight: 500 }}>
+                    <span style={{ color: '#22C55E', fontWeight: 800, fontSize: 13 }}>✓</span>{f}
+                  </div>
+                ))}
+              </div>
+              <a
+                href="/dashboard/upgrade"
+                style={{ display: 'block', padding: '14px 0', background: 'linear-gradient(135deg, #8B5CF6, #A855F7, #EC4899)', borderRadius: 14, textAlign: 'center' as const, fontSize: 13, fontWeight: 800, color: '#fff', textDecoration: 'none', fontFamily: 'var(--font-display)', boxShadow: '0 6px 28px rgba(139,92,246,0.42)', letterSpacing: '-0.1px', transition: 'all 0.2s ease' }}
+                onMouseOver={e => { const el = e.currentTarget as HTMLElement; el.style.opacity='0.90'; el.style.transform='scale(1.015)'; el.style.boxShadow='0 10px 36px rgba(139,92,246,0.55)'; }}
+                onMouseOut={e  => { const el = e.currentTarget as HTMLElement; el.style.opacity='1';    el.style.transform='scale(1)';     el.style.boxShadow='0 6px 28px rgba(139,92,246,0.42)'; }}>
                 Start Creator Plan →
               </a>
-              <p style={{
-                fontSize: 10, color: 'rgba(255,255,255,0.2)',
-                textAlign: 'center', margin: '8px 0 0',
-              }}>
-                Cancel anytime · No contracts
-              </p>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.16)', textAlign: 'center' as const, marginTop: 10, fontWeight: 500 }}>Cancel anytime · No contracts · Instant access</div>
             </div>
           </div>
         </div>
+
       </div>
     </div>
-  )
+  </div>
+)
 }

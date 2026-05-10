@@ -222,18 +222,196 @@ export default function DashboardShell({
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-base)' }}>
       {/* ── Desktop Sidebar ── */}
-      <div className="db-sidebar" style={{
-        width: 240, flexShrink: 0, position: 'fixed', top: 0, left: 0, bottom: 0,
-        background: 'linear-gradient(180deg, rgba(139,92,246,0.04) 0%, transparent 40%), var(--bg-surface)',
-        borderRight: '1px solid rgba(255,255,255,0.06)',
-        display: 'flex', flexDirection: 'column', zIndex: 30,
+      <aside className="db-sidebar" style={{
+        width: 232, flexShrink: 0,
+        position: 'fixed', top: 0, left: 0, bottom: 0,
+        background: 'var(--s1)',
+        borderRight: '1px solid var(--b1)',
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden', height: '100vh', zIndex: 30,
       }}>
-        {/* Logo */}
-        <div style={{ height: 60, display: 'flex', alignItems: 'center', padding: '0 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
-          {logoMark}
+        {/* Brand + profile */}
+        <div style={{ padding: '22px 18px 18px', borderBottom: '1px solid var(--b1)' }}>
+          {/* Brand */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 9,
+              background: 'linear-gradient(135deg, #8B5CF6, #EC4899)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 800, color: '#fff',
+              flexShrink: 0,
+            }}>E</div>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 800, letterSpacing: '-0.3px', color: '#fff' }}>
+              Eyebird
+            </span>
+          </div>
+
+          {/* Profile */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #8B5CF6, #EC4899)',
+                padding: 2,
+              }}>
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={avatarUrl}
+                    alt={displayName}
+                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block', background: '#1a1535' }}
+                  />
+                ) : (
+                  <div style={{
+                    width: '100%', height: '100%', borderRadius: '50%',
+                    background: '#1a1535',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 800, color: '#c4b5fd',
+                  }}>
+                    {(igUsername?.[0] || displayName?.[0] || 'U').toUpperCase()}
+                  </div>
+                )}
+              </div>
+              {igUsername && (
+                <div style={{
+                  position: 'absolute', bottom: 1, right: 1,
+                  width: 10, height: 10, borderRadius: '50%',
+                  background: '#22C55E', border: '2px solid var(--s1)',
+                  animation: 'livepulse 2s infinite',
+                }} />
+              )}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', letterSpacing: '-0.2px' }}>
+                {igUsername ? `@${igUsername}` : displayName}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--m1)', marginTop: 1 }}>
+                {igFollowers ? `${formatFollowers(igFollowers)} followers` : 'No Instagram connected'}
+              </div>
+            </div>
+          </div>
+
+          {/* Plan badge */}
+          <div style={{
+            marginTop: 10,
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)',
+            borderRadius: 100, padding: '3px 10px',
+            fontSize: 10, fontWeight: 700, color: '#a78bfa',
+            letterSpacing: '0.04em', textTransform: 'uppercase' as const,
+          }}>
+            ⚡ {plan === 'creator' ? 'Creator Plan' : plan === 'audit' ? 'Full Audit' : 'Free Plan'}
+          </div>
         </div>
-        {sidebarInner()}
-      </div>
+
+        {/* Nav */}
+        <nav style={{ flex: 1, padding: '14px 10px', overflowY: 'auto' as const }}>
+          {[
+            { label: 'Analytics', items: [
+              { href: '/dashboard',      icon: 'grid',     name: 'Overview',      locked: false },
+              { href: '/dashboard/audit', icon: 'activity', name: 'Audit History', locked: false },
+            ]},
+            { label: 'Growth', items: [
+              { href: '/dashboard/automations',  icon: 'zap',     name: 'Automations', locked: plan !== 'creator' },
+              { href: '/dashboard/smart-reply',  icon: 'message', name: 'Smart Reply', locked: plan !== 'creator' },
+              { href: '/dashboard/contacts',     icon: 'users',   name: 'Contacts',    locked: plan !== 'creator' },
+            ]},
+            { label: 'Account', items: [
+              { href: '/dashboard/settings', icon: 'settings', name: 'Settings', locked: false },
+            ]},
+          ].map(section => (
+            <div key={section.label}>
+              <div style={{
+                fontSize: 10, fontWeight: 700, color: 'var(--m1)',
+                letterSpacing: '0.1em', textTransform: 'uppercase' as const,
+                padding: '0 8px', margin: '10px 0 4px',
+              }}>{section.label}</div>
+              {section.items.map(item => {
+                const active = item.href === '/dashboard' ? pathname === '/dashboard' : pathname?.startsWith(item.href)
+                return (
+                  <div
+                    key={item.href}
+                    onClick={() => !item.locked && router.push(item.href)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 9,
+                      padding: '8px 10px', borderRadius: 9,
+                      fontSize: 13, fontWeight: active ? 600 : 500,
+                      color: active ? '#c4b5fd' : item.locked ? 'rgba(255,255,255,0.25)' : 'var(--m2)',
+                      background: active ? 'rgba(139,92,246,0.1)' : 'transparent',
+                      cursor: item.locked ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.15s',
+                      position: 'relative',
+                      marginBottom: 1,
+                    }}
+                  >
+                    {active && (
+                      <div style={{
+                        position: 'absolute', left: 0, top: '20%', bottom: '20%',
+                        width: 2, background: '#8B5CF6', borderRadius: '0 2px 2px 0',
+                      }} />
+                    )}
+                    <span style={{ fontSize: 14, opacity: active ? 1 : 0.7 }}>
+                      {item.icon === 'grid' ? '◈' : item.icon === 'activity' ? '▤' : item.icon === 'zap' ? '⚡' : item.icon === 'message' ? '💬' : item.icon === 'users' ? '👥' : '⚙'}
+                    </span>
+                    {item.name}
+                    {item.locked && (
+                      <span style={{ marginLeft: 'auto', fontSize: 11, opacity: 0.35 }}>🔒</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </nav>
+
+        {/* Upgrade CTA */}
+        {plan === 'free' && (
+          <div style={{
+            margin: '12px 12px 16px',
+            background: 'linear-gradient(135deg, rgba(139,92,246,0.13), rgba(236,72,153,0.08))',
+            border: '1px solid rgba(139,92,246,0.22)',
+            borderRadius: 12, padding: 14,
+          }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: '#c4b5fd', marginBottom: 3 }}>
+              Unlock Creator Plan
+            </div>
+            <div style={{ fontSize: 10.5, color: 'var(--m1)', lineHeight: 1.45, marginBottom: 10 }}>
+              22 insights + unlimited DM automations + monthly re-audit
+            </div>
+            <button
+              onClick={() => router.push('/dashboard/upgrade')}
+              style={{
+                width: '100%', padding: 8,
+                background: 'linear-gradient(135deg, #8B5CF6, #EC4899)',
+                border: 'none', borderRadius: 8,
+                fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 700,
+                color: '#fff', cursor: 'pointer',
+              }}
+            >
+              Upgrade — ₹799/mo →
+            </button>
+          </div>
+        )}
+
+        {/* Sign out */}
+        <button
+          onClick={handleSignOut}
+          disabled={signingOut}
+          style={{
+            margin: '0 12px 16px',
+            padding: '8px 10px',
+            background: 'transparent',
+            border: '1px solid var(--b1)',
+            borderRadius: 9, width: 'calc(100% - 24px)',
+            fontSize: 12, color: 'var(--m1)',
+            cursor: signingOut ? 'not-allowed' : 'pointer',
+            fontFamily: 'var(--font-body)',
+            textAlign: 'left' as const,
+          }}
+        >
+          {signingOut ? 'Signing out…' : 'Sign out'}
+        </button>
+      </aside>
 
       {/* ── Mobile Top Bar ── */}
       <div className="db-topbar" style={{
