@@ -32,20 +32,23 @@ export async function POST(req: NextRequest) {
       .eq('ig_user_id', ig_user_id)
       .maybeSingle();
 
-    // Strategy 2: if not found, fetch all accounts and log IDs for debugging
+    // Strategy 2: if not found, fetch all accounts for debugging
+    let allAccounts: { ig_user_id: string; username: string; id: string }[] = [];
     if (!igAccount) {
-      const { data: allAccounts } = await supabaseAdmin
+      const { data: rows } = await supabaseAdmin
         .from('instagram_accounts')
-        .select('*');
+        .select('id, ig_user_id, username');
 
-      console.log('All stored ig_user_ids:', allAccounts?.map(a => ({
-        id: a.ig_user_id,
-        username: a.username,
-      })));
+      allAccounts = rows || [];
 
-      if (allAccounts && allAccounts.length === 1) {
-        igAccount = allAccounts[0];
-        console.log('Using single account fallback:', igAccount.username);
+      if (allAccounts.length === 1) {
+        const { data: full } = await supabaseAdmin
+          .from('instagram_accounts')
+          .select('*')
+          .eq('id', allAccounts[0].id)
+          .single();
+        igAccount = full;
+        console.log('Using single account fallback:', igAccount?.username);
       }
     }
 
@@ -53,6 +56,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         error: 'No matching Instagram account found',
         ig_user_id_searched: ig_user_id,
+        all_stored_accounts: allAccounts.map(a => ({ ig_user_id: a.ig_user_id, username: a.username })),
+        total_accounts: allAccounts.length,
       }, { status: 404 });
     }
 
