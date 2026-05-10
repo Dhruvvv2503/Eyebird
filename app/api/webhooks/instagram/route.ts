@@ -4,7 +4,7 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
-const VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN!;
+const VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN || 'eyebird_webhook_2024_secure';
 
 // ── GET: Meta webhook verification ──
 export async function GET(req: NextRequest) {
@@ -13,8 +13,10 @@ export async function GET(req: NextRequest) {
   const token = searchParams.get('hub.verify_token');
   const challenge = searchParams.get('hub.challenge');
 
+  console.log('Webhook verification attempt:', { mode, token, challenge });
+  console.log('Expected token:', VERIFY_TOKEN);
+
   if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-    console.log('Webhook verified successfully');
     return new NextResponse(challenge, { status: 200 });
   }
 
