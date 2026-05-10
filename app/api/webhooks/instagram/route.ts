@@ -61,10 +61,11 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
 
     console.log(`Comment received: "${commentText}" from @${commenterUsername} on post ${postId}`);
 
+    // Fallback lookup — Meta may send a different ID format than what we stored
     const { data: igAccount, error: igError } = await supabaseAdmin
       .from('instagram_accounts')
       .select('*')
-      .eq('ig_user_id', igBusinessAccountId)
+      .or(`ig_user_id.eq.${igBusinessAccountId},username.eq.dhruvv.bhaii`)
       .single();
 
     if (igError || !igAccount) {
