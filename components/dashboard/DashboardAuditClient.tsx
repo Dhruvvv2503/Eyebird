@@ -129,39 +129,175 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
 
   /* ─── LOADING ────────────────────────────────────────────── */
   if (state === 'loading') {
-    const fact = FACTS[loadingFact];
+    const steps = LOADING_STEPS;
+    const currentStepIndex = loadingStep;
+    const completedSteps = loadingStep;
+    const totalSteps = LOADING_STEPS.length;
+    const igUsername = igAccount?.username ?? '';
+    const activeFunFact = `${FACTS[loadingFact].stat} ${FACTS[loadingFact].text}`;
+
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '48px 24px', minHeight: '60vh' }}>
-        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', marginBottom: 32, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-          Analysing @{igAccount?.username}
+  <div style={{
+    position: 'fixed',
+    inset: 0,
+    background: 'var(--bg)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontFamily: 'var(--font-body)',
+    zIndex: 50,
+    overflow: 'hidden',
+  }}>
+
+    {/* FULL SCREEN ATMOSPHERE */}
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
+      background: `
+        radial-gradient(ellipse 70% 60% at 50% 30%, rgba(139,92,246,0.16) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 30% at 20% 80%, rgba(236,72,153,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 35% 25% at 80% 70%, rgba(139,92,246,0.07) 0%, transparent 60%)
+      ` }} />
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
+      backgroundImage: 'linear-gradient(rgba(255,255,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.012) 1px,transparent 1px)',
+      backgroundSize: '48px 48px',
+      maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%,black 0%,transparent 100%)',
+      WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%,black 0%,transparent 100%)' }} />
+
+    {/* Floating orbs */}
+    <div style={{ position:'absolute', top:'15%', left:'12%', width:320, height:320, borderRadius:'50%', background:'radial-gradient(circle,rgba(139,92,246,0.07) 0%,transparent 70%)', pointerEvents:'none', animation:'rotateSlow 20s linear infinite' }}/>
+    <div style={{ position:'absolute', bottom:'20%', right:'10%', width:240, height:240, borderRadius:'50%', background:'radial-gradient(circle,rgba(236,72,153,0.06) 0%,transparent 70%)', pointerEvents:'none', animation:'rotateSlow 15s linear infinite reverse' }}/>
+
+    {/* CENTRE CARD */}
+    <div className="ov-fadein" style={{
+      position: 'relative',
+      width: '100%',
+      maxWidth: 520,
+      margin: '0 24px',
+      background: 'linear-gradient(150deg,rgba(139,92,246,0.11) 0%,rgba(13,12,30,0.97) 50%)',
+      border: '1px solid rgba(139,92,246,0.22)',
+      borderRadius: 32,
+      padding: '44px 44px 36px',
+      boxShadow: '0 24px 80px rgba(0,0,0,0.65), 0 0 100px rgba(139,92,246,0.1), inset 0 1px 0 rgba(255,255,255,0.06)',
+      overflow: 'hidden',
+    }}>
+      {/* Top shimmer */}
+      <div style={{ position:'absolute',top:0,left:0,right:0,height:1,background:'linear-gradient(90deg,transparent,rgba(139,92,246,0.85),rgba(236,72,153,0.85),transparent)' }}/>
+      {/* Corner glow */}
+      <div style={{ position:'absolute',top:-80,left:-80,width:300,height:300,background:'radial-gradient(circle,rgba(139,92,246,0.12) 0%,transparent 65%)',pointerEvents:'none' }}/>
+      <div style={{ position:'absolute',bottom:-60,right:-60,width:240,height:240,background:'radial-gradient(circle,rgba(236,72,153,0.08) 0%,transparent 65%)',pointerEvents:'none' }}/>
+
+      {/* Header */}
+      <div style={{ textAlign:'center' as const, marginBottom:36, position:'relative' }}>
+        <div style={{ display:'inline-flex',alignItems:'center',gap:8,background:'rgba(139,92,246,0.1)',border:'1px solid rgba(139,92,246,0.22)',borderRadius:100,padding:'5px 16px',fontSize:11,fontWeight:700,color:'rgba(139,92,246,0.9)',letterSpacing:'0.08em',textTransform:'uppercase' as const,marginBottom:18 }}>
+          <span style={{ width:6,height:6,borderRadius:'50%',background:'#8B5CF6',display:'inline-block',boxShadow:'0 0 8px #8B5CF6',animation:'pulseGreen 1.5s infinite' }}/>
+          Analysing @{igUsername}
         </div>
-        <div style={{ width: '100%', maxWidth: 400, marginBottom: 48 }}>
-          {LOADING_STEPS.map((step, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, opacity: i <= loadingStep ? 1 : 0.3, transition: 'opacity 0.5s ease' }}>
-              <div style={{
-                width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                background: i < loadingStep ? '#22c55e' : i === loadingStep ? 'transparent' : 'rgba(255,255,255,0.1)',
-                border: i === loadingStep ? '2px solid #8B5CF6' : 'none',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11,
-                animation: i === loadingStep ? 'spin 1s linear infinite' : 'none',
+        <h2 style={{ fontFamily:'var(--font-display)',fontSize:28,fontWeight:800,color:'#fff',letterSpacing:'-0.7px',lineHeight:1.2,margin:'0 0 10px' }}>
+          Building your<br/>AI audit report
+        </h2>
+        <p style={{ fontSize:13,color:'var(--m1)',fontWeight:500,margin:0,lineHeight:1.6 }}>
+          Analysing your last 20 posts, engagement patterns,<br/>hook quality, and content strategy
+        </p>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ marginBottom:30 }}>
+        <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8 }}>
+          <span style={{ fontSize:11,color:'var(--m1)',fontWeight:600 }}>Progress</span>
+          <span style={{ fontSize:11,color:'#a78bfa',fontWeight:700 }}>
+            {Math.round((completedSteps / totalSteps) * 100)}%
+          </span>
+        </div>
+        <div style={{ height:6,background:'rgba(255,255,255,0.05)',borderRadius:3,overflow:'hidden' }}>
+          <div style={{
+            height:'100%',
+            width:`${(completedSteps/totalSteps)*100}%`,
+            background:'linear-gradient(90deg,#8B5CF6,#A855F7,#EC4899)',
+            borderRadius:3,
+            transition:'width 0.8s cubic-bezier(0.4,0,0.2,1)',
+            boxShadow:'0 0 12px rgba(139,92,246,0.5)',
+          }}/>
+        </div>
+      </div>
+
+      {/* Step checklist */}
+      <div style={{ display:'flex',flexDirection:'column',gap:10,marginBottom:30 }}>
+        {steps.map((step: any, i: number) => {
+          const isDone = i < currentStepIndex;
+          const isActive = i === currentStepIndex;
+          return (
+            <div key={i} style={{
+              display:'flex',alignItems:'center',gap:14,
+              padding:'12px 16px',
+              borderRadius:14,
+              background: isDone ? 'rgba(34,197,94,0.05)' : isActive ? 'rgba(139,92,246,0.08)' : 'rgba(255,255,255,0.02)',
+              border: `1px solid ${isDone ? 'rgba(34,197,94,0.15)' : isActive ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.04)'}`,
+              transition:'all 0.4s ease',
+              opacity: i > currentStepIndex ? 0.4 : 1,
+            }}>
+              {/* Status icon */}
+              <div style={{ width:28,height:28,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',
+                background: isDone ? 'rgba(34,197,94,0.15)' : isActive ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.04)',
+                border: `1.5px solid ${isDone ? 'rgba(34,197,94,0.4)' : isActive ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                boxShadow: isDone ? '0 0 10px rgba(34,197,94,0.2)' : isActive ? '0 0 10px rgba(139,92,246,0.25)' : 'none',
+                transition:'all 0.4s ease',
               }}>
-                {i < loadingStep && '✓'}
+                {isDone ? (
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                    <path d="M2.5 6.5L5.5 9.5L10.5 3.5" stroke="#22C55E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                ) : isActive ? (
+                  <div style={{ width:8,height:8,borderRadius:'50%',background:'#8B5CF6',boxShadow:'0 0 8px #8B5CF6',animation:'pulseGreen 1.2s infinite' }}/>
+                ) : (
+                  <div style={{ width:6,height:6,borderRadius:'50%',background:'rgba(255,255,255,0.15)' }}/>
+                )}
               </div>
-              <span style={{ fontSize: 14, color: i < loadingStep ? '#22c55e' : i === loadingStep ? 'white' : 'rgba(255,255,255,0.3)', fontWeight: i === loadingStep ? 600 : 400 }}>
-                {step.label}
+              <span style={{ fontSize:13,fontWeight: isActive ? 600 : isDone ? 500 : 400,
+                color: isDone ? '#4ade80' : isActive ? '#fff' : 'rgba(255,255,255,0.35)',
+                transition:'all 0.4s ease',
+              }}>
+                {typeof step === 'string' ? step : step.label ?? step.text ?? step.name ?? ''}
+                {isActive && <span style={{ color:'rgba(139,92,246,0.7)',marginLeft:6,animation:'pulseGreen 1.5s infinite' }}>…</span>}
               </span>
+              {isDone && (
+                <span style={{ marginLeft:'auto',fontSize:10,fontWeight:700,color:'rgba(34,197,94,0.6)',background:'rgba(34,197,94,0.08)',border:'1px solid rgba(34,197,94,0.15)',borderRadius:100,padding:'2px 8px',flexShrink:0 }}>
+                  Done
+                </span>
+              )}
             </div>
-          ))}
-        </div>
-        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '20px 24px', maxWidth: 440, width: '100%', display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-          <span style={{ fontSize: 28, flexShrink: 0 }}>{fact.emoji}</span>
+          );
+        })}
+      </div>
+
+      {/* Fun fact card */}
+      <div style={{
+        background:'linear-gradient(135deg,rgba(245,158,11,0.08),rgba(245,158,11,0.04))',
+        border:'1px solid rgba(245,158,11,0.18)',
+        borderRadius:18,
+        padding:'18px 20px',
+        marginBottom:24,
+        position:'relative',
+        overflow:'hidden',
+      }}>
+        <div style={{ position:'absolute',top:-20,right:-20,width:80,height:80,background:'radial-gradient(circle,rgba(245,158,11,0.1) 0%,transparent 70%)',pointerEvents:'none' }}/>
+        <div style={{ display:'flex',alignItems:'flex-start',gap:12 }}>
+          <div style={{ fontSize:22,flexShrink:0,marginTop:1 }}>⚡</div>
           <div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: '#8B5CF6', lineHeight: 1, marginBottom: 6 }}>{fact.stat}</div>
-            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5 }}>{fact.text}</div>
+            <div style={{ fontSize:10,fontWeight:700,color:'rgba(245,158,11,0.7)',textTransform:'uppercase' as const,letterSpacing:'0.09em',marginBottom:6 }}>Did you know</div>
+            <div style={{ fontSize:13,color:'rgba(255,255,255,0.65)',lineHeight:1.65,fontWeight:500 }}>
+              {activeFunFact}
+            </div>
           </div>
         </div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)', marginTop: 32 }}>This takes 30–60 seconds. Good things take time.</div>
       </div>
+
+      {/* Footer */}
+      <div style={{ textAlign:'center' as const }}>
+        <div style={{ fontSize:12,color:'var(--m1)',fontWeight:500,letterSpacing:'0.01em' }}>
+          This takes 30–60 seconds. Good things take time. ✨
+        </div>
+      </div>
+    </div>
+  </div>
     );
   }
 
