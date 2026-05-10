@@ -10,10 +10,8 @@ interface HeatmapGridProps {
 
 const HOUR_LABELS = ['12a', '3a', '6a', '9a', '12p', '3p', '6p', '9p'];
 const HOUR_COLS   = [0, 3, 6, 9, 12, 15, 18, 21];
-
-const CELL = 24;
-const GAP  = 3;
-const DAY_W = 30;
+const DAY_W = 32;
+const GAP   = 3;
 
 function formatHour(h: number) {
   if (h === 0) return '12 AM';
@@ -31,6 +29,13 @@ function cellColor(val: number, max: number, isHl: boolean): string {
   return '#7c3aed';
 }
 
+const CELL_GRID: React.CSSProperties = {
+  flex: 1,
+  display: 'grid',
+  gridTemplateColumns: 'repeat(24, 1fr)',
+  gap: GAP,
+};
+
 export default function HeatmapGrid({ data, highlightSlots = [] }: HeatmapGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<{
@@ -45,102 +50,89 @@ export default function HeatmapGrid({ data, highlightSlots = [] }: HeatmapGridPr
   const isHighlighted = (di: number, hi: number) =>
     highlightSlots.some(s => DAY_NAMES.indexOf(s.day.slice(0, 3)) === di && s.hour === hi);
 
-  const gridW = CELL * 24 + GAP * 23;
-
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%', overflowX: 'auto' }}>
+    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
 
-      {/* Hour tick labels */}
-      <div style={{ marginLeft: DAY_W + GAP, marginBottom: 6, position: 'relative', height: 14, width: gridW }}>
-        {HOUR_COLS.map((col, i) => (
-          <span
-            key={i}
-            style={{
-              position: 'absolute',
-              left: col * (CELL + GAP),
-              fontSize: 10, fontWeight: 500,
-              color: 'rgba(255,255,255,0.28)',
-              letterSpacing: '-0.01em',
-              userSelect: 'none',
-            }}
-          >
-            {HOUR_LABELS[i]}
-          </span>
-        ))}
-      </div>
-
-      {/* Day rows + cells */}
-      <div style={{ display: 'flex', gap: 0 }}>
-
-        {/* Day label column */}
-        <div style={{ width: DAY_W, flexShrink: 0, marginRight: GAP, paddingTop: 1 }}>
-          {DAY_NAMES.map((day, di) => (
-            <div key={day} style={{
-              height: CELL, marginBottom: di < 6 ? GAP : 0,
-              display: 'flex', alignItems: 'center',
-              fontSize: 10, fontWeight: 600,
-              color: 'rgba(255,255,255,0.32)',
-              letterSpacing: '-0.01em',
-              userSelect: 'none',
-            }}>
-              {day}
-            </div>
-          ))}
-        </div>
-
-        {/* Cell grid */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
-          {DAY_NAMES.map((day, di) => (
-            <div key={day} style={{ display: 'flex', gap: GAP }}>
-              {Array.from({ length: 24 }, (_, hi) => {
-                const val = data[di]?.[hi] ?? 0;
-                const isHl = isHighlighted(di, hi);
-                const bg = cellColor(val, max, isHl);
-                return (
-                  <div
-                    key={hi}
-                    onMouseEnter={(e) => {
-                      const cellRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                      const contRect = containerRef.current?.getBoundingClientRect();
-                      if (!contRect) return;
-                      setTooltip({
-                        day,
-                        hour: hi,
-                        val,
-                        max,
-                        left: cellRect.left - contRect.left + CELL / 2,
-                        top: cellRect.top  - contRect.top,
-                      });
-                      (e.currentTarget as HTMLElement).style.transform = 'scale(1.25)';
-                      (e.currentTarget as HTMLElement).style.zIndex = '10';
-                    }}
-                    onMouseLeave={(e) => {
-                      setTooltip(null);
-                      (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
-                      (e.currentTarget as HTMLElement).style.zIndex = '1';
-                    }}
-                    style={{
-                      width: CELL, height: CELL,
-                      borderRadius: 4,
-                      flexShrink: 0,
-                      background: bg,
-                      border: isHl
-                        ? '1.5px solid rgba(236,72,153,0.7)'
-                        : '1px solid rgba(255,255,255,0.04)',
-                      boxShadow: isHl
-                        ? '0 0 8px rgba(236,72,153,0.5)'
-                        : 'none',
-                      cursor: 'default',
-                      transition: 'transform 0.12s ease, box-shadow 0.12s ease',
-                      position: 'relative',
-                    }}
-                  />
-                );
-              })}
-            </div>
-          ))}
+      {/* Hour tick labels row */}
+      <div style={{ display: 'flex', marginBottom: 6, alignItems: 'center' }}>
+        <div style={{ width: DAY_W, flexShrink: 0, marginRight: GAP }} />
+        <div style={{ ...CELL_GRID }}>
+          {Array.from({ length: 24 }, (_, hi) => {
+            const labelIdx = HOUR_COLS.indexOf(hi);
+            return (
+              <div key={hi} style={{
+                fontSize: 9, fontWeight: 500,
+                color: labelIdx >= 0 ? 'rgba(255,255,255,0.28)' : 'transparent',
+                textAlign: 'center',
+                userSelect: 'none',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+              }}>
+                {labelIdx >= 0 ? HOUR_LABELS[labelIdx] : '.'}
+              </div>
+            );
+          })}
         </div>
       </div>
+
+      {/* Day rows */}
+      {DAY_NAMES.map((day, di) => (
+        <div key={day} style={{ display: 'flex', marginBottom: di < 6 ? GAP : 0, alignItems: 'stretch' }}>
+          {/* Day label */}
+          <div style={{
+            width: DAY_W, flexShrink: 0, marginRight: GAP,
+            display: 'flex', alignItems: 'center',
+            fontSize: 10, fontWeight: 600,
+            color: 'rgba(255,255,255,0.32)',
+            userSelect: 'none',
+          }}>
+            {day}
+          </div>
+
+          {/* 24-column fluid grid */}
+          <div style={{ ...CELL_GRID }}>
+            {Array.from({ length: 24 }, (_, hi) => {
+              const val = data[di]?.[hi] ?? 0;
+              const isHl = isHighlighted(di, hi);
+              const bg = cellColor(val, max, isHl);
+              return (
+                <div
+                  key={hi}
+                  onMouseEnter={(e) => {
+                    const cellRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    const contRect = containerRef.current?.getBoundingClientRect();
+                    if (!contRect) return;
+                    setTooltip({
+                      day, hour: hi, val, max,
+                      left: cellRect.left - contRect.left + cellRect.width / 2,
+                      top: cellRect.top  - contRect.top,
+                    });
+                    (e.currentTarget as HTMLElement).style.transform = 'scale(1.25)';
+                    (e.currentTarget as HTMLElement).style.zIndex = '10';
+                  }}
+                  onMouseLeave={(e) => {
+                    setTooltip(null);
+                    (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
+                    (e.currentTarget as HTMLElement).style.zIndex = '1';
+                  }}
+                  style={{
+                    aspectRatio: '1',
+                    borderRadius: 4,
+                    background: bg,
+                    border: isHl
+                      ? '1.5px solid rgba(236,72,153,0.7)'
+                      : '1px solid rgba(255,255,255,0.04)',
+                    boxShadow: isHl ? '0 0 8px rgba(236,72,153,0.5)' : 'none',
+                    cursor: 'default',
+                    transition: 'transform 0.12s ease, box-shadow 0.12s ease',
+                    position: 'relative',
+                  }}
+                />
+              );
+            })}
+          </div>
+        </div>
+      ))}
 
       {/* Floating tooltip */}
       {tooltip && (
@@ -165,7 +157,6 @@ export default function HeatmapGrid({ data, highlightSlots = [] }: HeatmapGridPr
           <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 400, marginLeft: 8 }}>
             {tooltip.val > 0 ? `${Math.round((tooltip.val / tooltip.max) * 100)}% active` : 'Inactive'}
           </span>
-          {/* Arrow */}
           <div style={{
             position: 'absolute', bottom: -5, left: '50%', transform: 'translateX(-50%)',
             width: 8, height: 8, background: 'rgba(14,14,22,0.96)',

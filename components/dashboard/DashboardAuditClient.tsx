@@ -272,16 +272,15 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#8B8B9E', letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 8 }}>
                 Instagram Audit
               </div>
               <h1
-                className="grad-brand-audit"
-                style={{ fontFamily: "'Syne', sans-serif", fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.1, margin: '0 0 10px', display: 'inline-block' }}
+                style={{ fontFamily: 'inherit', fontSize: 'clamp(32px, 4vw, 40px)', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, color: '#f0f0f5', margin: '0 0 10px' }}
               >
                 Your Audit Report
               </h1>
-              <div style={{ fontSize: 13, color: '#8B8B9E', fontWeight: 500 }}>
+              <div style={{ fontSize: 14, color: '#9ca3af', fontWeight: 400 }}>
                 @{igUsername} · Audited {auditDate}
               </div>
             </motion.div>
@@ -314,21 +313,21 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.18 }}
             className="audit-score-layout"
-            style={{ marginBottom: 16 }}
+            style={{ marginBottom: 16, gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr', alignItems: 'stretch' }}
           >
             {/* Score ring card */}
             <div
               className="audit-card"
               style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
-                background: `linear-gradient(165deg, ${ringColor1}14 0%, #111118 60%)`,
-                borderColor: `${ringColor1}30`,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, height: '100%',
+                background: 'linear-gradient(160deg, #0d1f1e, #111118)',
+                borderColor: 'rgba(0,212,170,0.15)',
                 position: 'relative', overflow: 'hidden',
               }}
             >
               <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '80%', height: 1, background: `linear-gradient(90deg, transparent, ${ringColor1}60, transparent)` }} />
 
-              <div style={{ fontSize: 10, fontWeight: 700, color: ringColor1, letterSpacing: '0.12em', textTransform: 'uppercase' as const, alignSelf: 'flex-start' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4aa', letterSpacing: '0.12em', textTransform: 'uppercase' as const, alignSelf: 'flex-start' }}>
                 Account Health
               </div>
 
@@ -394,21 +393,18 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
               </div>
             </div>
 
-            {/* 4 KPI cards */}
-            <div className="audit-kpi-grid">
-
-              {/* Engagement Rate */}
+            {/* Engagement Rate */}
               <div
                 className="audit-card"
-                style={{ background: 'linear-gradient(135deg, rgba(0,229,160,0.07) 0%, #111118 60%)', borderColor: 'rgba(0,229,160,0.15)', position: 'relative', overflow: 'hidden' }}
+                style={{ background: 'linear-gradient(135deg, rgba(0,212,170,0.07) 0%, #111118 60%)', borderColor: 'rgba(0,212,170,0.15)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}
               >
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #00E5A0, transparent)', borderRadius: '16px 16px 0 0' }} />
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(0,229,160,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#00E5A0', boxShadow: '0 0 6px #00E5A0', display: 'inline-block', flexShrink: 0 }} />
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #00d4aa, transparent)', borderRadius: '16px 16px 0 0' }} />
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(0,212,170,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#00d4aa', boxShadow: '0 0 6px #00d4aa', display: 'inline-block', flexShrink: 0 }} />
                   Engagement Rate
                 </div>
                 <div style={{ marginBottom: 10 }}>
-                  <span className="grad-growth" style={{ fontFamily: "'Syne', sans-serif", fontSize: 42, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1 }}>
+                  <span style={{ fontSize: 42, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1, color: '#00d4aa' }}>
                     {erNum.toFixed(1)}
                   </span>
                   <span style={{ fontSize: 18, color: '#4A4A5E', marginLeft: 3 }}>%</span>
@@ -416,7 +412,7 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
                 <div style={{ display: 'flex', gap: 5, alignItems: 'center', marginBottom: 10 }}>
                   {[...Array(5)].map((_, i) => {
                     const filled = i < Math.round(Math.min((erNum / 15) * 5, 5));
-                    return <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', background: filled ? '#00E5A0' : 'rgba(255,255,255,0.1)', boxShadow: filled ? '0 0 5px #00E5A0' : 'none', transition: 'all 0.3s' }} />;
+                    return <span key={i} style={{ width: 10, height: 10, borderRadius: 9999, display: 'inline-block', background: filled ? '#00d4aa' : 'rgba(255,255,255,0.1)', boxShadow: filled ? '0 0 5px #00d4aa' : 'none', transition: 'all 0.3s' }} />;
                   })}
                 </div>
                 <div style={{ fontSize: 12, color: '#8B8B9E', fontWeight: 500, lineHeight: 1.5 }}>
@@ -427,15 +423,15 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
               {/* Hook Strength */}
               <div
                 className="audit-card"
-                style={{ background: 'linear-gradient(135deg, rgba(255,60,172,0.07) 0%, #111118 60%)', borderColor: 'rgba(255,60,172,0.15)', position: 'relative', overflow: 'hidden' }}
+                style={{ background: 'linear-gradient(135deg, rgba(236,72,153,0.07) 0%, #111118 60%)', borderColor: 'rgba(236,72,153,0.15)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}
               >
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #FF3CAC, transparent)', borderRadius: '16px 16px 0 0' }} />
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,60,172,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#FF3CAC', boxShadow: '0 0 6px #FF3CAC', display: 'inline-block', flexShrink: 0 }} />
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #ec4899, transparent)', borderRadius: '16px 16px 0 0' }} />
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(236,72,153,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#ec4899', boxShadow: '0 0 6px #ec4899', display: 'inline-block', flexShrink: 0 }} />
                   Hook Strength
                 </div>
                 <div style={{ marginBottom: 10 }}>
-                  <span className="grad-viral" style={{ fontFamily: "'Syne', sans-serif", fontSize: 42, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1 }}>
+                  <span style={{ fontSize: 42, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1, color: '#ec4899' }}>
                     {hookNum.toFixed(1)}
                   </span>
                   <span style={{ fontSize: 18, color: '#4A4A5E', marginLeft: 3 }}>/10</span>
@@ -443,7 +439,7 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
                 <div style={{ display: 'flex', gap: 5, alignItems: 'center', marginBottom: 10 }}>
                   {[...Array(10)].map((_, i) => {
                     const filled = i < Math.round(hookNum);
-                    return <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', background: filled ? '#FF3CAC' : 'rgba(255,255,255,0.1)', boxShadow: filled ? '0 0 5px #FF3CAC' : 'none', transition: 'all 0.3s' }} />;
+                    return <span key={i} style={{ width: 10, height: 10, borderRadius: 9999, display: 'inline-block', background: filled ? '#ec4899' : 'rgba(255,255,255,0.1)', boxShadow: filled ? '0 0 5px #ec4899' : 'none', transition: 'all 0.3s' }} />;
                   })}
                 </div>
                 <div style={{ fontSize: 12, color: '#8B8B9E', fontWeight: 500, lineHeight: 1.5 }}>
@@ -454,18 +450,18 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
               {/* Best Format */}
               <div
                 className="audit-card"
-                style={{ background: 'linear-gradient(135deg, rgba(167,139,250,0.07) 0%, #111118 60%)', borderColor: 'rgba(167,139,250,0.15)', position: 'relative', overflow: 'hidden' }}
+                style={{ background: 'linear-gradient(135deg, rgba(129,140,248,0.07) 0%, #111118 60%)', borderColor: 'rgba(129,140,248,0.15)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}
               >
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #A78BFA, transparent)', borderRadius: '16px 16px 0 0' }} />
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(167,139,250,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#A78BFA', boxShadow: '0 0 6px #A78BFA', display: 'inline-block', flexShrink: 0 }} />
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #818cf8, transparent)', borderRadius: '16px 16px 0 0' }} />
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(129,140,248,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#818cf8', boxShadow: '0 0 6px #818cf8', display: 'inline-block', flexShrink: 0 }} />
                   Best Format
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(129,140,248,0.12)', border: '1px solid rgba(129,140,248,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
                     {formatEmoji}
                   </div>
-                  <span className="grad-premium" style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1 }}>
+                  <span style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1, color: '#818cf8' }}>
                     {formatName}
                   </span>
                 </div>
@@ -477,15 +473,15 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
               {/* Hashtag Health */}
               <div
                 className="audit-card"
-                style={{ background: 'linear-gradient(135deg, rgba(255,107,53,0.07) 0%, #111118 60%)', borderColor: 'rgba(255,107,53,0.15)', position: 'relative', overflow: 'hidden' }}
+                style={{ background: 'linear-gradient(135deg, rgba(249,115,22,0.07) 0%, #111118 60%)', borderColor: 'rgba(249,115,22,0.15)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}
               >
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #FF6B35, transparent)', borderRadius: '16px 16px 0 0' }} />
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,107,53,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#FF6B35', boxShadow: '0 0 6px #FF6B35', display: 'inline-block', flexShrink: 0 }} />
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #f97316, transparent)', borderRadius: '16px 16px 0 0' }} />
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(249,115,22,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#f97316', boxShadow: '0 0 6px #f97316', display: 'inline-block', flexShrink: 0 }} />
                   Hashtag Health
                 </div>
                 <div style={{ marginBottom: 10 }}>
-                  <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 42, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1, color: '#FF6B35' }}>
+                  <span style={{ fontSize: 42, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1, color: '#f97316' }}>
                     {hashtagScore}
                   </span>
                   <span style={{ fontSize: 18, color: '#4A4A5E', marginLeft: 3 }}>/100</span>
@@ -493,7 +489,7 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
                 <div style={{ display: 'flex', gap: 5, alignItems: 'center', marginBottom: 10 }}>
                   {[...Array(5)].map((_, i) => {
                     const filled = i < Math.round(hashtagScore / 20);
-                    return <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', background: filled ? '#FF6B35' : 'rgba(255,255,255,0.1)', boxShadow: filled ? '0 0 5px #FF6B35' : 'none', transition: 'all 0.3s' }} />;
+                    return <span key={i} style={{ width: 10, height: 10, borderRadius: 9999, display: 'inline-block', background: filled ? '#f97316' : 'rgba(255,255,255,0.1)', boxShadow: filled ? '0 0 5px #f97316' : 'none', transition: 'all 0.3s' }} />;
                   })}
                 </div>
                 <div style={{ fontSize: 12, color: '#8B8B9E', fontWeight: 500, lineHeight: 1.5 }}>
@@ -501,7 +497,6 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
                 </div>
               </div>
 
-            </div>
           </motion.div>
 
           <ChapterDivider />

@@ -64,7 +64,7 @@ export function ContentTimeline({ allPostsTimeline }: { allPostsTimeline: any[] 
         </p>
 
         {/* Summary stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(130px,1fr))', gap: 10, marginBottom: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
           {[
             { label: 'Average ER', value: `${avgER}%`, sub: 'across all posts', color: '#A855F7' },
             { label: 'Peak ER', value: `${peakER}%`, sub: 'single best post', color: '#22C55E' },
@@ -79,7 +79,7 @@ export function ContentTimeline({ allPostsTimeline }: { allPostsTimeline: any[] 
         </div>
 
         {/* Per-format breakdown */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {typeAvgs.map(({ type, avg, count, pts }) => {
             const color = TYPE_COLOR[type] || '#6B7280';
             return (
@@ -204,7 +204,7 @@ export function GrowthProjection({ projection, followers }: { projection: any; f
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}>Weekly Content Mix</div>
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', margin: 0 }}>How many posts of each type to publish every week, and why</p>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, width: '100%' }}>
               {Object.entries(contentTypes).map(([type, info]: [string, any]) => {
                 const color = typeColorMap[type] || '#6B7280';
                 const emoji = typeEmojiMap[type] || '📄';
