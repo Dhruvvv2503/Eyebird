@@ -34,10 +34,18 @@ export async function POST(req: NextRequest) {
     for (const entry of entries) {
       const igAccountId = entry.id;
       const changes = entry.changes || [];
+      const messaging = entry.messaging || [];
+
+      console.log(`Entry ID: ${igAccountId} | changes: ${changes.length} | messaging: ${messaging.length}`);
+      if (changes.length > 0) {
+        console.log('Changes fields:', changes.map((c: Record<string, unknown>) => c.field));
+      }
 
       for (const change of changes) {
         if (change.field === 'comments') {
           await processCommentEvent(igAccountId, change.value);
+        } else {
+          console.log(`Unhandled change field: ${change.field}`);
         }
       }
     }
@@ -68,20 +76,27 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
       .eq('ig_user_id', igBusinessAccountId)
       .maybeSingle();
 
-    // Strategy 2: if not found, fetch all accounts and log IDs for debugging
+    // Strategy 2: Meta webhook entry.id ≠ ig_user_id from /me — find account with active automations
     if (!igAccount) {
       const { data: allAccounts } = await supabaseAdmin
         .from('instagram_accounts')
         .select('*');
 
-      console.log('All stored ig_user_ids:', allAccounts?.map(a => ({
-        id: a.ig_user_id,
-        username: a.username,
-      })));
+      console.log(`No direct match for webhook ID: ${igBusinessAccountId}`);
+      console.log('All stored accounts:', allAccounts?.map(a => ({ id: a.ig_user_id, username: a.username })));
 
-      if (allAccounts && allAccounts.length === 1) {
-        igAccount = allAccounts[0];
-        console.log('Using single account fallback:', igAccount.username);
+      for (const account of (allAccounts || [])) {
+        const { count } = await supabaseAdmin
+          .from('automations')
+          .select('id', { count: 'exact', head: true })
+          .eq('ig_account_id', account.id)
+          .eq('status', 'active');
+
+        if (count && count > 0) {
+          igAccount = account;
+          console.log(`Using account with active automations: ${igAccount.username} (${igAccount.ig_user_id})`);
+          break;
+        }
       }
     }
 
