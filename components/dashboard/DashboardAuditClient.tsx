@@ -33,9 +33,6 @@ const LOCKED_ITEMS = [
   { emoji: '🗓️', label: '90-Day Action Plan', hint: 'Week-by-week growth roadmap personalized for you' },
 ];
 
-const RING_R = 41;
-const RING_CIRC = 2 * Math.PI * RING_R;
-
 function ChapterDivider() {
   return (
     <motion.div
@@ -50,6 +47,48 @@ function ChapterDivider() {
         transformOrigin: 'left center',
       }}
     />
+  );
+}
+
+function ScoringRing({ value, max, color, unit, label }: {
+  value: number; max: number; color: string; unit: string; label?: string;
+}) {
+  const radius = 38;
+  const circumference = 2 * Math.PI * radius;
+  const pct = Math.min(value / max, 1);
+  const offset = circumference * (1 - pct);
+  const displayNum = Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return (
+    <div style={{ position: 'relative', width: 100, height: 100 }}>
+      <svg width="100" height="100" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r={radius} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="7" />
+        <circle
+          cx="50" cy="50" r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth="7"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          transform="rotate(-90 50 50)"
+          style={{ filter: `drop-shadow(0 0 6px ${color}60)` }}
+        />
+      </svg>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+        <span style={{
+          fontSize: label ? '16px' : (value >= 100 ? '20px' : '24px'),
+          fontWeight: 800,
+          color: 'white',
+          fontFamily: 'inherit',
+          letterSpacing: '-0.02em',
+        }}>
+          {label || displayNum}
+        </span>
+        <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
+          {unit}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -224,7 +263,6 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
     )[0];
     const bestFormatKey = bestFormatEntry?.[0] || 'VIDEO';
     const bestFormatData = bestFormatEntry?.[1] as any;
-    const formatEmoji = bestFormatKey === 'VIDEO' ? '🎬' : bestFormatKey === 'CAROUSEL_ALBUM' ? '🖼️' : '📸';
     let formatName = 'Reels';
     if (bestFormatKey === 'CAROUSEL_ALBUM') formatName = 'Carousels';
     else if (bestFormatKey === 'IMAGE') formatName = 'Photos';
@@ -234,9 +272,6 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
     Object.entries(rawFormatBreakdown).forEach(([k, v]: [string, any]) => {
       formatBreakdownCounts[k] = typeof v === 'number' ? v : (v?.count ?? v?.postCount ?? 0);
     });
-
-    const ringColor1 = overallScore >= 70 ? '#00E5A0' : overallScore >= 50 ? '#FF6B35' : '#FF3CAC';
-    const ringColor2 = overallScore >= 70 ? '#00B4D8' : overallScore >= 50 ? '#FBBF24' : '#A78BFA';
 
     return (
       <div style={{ fontFamily: 'var(--font-body)', minHeight: '100vh', background: '#0A0A0F', position: 'relative' }}>
@@ -306,196 +341,103 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
           </div>
 
           {/* ═══════════════════════════════════════
-              CHAPTER 2 — ACCOUNT HEALTH + KPI CARDS
+              CHAPTER 2 — KPI CARDS
           ═══════════════════════════════════════ */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.18 }}
-            className="audit-score-layout"
-            style={{ marginBottom: 16, gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr', alignItems: 'stretch' }}
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '14px', width: '100%', alignItems: 'stretch', marginBottom: 16 }}
           >
-            {/* Score ring card */}
-            <div
-              className="audit-card"
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, height: '100%',
-                background: 'linear-gradient(160deg, #0d1f1e, #111118)',
-                borderColor: 'rgba(0,212,170,0.15)',
-                position: 'relative', overflow: 'hidden',
-              }}
-            >
-              <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '80%', height: 1, background: `linear-gradient(90deg, transparent, ${ringColor1}60, transparent)` }} />
-
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4aa', letterSpacing: '0.12em', textTransform: 'uppercase' as const, alignSelf: 'flex-start' }}>
-                Account Health
+            {/* Card 1 — Account Health */}
+            <div style={{ position: 'relative', overflow: 'hidden', height: '280px', padding: '20px', background: 'linear-gradient(160deg, #0a1f1c 0%, #111118 70%)', border: '1px solid rgba(0,212,170,0.2)', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'linear-gradient(90deg, transparent, #00d4aa, transparent)' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', alignSelf: 'flex-start' }}>
+                <div style={{ width: '7px', height: '7px', borderRadius: '9999px', background: '#00d4aa' }} />
+                <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: '#00d4aa', textTransform: 'uppercase' as const }}>Account Health</span>
               </div>
-
-              <div style={{ position: 'relative', width: 100, height: 100 }}>
-                <svg width="100" height="100" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
-                  <defs>
-                    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor={ringColor1} />
-                      <stop offset="100%" stopColor={ringColor2} />
-                    </linearGradient>
-                  </defs>
-                  <circle cx="50" cy="50" r={RING_R} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
-                  <motion.circle
-                    cx="50" cy="50" r={RING_R}
-                    fill="none"
-                    stroke="url(#ringGrad)"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray={RING_CIRC}
-                    initial={{ strokeDashoffset: RING_CIRC }}
-                    animate={{ strokeDashoffset: RING_CIRC * (1 - overallScore / 100) }}
-                    transition={{ duration: 1.5, ease: [0.34, 1.2, 0.64, 1], delay: 0.3 }}
-                  />
-                </svg>
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 36, fontWeight: 800, color: '#F0F0F5', letterSpacing: '-2px', lineHeight: 1 }}>
-                    {overallScore}
-                  </span>
-                  <span style={{ fontSize: 10, color: '#4A4A5E', marginTop: 2 }}>/100</span>
-                </div>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ScoringRing value={overallScore} max={100} color="#00d4aa" unit="/100" />
               </div>
-
-              <div style={{
-                padding: '5px 14px', borderRadius: 100, fontSize: 12, fontWeight: 700, fontFamily: "'Syne', sans-serif",
-                color: ringColor1,
-                background: `${ringColor1}18`,
-                border: `1px solid ${ringColor1}40`,
-              }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 12px', borderRadius: '9999px', border: '1px solid rgba(0,212,170,0.4)', background: 'rgba(0,212,170,0.18)', color: '#00d4aa', fontSize: '12px', fontWeight: 600 }}>
                 {overallScore >= 70 ? '⚡ Strong' : overallScore >= 50 ? '📈 Growing' : '🔧 Needs Work'}
               </div>
-
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {[
-                  { label: 'Engagement', pct: Math.min((erNum / 15) * 100, 100), color: '#00E5A0' },
-                  { label: 'Hook quality', pct: (hookNum / 10) * 100, color: '#FF3CAC' },
-                  { label: 'Hashtags', pct: hashtagScore, color: '#A78BFA' },
-                ].map(b => (
-                  <div key={b.label}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <span style={{ fontSize: 10, color: '#8B8B9E', fontWeight: 500 }}>{b.label}</span>
-                      <span style={{ fontSize: 10, color: b.color, fontWeight: 700 }}>{Math.round(b.pct)}%</span>
-                    </div>
-                    <div style={{ height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${b.pct}%` }}
-                        transition={{ duration: 1.2, delay: 0.5 + 0.1 * ['Engagement', 'Hook quality', 'Hashtags'].indexOf(b.label), ease: 'easeOut' }}
-                        style={{ height: '100%', background: `linear-gradient(90deg, ${b.color}80, ${b.color})`, borderRadius: 2 }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', textAlign: 'center', lineHeight: 1.4, margin: 0, maxWidth: '140px' }}>
+                Overall profile strength
+              </p>
             </div>
 
-            {/* Engagement Rate */}
-              <div
-                className="audit-card"
-                style={{ background: 'linear-gradient(135deg, rgba(0,212,170,0.07) 0%, #111118 60%)', borderColor: 'rgba(0,212,170,0.15)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}
-              >
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #00d4aa, transparent)', borderRadius: '16px 16px 0 0' }} />
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(0,212,170,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#00d4aa', boxShadow: '0 0 6px #00d4aa', display: 'inline-block', flexShrink: 0 }} />
-                  Engagement Rate
-                </div>
-                <div style={{ marginBottom: 10 }}>
-                  <span style={{ fontSize: 42, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1, color: '#00d4aa' }}>
-                    {erNum.toFixed(1)}
-                  </span>
-                  <span style={{ fontSize: 18, color: '#4A4A5E', marginLeft: 3 }}>%</span>
-                </div>
-                <div style={{ display: 'flex', gap: 5, alignItems: 'center', marginBottom: 10 }}>
-                  {[...Array(5)].map((_, i) => {
-                    const filled = i < Math.round(Math.min((erNum / 15) * 5, 5));
-                    return <span key={i} style={{ width: 10, height: 10, borderRadius: 9999, display: 'inline-block', background: filled ? '#00d4aa' : 'rgba(255,255,255,0.1)', boxShadow: filled ? '0 0 5px #00d4aa' : 'none', transition: 'all 0.3s' }} />;
-                  })}
-                </div>
-                <div style={{ fontSize: 12, color: '#8B8B9E', fontWeight: 500, lineHeight: 1.5 }}>
-                  {(erNum / 3).toFixed(1)}× above industry avg
-                </div>
+            {/* Card 2 — Engagement Rate */}
+            <div style={{ position: 'relative', overflow: 'hidden', height: '280px', padding: '20px', background: 'linear-gradient(160deg, #0a1f1c 0%, #111118 70%)', border: '1px solid rgba(0,212,170,0.2)', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'linear-gradient(90deg, transparent, #00d4aa, transparent)' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', alignSelf: 'flex-start' }}>
+                <div style={{ width: '7px', height: '7px', borderRadius: '9999px', background: '#00d4aa' }} />
+                <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: '#00d4aa', textTransform: 'uppercase' as const }}>Engagement Rate</span>
               </div>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ScoringRing value={erNum} max={100} color="#00d4aa" unit="% ER" />
+              </div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 12px', borderRadius: '9999px', border: '1px solid rgba(0,212,170,0.4)', background: 'rgba(0,212,170,0.18)', color: '#00d4aa', fontSize: '12px', fontWeight: 600 }}>
+                {(erNum / 3).toFixed(1)}× industry avg
+              </div>
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', textAlign: 'center', lineHeight: 1.4, margin: 0, maxWidth: '140px' }}>
+                {erNum >= 5 ? 'Above average' : erNum >= 2 ? 'Near industry average' : 'Below industry average'}
+              </p>
+            </div>
 
-              {/* Hook Strength */}
-              <div
-                className="audit-card"
-                style={{ background: 'linear-gradient(135deg, rgba(236,72,153,0.07) 0%, #111118 60%)', borderColor: 'rgba(236,72,153,0.15)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}
-              >
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #ec4899, transparent)', borderRadius: '16px 16px 0 0' }} />
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(236,72,153,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#ec4899', boxShadow: '0 0 6px #ec4899', display: 'inline-block', flexShrink: 0 }} />
-                  Hook Strength
-                </div>
-                <div style={{ marginBottom: 10 }}>
-                  <span style={{ fontSize: 42, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1, color: '#ec4899' }}>
-                    {hookNum.toFixed(1)}
-                  </span>
-                  <span style={{ fontSize: 18, color: '#4A4A5E', marginLeft: 3 }}>/10</span>
-                </div>
-                <div style={{ display: 'flex', gap: 5, alignItems: 'center', marginBottom: 10 }}>
-                  {[...Array(10)].map((_, i) => {
-                    const filled = i < Math.round(hookNum);
-                    return <span key={i} style={{ width: 10, height: 10, borderRadius: 9999, display: 'inline-block', background: filled ? '#ec4899' : 'rgba(255,255,255,0.1)', boxShadow: filled ? '0 0 5px #ec4899' : 'none', transition: 'all 0.3s' }} />;
-                  })}
-                </div>
-                <div style={{ fontSize: 12, color: '#8B8B9E', fontWeight: 500, lineHeight: 1.5 }}>
-                  {hookNum >= 8 ? 'Retaining viewers well' : hookNum >= 6 ? 'Some hooks losing viewers early' : 'Losing viewers in first 3s'}
-                </div>
+            {/* Card 3 — Hook Strength */}
+            <div style={{ position: 'relative', overflow: 'hidden', height: '280px', padding: '20px', background: 'linear-gradient(160deg, #1f0a14 0%, #111118 70%)', border: '1px solid rgba(236,72,153,0.2)', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'linear-gradient(90deg, transparent, #ec4899, transparent)' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', alignSelf: 'flex-start' }}>
+                <div style={{ width: '7px', height: '7px', borderRadius: '9999px', background: '#ec4899' }} />
+                <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: '#ec4899', textTransform: 'uppercase' as const }}>Hook Strength</span>
               </div>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ScoringRing value={hookNum} max={10} color="#ec4899" unit="/10" />
+              </div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 12px', borderRadius: '9999px', border: '1px solid rgba(236,72,153,0.4)', background: 'rgba(236,72,153,0.18)', color: '#ec4899', fontSize: '12px', fontWeight: 600 }}>
+                {hookNum >= 8 ? 'Excellent' : hookNum >= 6 ? 'Average' : 'Needs Work'}
+              </div>
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', textAlign: 'center', lineHeight: 1.4, margin: 0, maxWidth: '140px' }}>
+                {hookNum >= 8 ? 'Retaining viewers well' : hookNum >= 6 ? 'Some hooks lose viewers early' : 'Losing viewers in first 3s'}
+              </p>
+            </div>
 
-              {/* Best Format */}
-              <div
-                className="audit-card"
-                style={{ background: 'linear-gradient(135deg, rgba(129,140,248,0.07) 0%, #111118 60%)', borderColor: 'rgba(129,140,248,0.15)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}
-              >
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #818cf8, transparent)', borderRadius: '16px 16px 0 0' }} />
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(129,140,248,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#818cf8', boxShadow: '0 0 6px #818cf8', display: 'inline-block', flexShrink: 0 }} />
-                  Best Format
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(129,140,248,0.12)', border: '1px solid rgba(129,140,248,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
-                    {formatEmoji}
-                  </div>
-                  <span style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1, color: '#818cf8' }}>
-                    {formatName}
-                  </span>
-                </div>
-                <div style={{ fontSize: 12, color: '#8B8B9E', fontWeight: 500, lineHeight: 1.5 }}>
-                  {formatAvgEr && formatAvgEr !== '0.0' ? `${formatAvgEr}% avg ER — your strongest format` : 'Highest-performing content type'}
-                </div>
+            {/* Card 4 — Best Format */}
+            <div style={{ position: 'relative', overflow: 'hidden', height: '280px', padding: '20px', background: 'linear-gradient(160deg, #0e0e1f 0%, #111118 70%)', border: '1px solid rgba(129,140,248,0.2)', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'linear-gradient(90deg, transparent, #818cf8, transparent)' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', alignSelf: 'flex-start' }}>
+                <div style={{ width: '7px', height: '7px', borderRadius: '9999px', background: '#818cf8' }} />
+                <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: '#818cf8', textTransform: 'uppercase' as const }}>Best Format</span>
               </div>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ScoringRing value={parseFloat(formatAvgEr)} max={30} color="#818cf8" unit="% ER" label={formatName} />
+              </div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 12px', borderRadius: '9999px', border: '1px solid rgba(129,140,248,0.4)', background: 'rgba(129,140,248,0.18)', color: '#818cf8', fontSize: '12px', fontWeight: 600 }}>
+                {formatAvgEr !== '0.0' ? `${formatAvgEr}% avg ER` : 'Top performing'}
+              </div>
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', textAlign: 'center', lineHeight: 1.4, margin: 0, maxWidth: '140px' }}>
+                Your strongest format
+              </p>
+            </div>
 
-              {/* Hashtag Health */}
-              <div
-                className="audit-card"
-                style={{ background: 'linear-gradient(135deg, rgba(249,115,22,0.07) 0%, #111118 60%)', borderColor: 'rgba(249,115,22,0.15)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}
-              >
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, #f97316, transparent)', borderRadius: '16px 16px 0 0' }} />
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(249,115,22,0.75)', textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#f97316', boxShadow: '0 0 6px #f97316', display: 'inline-block', flexShrink: 0 }} />
-                  Hashtag Health
-                </div>
-                <div style={{ marginBottom: 10 }}>
-                  <span style={{ fontSize: 42, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1, color: '#f97316' }}>
-                    {hashtagScore}
-                  </span>
-                  <span style={{ fontSize: 18, color: '#4A4A5E', marginLeft: 3 }}>/100</span>
-                </div>
-                <div style={{ display: 'flex', gap: 5, alignItems: 'center', marginBottom: 10 }}>
-                  {[...Array(5)].map((_, i) => {
-                    const filled = i < Math.round(hashtagScore / 20);
-                    return <span key={i} style={{ width: 10, height: 10, borderRadius: 9999, display: 'inline-block', background: filled ? '#f97316' : 'rgba(255,255,255,0.1)', boxShadow: filled ? '0 0 5px #f97316' : 'none', transition: 'all 0.3s' }} />;
-                  })}
-                </div>
-                <div style={{ fontSize: 12, color: '#8B8B9E', fontWeight: 500, lineHeight: 1.5 }}>
-                  {hashtagScore >= 70 ? 'Good niche targeting' : hashtagScore >= 50 ? 'Some over-saturated tags' : 'Using too many mass hashtags'}
-                </div>
+            {/* Card 5 — Hashtag Health */}
+            <div style={{ position: 'relative', overflow: 'hidden', height: '280px', padding: '20px', background: 'linear-gradient(160deg, #1f1208 0%, #111118 70%)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: 'linear-gradient(90deg, transparent, #f97316, transparent)' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', alignSelf: 'flex-start' }}>
+                <div style={{ width: '7px', height: '7px', borderRadius: '9999px', background: '#f97316' }} />
+                <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em', color: '#f97316', textTransform: 'uppercase' as const }}>Hashtag Health</span>
               </div>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ScoringRing value={hashtagScore} max={100} color="#f97316" unit="/100" />
+              </div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 12px', borderRadius: '9999px', border: '1px solid rgba(249,115,22,0.4)', background: 'rgba(249,115,22,0.18)', color: '#f97316', fontSize: '12px', fontWeight: 600 }}>
+                {hashtagScore}/100
+              </div>
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', textAlign: 'center', lineHeight: 1.4, margin: 0, maxWidth: '140px' }}>
+                {hashtagScore >= 70 ? 'Good niche targeting' : hashtagScore >= 50 ? 'Some over-saturated tags' : 'Using too many mass hashtags'}
+              </p>
+            </div>
 
           </motion.div>
 
