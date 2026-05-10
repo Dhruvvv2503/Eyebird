@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       .eq('ig_user_id', ig_user_id)
       .maybeSingle();
 
-    // Strategy 2: if not found, fetch all accounts for debugging
+    // Strategy 2: fetch all accounts for fallback matching
     let allAccounts: { ig_user_id: string; username: string; id: string }[] = [];
     if (!igAccount) {
       const { data: rows } = await supabaseAdmin
@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
 
       allAccounts = rows || [];
 
+      // Single account — use it regardless of ID
       if (allAccounts.length === 1) {
         const { data: full } = await supabaseAdmin
           .from('instagram_accounts')
@@ -49,6 +50,22 @@ export async function POST(req: NextRequest) {
           .single();
         igAccount = full;
         console.log('Using single account fallback:', igAccount?.username);
+      }
+    }
+
+    // Strategy 3: match by commenter_username against stored usernames
+    if (!igAccount && commenter_username) {
+      const match = allAccounts.find(
+        a => a.username.toLowerCase() === commenter_username.toLowerCase()
+      );
+      if (match) {
+        const { data: full } = await supabaseAdmin
+          .from('instagram_accounts')
+          .select('*')
+          .eq('id', match.id)
+          .single();
+        igAccount = full;
+        console.log('Using username fallback match:', igAccount?.username);
       }
     }
 
