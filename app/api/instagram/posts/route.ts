@@ -40,6 +40,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No Instagram account' }, { status: 400 });
     }
 
+    console.log('Fetching posts for ig_user_id:', igAccount.ig_user_id);
+
     let url = `https://graph.instagram.com/v21.0/${igAccount.ig_user_id}/media?fields=id,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count&limit=9&access_token=${igAccount.access_token}`;
 
     if (cursor) {

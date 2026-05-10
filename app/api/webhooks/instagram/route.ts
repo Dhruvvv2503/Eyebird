@@ -61,15 +61,32 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
 
     console.log(`Comment received: "${commentText}" from @${commenterUsername} on post ${postId}`);
 
-    // Fallback lookup — Meta may send a different ID format than what we stored
-    const { data: igAccount, error: igError } = await supabaseAdmin
+    // Strategy 1: direct ig_user_id match
+    let { data: igAccount } = await supabaseAdmin
       .from('instagram_accounts')
       .select('*')
-      .or(`ig_user_id.eq.${igBusinessAccountId},username.eq.dhruvv.bhaii`)
-      .single();
+      .eq('ig_user_id', igBusinessAccountId)
+      .maybeSingle();
 
-    if (igError || !igAccount) {
-      console.log('No matching Instagram account found for:', igBusinessAccountId);
+    // Strategy 2: if not found, fetch all accounts and log IDs for debugging
+    if (!igAccount) {
+      const { data: allAccounts } = await supabaseAdmin
+        .from('instagram_accounts')
+        .select('*');
+
+      console.log('All stored ig_user_ids:', allAccounts?.map(a => ({
+        id: a.ig_user_id,
+        username: a.username,
+      })));
+
+      if (allAccounts && allAccounts.length === 1) {
+        igAccount = allAccounts[0];
+        console.log('Using single account fallback:', igAccount.username);
+      }
+    }
+
+    if (!igAccount) {
+      console.log('No matching account found for webhook ID:', igBusinessAccountId);
       return;
     }
 

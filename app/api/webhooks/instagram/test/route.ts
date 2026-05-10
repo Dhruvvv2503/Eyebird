@@ -46,18 +46,34 @@ export async function POST(req: NextRequest) {
 
     console.log('Test webhook fired:', { ig_user_id, comment_text, commenter_username });
 
-    // Fallback lookup — check both ig_user_id and username in case Meta sends a different ID format
-    const { data: igAccount, error: igError } = await supabaseAdmin
+    // Strategy 1: direct ig_user_id match
+    let { data: igAccount } = await supabaseAdmin
       .from('instagram_accounts')
       .select('*')
-      .or(`ig_user_id.eq.${ig_user_id},username.eq.dhruvv.bhaii`)
-      .single();
+      .eq('ig_user_id', ig_user_id)
+      .maybeSingle();
 
-    if (igError || !igAccount) {
+    // Strategy 2: if not found, fetch all accounts and log IDs for debugging
+    if (!igAccount) {
+      const { data: allAccounts } = await supabaseAdmin
+        .from('instagram_accounts')
+        .select('*');
+
+      console.log('All stored ig_user_ids:', allAccounts?.map(a => ({
+        id: a.ig_user_id,
+        username: a.username,
+      })));
+
+      if (allAccounts && allAccounts.length === 1) {
+        igAccount = allAccounts[0];
+        console.log('Using single account fallback:', igAccount.username);
+      }
+    }
+
+    if (!igAccount) {
       return NextResponse.json({
         error: 'No matching Instagram account found',
         ig_user_id_searched: ig_user_id,
-        supabase_error: igError?.message,
       }, { status: 404 });
     }
 
