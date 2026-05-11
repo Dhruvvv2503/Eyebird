@@ -118,20 +118,159 @@ export function DashboardOverviewClient({ igAccount, audit, userProfile, autoSta
   // ─── STATE 1: NO INSTAGRAM CONNECTED ───────────────────────────
   if (!igAccount) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[75vh] text-center px-6 font-sans text-gray-100">
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-3xl font-bold text-white mb-8 shadow-xl shadow-purple-500/20">
-          EB
+      <div style={{
+        minHeight: '100vh',
+        background: '#07060F',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 24px',
+        position: 'relative',
+        overflow: 'hidden',
+        fontFamily: 'var(--font-body)',
+      }}>
+        {/* Background atmosphere */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background: 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(139,92,246,0.15) 0%, transparent 65%)',
+        }} />
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px)',
+          backgroundSize: '40px 40px',
+          maskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent)',
+          WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent)',
+        }} />
+
+        <div style={{ position: 'relative', textAlign: 'center', maxWidth: 520 }}>
+
+          {/* Logo mark */}
+          <div style={{
+            width: 72, height: 72, borderRadius: 20,
+            background: 'linear-gradient(135deg, #8B5CF6, #EC4899)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'var(--font-display)',
+            fontSize: 28, fontWeight: 800, color: '#fff',
+            margin: '0 auto 32px',
+            boxShadow: '0 12px 40px rgba(139,92,246,0.35), 0 0 0 1px rgba(139,92,246,0.2)',
+          }}>EB</div>
+
+          {/* Headline */}
+          <h1 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 32, fontWeight: 800,
+            color: '#fff', letterSpacing: '-0.5px',
+            marginBottom: 12, lineHeight: 1.2,
+          }}>
+            Connect your Instagram
+          </h1>
+
+          <p style={{
+            fontSize: 15, color: 'rgba(255,255,255,0.4)',
+            lineHeight: 1.7, marginBottom: 40, maxWidth: 360,
+            margin: '0 auto 40px',
+          }}>
+            Get your full account audit, automate DMs, and grow faster — all in one place.
+          </p>
+
+          {/* Feature pills */}
+          <div style={{
+            display: 'flex', justifyContent: 'center',
+            gap: 8, marginBottom: 40, flexWrap: 'wrap',
+          }}>
+            {[
+              { icon: '⚡', text: 'Takes 10 seconds' },
+              { icon: '👁️', text: 'Read-only access' },
+              { icon: '🔒', text: 'We never post anything' },
+            ].map(f => (
+              <div key={f.text} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 100, padding: '6px 14px',
+                fontSize: 12, fontWeight: 500,
+                color: 'rgba(255,255,255,0.5)',
+              }}>
+                <span>{f.icon}</span>
+                <span>{f.text}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA Button */}
+          <a
+            href="/api/instagram/auth"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 10,
+              padding: '15px 36px',
+              background: 'linear-gradient(135deg, #8B5CF6, #EC4899)',
+              borderRadius: 14, fontSize: 15, fontWeight: 700,
+              color: '#fff', textDecoration: 'none',
+              boxShadow: '0 8px 32px rgba(139,92,246,0.4)',
+              transition: 'all 0.2s',
+              fontFamily: 'var(--font-display)',
+            }}
+            onMouseOver={e => {
+              (e.currentTarget as HTMLElement).style.transform = 'scale(1.02)'
+              ;(e.currentTarget as HTMLElement).style.opacity = '0.95'
+            }}
+            onMouseOut={e => {
+              (e.currentTarget as HTMLElement).style.transform = 'scale(1)'
+              ;(e.currentTarget as HTMLElement).style.opacity = '1'
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="5"/>
+              <circle cx="12" cy="12" r="4"/>
+              <circle cx="17.5" cy="6.5" r="1" fill="white" stroke="none"/>
+            </svg>
+            Connect Instagram →
+          </a>
+
+          {/* What you get section */}
+          <div style={{
+            marginTop: 48,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 12,
+          }}>
+            {[
+              { icon: '📊', title: '22-metric audit', desc: 'Full account health report' },
+              { icon: '⚡', title: 'DM automation', desc: 'Comment → instant DM' },
+              { icon: '🤖', title: 'AI insights', desc: 'Personalized recommendations' },
+            ].map(item => (
+              <div key={item.title} style={{
+                background: 'linear-gradient(145deg, #0F0E20, #0C0B1A)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 14, padding: '16px 14px',
+                textAlign: 'center',
+              }}>
+                <div style={{ fontSize: 22, marginBottom: 8 }}>{item.icon}</div>
+                <div style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 13, fontWeight: 700,
+                  color: '#fff', marginBottom: 4,
+                }}>{item.title}</div>
+                <div style={{
+                  fontSize: 11, color: 'rgba(255,255,255,0.35)',
+                  lineHeight: 1.4,
+                }}>{item.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Trust line */}
+          <div style={{
+            marginTop: 28,
+            fontSize: 12, color: 'rgba(255,255,255,0.2)',
+            display: 'flex', alignItems: 'center',
+            justifyContent: 'center', gap: 6,
+          }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            Secured by Meta OAuth · Your password is never shared with Eyebird
+          </div>
         </div>
-        <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">Connect your Instagram</h1>
-        <p className="text-base text-gray-400 max-w-sm mb-8 leading-relaxed">
-          Takes 10 seconds. Read-only access. We never post anything on your behalf.
-        </p>
-        <a
-          href="/api/instagram/auth"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-white hover:bg-gray-100 text-black rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-        >
-          Connect Instagram <ArrowRight className="w-4 h-4" />
-        </a>
       </div>
     )
   }
