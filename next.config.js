@@ -42,6 +42,7 @@ const nextConfig = {
 
   experimental: {
     serverComponentsExternalPackages: ['puppeteer-core', '@sparticuz/chromium-min'],
+    optimizePackageImports: ['lucide-react', 'framer-motion'],
   },
   webpack: (config, { isServer }) => {
     if (isServer) {

@@ -331,9 +331,11 @@ export default function DashboardShell({
               {section.items.map(item => {
                 const active = item.href === '/dashboard' ? pathname === '/dashboard' : pathname?.startsWith(item.href)
                 return (
-                  <div
+                  <Link
                     key={item.href}
-                    onClick={() => !item.locked && router.push(item.href)}
+                    href={item.locked ? '#' : item.href}
+                    prefetch={!item.locked}
+                    onClick={(e) => { if (item.locked) e.preventDefault(); }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 9,
                       padding: '8px 10px', borderRadius: 9,
@@ -344,6 +346,7 @@ export default function DashboardShell({
                       transition: 'all 0.15s',
                       position: 'relative',
                       marginBottom: 1,
+                      textDecoration: 'none',
                     }}
                   >
                     {active && (
@@ -359,7 +362,7 @@ export default function DashboardShell({
                     {item.locked && (
                       <span style={{ marginLeft: 'auto', fontSize: 11, opacity: 0.35 }}>🔒</span>
                     )}
-                  </div>
+                  </Link>
                 )
               })}
             </div>
