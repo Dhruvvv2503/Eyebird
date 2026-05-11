@@ -259,7 +259,7 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
               <div style={{ fontSize: 10, color: '#666' }}>Instagram · Just now</div>
             </div>
           </div>
-          <div style={{ background: '#000', minHeight: 340, padding: '20px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ background: '#000', minHeight: 360, maxHeight: 420, padding: '20px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {form.opening_dm_enabled && form.opening_dm_text && (
               <div style={{ alignSelf: 'flex-start', maxWidth: '80%' }}>
                 <div style={{ background: '#1a1a1a', borderRadius: '18px 18px 18px 4px', padding: '10px 14px', fontSize: 12, color: '#fff', lineHeight: 1.5 }}>
@@ -273,12 +273,19 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
                   {getPreviewDmText()}
                 </div>
                 {form.main_dm_link_text && form.main_dm_link_url && (
-                  <div style={{ background: '#1C1C1E', border: '1px solid #333', borderRadius: 12, padding: '10px 14px', marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{form.main_dm_link_text}</div>
-                      <div style={{ fontSize: 10, color: '#666', marginTop: 2 }}>{form.main_dm_link_url}</div>
+                  <div style={{ background: '#1C1C1E', border: '0.5px solid #333', borderRadius: 14, overflow: 'hidden', marginTop: 6 }}>
+                    <div style={{ height: 80, background: 'linear-gradient(135deg, #8B5CF6, #EC4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+                      <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, border: '1px solid rgba(255,255,255,0.2)' }}>🔗</div>
                     </div>
-                    <div style={{ fontSize: 16 }}>→</div>
+                    <div style={{ padding: '10px 14px 12px' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{form.main_dm_link_text}</div>
+                      <div style={{ fontSize: 10, color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{form.main_dm_link_url.replace('https://', '').replace('http://', '').split('/')[0]}</div>
+                    </div>
+                    <div style={{ borderTop: '0.5px solid #2C2C2E', padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#0A84FF' }}>Open Link</span>
+                      <span style={{ fontSize: 12, color: '#0A84FF' }}>→</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -322,12 +329,31 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
               </div>
             )}
           </div>
-          <div style={{ background: '#000', padding: '10px 14px 16px' }}>
+          <div style={{ background: '#000', padding: '10px 14px 4px' }}>
             <div style={{ display: 'flex', gap: 14, marginBottom: 8, fontSize: 18 }}>
-              <span>♡</span><span style={{ fontSize: 16 }}>💬</span><span style={{ fontSize: 16 }}>↗</span>
+              <span>♡</span><span style={{ fontSize: 16 }}>💬</span><span style={{ fontSize: 16 }}>↗</span><span style={{ marginLeft: 'auto', fontSize: 16 }}>🔖</span>
             </div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', marginBottom: 4 }}>1,234 likes</div>
-            <div style={{ fontSize: 11, color: '#555' }}>View all 56 comments</div>
+            <div style={{ padding: '0 4px 12px' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 4 }}>1,247 likes</div>
+              <div style={{ fontSize: 12, color: '#fff', lineHeight: 1.5 }}>
+                <span style={{ fontWeight: 700 }}>@{igAccount?.username}</span>
+                {' '}
+                <span style={{ color: '#ccc' }}>
+                  {form.trigger_any_word
+                    ? 'Comment anything below to get this instantly! 👇'
+                    : form.trigger_keywords.length > 0
+                    ? `Comment "${form.trigger_keywords[0]}" below and I'll send it to you instantly 👇`
+                    : 'Your post caption will appear here...'}
+                </span>
+              </div>
+              {form.trigger_keywords.length > 0 && (
+                <div style={{ fontSize: 12, color: '#0A84FF', marginTop: 3, lineHeight: 1.5 }}>
+                  #{form.trigger_keywords[0].toLowerCase()} #automation #reels
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: '#555', marginTop: 5 }}>View all 47 comments</div>
+              <div style={{ fontSize: 10, color: '#555', marginTop: 3, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>2 hours ago</div>
+            </div>
           </div>
         </>
       );
@@ -344,7 +370,7 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
           </div>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>Comments</span>
         </div>
-        <div style={{ background: '#000', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 14, minHeight: 340 }}>
+        <div style={{ background: '#000', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 14, minHeight: 360, maxHeight: 420 }}>
           <div style={{ display: 'flex', gap: 8 }}>
             <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#2a2a2a', flexShrink: 0 }} />
             <div>
@@ -484,7 +510,9 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
               border: '10px solid #1C1C1E',
               boxShadow: '0 0 0 1px #2a2a2a, 0 40px 80px rgba(0,0,0,0.8), 0 0 60px rgba(139,92,246,0.15)',
               overflow: 'hidden',
+              overflowY: 'auto' as const,
               position: 'relative',
+              maxHeight: 'calc(100vh - 160px)',
             }}>
               {/* Status bar + Dynamic Island */}
               <div style={{ background: '#000', padding: '14px 20px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>

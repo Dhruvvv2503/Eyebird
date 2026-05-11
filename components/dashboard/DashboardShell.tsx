@@ -315,7 +315,7 @@ export default function DashboardShell({
             ]},
             { label: 'Growth', items: [
               { href: '/dashboard/automations',  icon: 'zap',     name: 'Automations', locked: false },
-              { href: '/dashboard/smart-reply',  icon: 'message', name: 'Smart Reply', locked: plan !== 'creator' },
+              { href: '/dashboard/smart-reply',  icon: 'message', name: 'Smart Reply', locked: false },
               { href: '/dashboard/contacts',     icon: 'users',   name: 'Contacts',    locked: plan !== 'creator' },
             ]},
             { label: 'Account', items: [

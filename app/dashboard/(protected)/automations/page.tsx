@@ -1,3 +1,5 @@
+export const revalidate = 0;
+
 import { requireAuth } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import AutomationsClient from '@/components/dashboard/AutomationsClient';
