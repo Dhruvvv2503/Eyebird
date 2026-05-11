@@ -75,6 +75,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [fullName, setFullName] = useState('');
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [notifications, setNotifications] = useState({
     weekly_report: true,
     audit_completed: true,
@@ -125,6 +126,29 @@ export default function SettingsPage() {
     } catch {
       alert('Network error. Please try again.');
       setDeletingAccount(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    const username = data?.igAccount?.username || 'your account';
+    const confirmed = window.confirm(
+      `Disconnect @${username} from Eyebird?\nYour automations will stop working until you reconnect.`
+    );
+    if (!confirmed) return;
+
+    setDisconnecting(true);
+    try {
+      const res = await fetch('/api/instagram/disconnect', { method: 'DELETE' });
+      if (res.ok) {
+        window.location.href = '/dashboard';
+      } else {
+        const err = await res.json();
+        alert('Failed to disconnect: ' + (err.error || 'Unknown error. Please try again.'));
+        setDisconnecting(false);
+      }
+    } catch {
+      alert('Network error. Please try again.');
+      setDisconnecting(false);
     }
   };
 
@@ -226,12 +250,16 @@ export default function SettingsPage() {
                       </div>
                     )}
                   </div>
-                  <button
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--danger)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-                    onClick={() => alert('To disconnect Instagram, please reconnect with a different account or contact support.')}
-                  >
-                    <ExternalLink size={12} /> Disconnect
-                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                    <button
+                      onClick={handleDisconnect}
+                      disabled={disconnecting}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', fontSize: 12, fontWeight: 600, cursor: disconnecting ? 'not-allowed' : 'pointer', opacity: disconnecting ? 0.6 : 1, transition: 'all 0.15s' }}
+                    >
+                      <ExternalLink size={12} /> {disconnecting ? 'Disconnecting…' : 'Disconnect Instagram'}
+                    </button>
+                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Disconnecting will pause all active automations</span>
+                  </div>
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '32px 0' }}>
