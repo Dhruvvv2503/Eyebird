@@ -4,12 +4,14 @@ export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
-const BASE_PRICE_PAISE = 9900; // ₹99
+const DEFAULT_BASE_PRICE = 9900; // ₹99 audit price
 
 export async function POST(request: NextRequest) {
   try {
-    const { code } = await request.json();
+    const { code, amount } = await request.json();
     if (!code) return NextResponse.json({ error: 'code required' }, { status: 400 });
+    // Callers can pass amount (in paise) to validate against a different base price
+    const BASE_PRICE_PAISE = typeof amount === 'number' && amount > 0 ? amount : DEFAULT_BASE_PRICE;
 
     const { data: promo, error } = await supabaseAdmin
       .from('promo_codes')

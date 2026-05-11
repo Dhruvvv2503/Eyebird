@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Activity, PlaySquare, Image as ImageIcon, Lock, CheckCircle2, ArrowRight, Zap, TrendingUp, Clock, Hash, IndianRupee, PenLine, Sparkles, BarChart3, AlertCircle } from 'lucide-react'
+import UpgradeModal from './UpgradeModal'
 
 interface Props {
   igAccount: any
@@ -9,6 +10,8 @@ interface Props {
   userProfile: any
   autoStart: boolean
   userId: string
+  userEmail: string
+  autoUpgrade?: boolean
 }
 
 function safeGet(obj: any, path: string, fallback: any = null) {
@@ -51,11 +54,16 @@ const LOADING_FACTS = [
   'Generating your action plan...',
 ]
 
-export function DashboardOverviewClient({ igAccount, audit, userProfile, autoStart, userId }: Props) {
+export function DashboardOverviewClient({ igAccount, audit, userProfile, autoStart, userId, userEmail, autoUpgrade }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [factIndex, setFactIndex] = useState(0)
   const [currentAudit, setCurrentAudit] = useState(audit)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+
+  useEffect(() => {
+    if (autoUpgrade) setShowUpgradeModal(true)
+  }, [autoUpgrade])
 
   // Derive metrics early so hooks can use them
   const overallScore = currentAudit?.overall_score || 0
@@ -361,6 +369,7 @@ export function DashboardOverviewClient({ igAccount, audit, userProfile, autoSta
   })
 
   return (
+  <>
   <div style={{
     fontFamily: 'var(--font-body)',
     minHeight: '100vh',
@@ -877,13 +886,13 @@ export function DashboardOverviewClient({ igAccount, audit, userProfile, autoSta
                   </div>
                 ))}
               </div>
-              <a
-                href="/dashboard/upgrade"
-                style={{ display: 'block', padding: '14px 0', background: 'linear-gradient(135deg, #8B5CF6, #A855F7, #EC4899)', borderRadius: 14, textAlign: 'center' as const, fontSize: 13, fontWeight: 800, color: '#fff', textDecoration: 'none', fontFamily: 'var(--font-display)', boxShadow: '0 6px 28px rgba(139,92,246,0.42)', letterSpacing: '-0.1px', transition: 'all 0.2s ease' }}
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                style={{ display: 'block', width: '100%', padding: '14px 0', background: 'linear-gradient(135deg, #8B5CF6, #A855F7, #EC4899)', borderRadius: 14, textAlign: 'center' as const, fontSize: 13, fontWeight: 800, color: '#fff', border: 'none', fontFamily: 'var(--font-display)', boxShadow: '0 6px 28px rgba(139,92,246,0.42)', letterSpacing: '-0.1px', transition: 'all 0.2s ease', cursor: 'pointer' }}
                 onMouseOver={e => { const el = e.currentTarget as HTMLElement; el.style.opacity='0.90'; el.style.transform='scale(1.015)'; el.style.boxShadow='0 10px 36px rgba(139,92,246,0.55)'; }}
                 onMouseOut={e  => { const el = e.currentTarget as HTMLElement; el.style.opacity='1';    el.style.transform='scale(1)';     el.style.boxShadow='0 6px 28px rgba(139,92,246,0.42)'; }}>
                 Start Creator Plan →
-              </a>
+              </button>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.16)', textAlign: 'center' as const, marginTop: 10, fontWeight: 500 }}>Cancel anytime · No contracts · Instant access</div>
             </div>
           </div>
@@ -892,5 +901,12 @@ export function DashboardOverviewClient({ igAccount, audit, userProfile, autoSta
       </div>
     </div>
   </div>
+  <UpgradeModal
+    isOpen={showUpgradeModal}
+    onClose={() => setShowUpgradeModal(false)}
+    onSuccess={() => window.location.reload()}
+    userEmail={userEmail}
+  />
+</>
 )
 }

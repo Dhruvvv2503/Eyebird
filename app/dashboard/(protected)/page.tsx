@@ -5,7 +5,7 @@ import { DashboardOverviewClient } from '@/components/dashboard/DashboardOvervie
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { instagram_connected?: string }
+  searchParams: { instagram_connected?: string; upgrade?: string }
 }) {
   const session = await requireAuth()
   const userId = session.user.id
@@ -54,6 +54,7 @@ export default async function DashboardPage({
   }
 
   const autoStart = searchParams?.instagram_connected === 'true'
+  const autoUpgrade = searchParams?.upgrade === '1'
 
   return (
     <DashboardOverviewClient
@@ -62,6 +63,8 @@ export default async function DashboardPage({
       userProfile={userProfile}
       autoStart={autoStart}
       userId={userId}
+      userEmail={session.user.email ?? ''}
+      autoUpgrade={autoUpgrade}
     />
   )
 }

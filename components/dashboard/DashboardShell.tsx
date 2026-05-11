@@ -9,6 +9,7 @@ import {
   LayoutDashboard, BarChart2, Zap, Sparkles, Users, TrendingUp, Settings,
   LogOut, Menu, X,
 } from 'lucide-react';
+import UpgradeModal from './UpgradeModal';
 
 interface DashboardShellProps {
   displayName: string;
@@ -64,6 +65,7 @@ export default function DashboardShell({
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const isActive = (href: string) =>
     href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(href);
@@ -379,7 +381,7 @@ export default function DashboardShell({
               22 insights + unlimited DM automations + monthly re-audit
             </div>
             <button
-              onClick={() => router.push('/dashboard/upgrade')}
+              onClick={() => setShowUpgrade(true)}
               style={{
                 width: '100%', padding: 8,
                 background: 'linear-gradient(135deg, #8B5CF6, #EC4899)',
@@ -475,6 +477,14 @@ export default function DashboardShell({
           {children}
         </motion.div>
       </main>
+
+      {/* ── Upgrade Modal ── */}
+      <UpgradeModal
+        isOpen={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        onSuccess={() => window.location.reload()}
+        userEmail={userEmail}
+      />
 
       {/* ── Mobile Bottom Nav ── */}
       <div className="db-bottomnav" style={{

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Zap, BarChart2, MessageCircle, TrendingUp, Sparkles, IndianRupee,
@@ -51,6 +52,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function LandingPage() {
+  const router = useRouter()
   const [scrolled, setScrolled] = useState(false)
   const [dmStep, setDmStep] = useState(0)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -837,16 +839,18 @@ export default function LandingPage() {
                 ))}
               </div>
 
-              <Link href="/signup" style={{
-                display: 'block', padding: '14px 0', background: 'transparent',
-                border: '1.5px solid rgba(139,92,246,0.5)', borderRadius: 12,
-                textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#a78bfa',
-                textDecoration: 'none', transition: 'all 0.2s', letterSpacing: '-0.01em',
-                marginTop: 'auto',
-              }}
-                onMouseOver={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.15)'; e.currentTarget.style.borderColor = '#8B5CF6'; (e.currentTarget as HTMLAnchorElement).style.color = 'white' }}
-                onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.5)'; (e.currentTarget as HTMLAnchorElement).style.color = '#a78bfa' }}
-              >Start Creator Plan →</Link>
+              <button
+                onClick={() => router.push(isLoggedIn ? '/dashboard?upgrade=1' : '/login')}
+                style={{
+                  display: 'block', width: '100%', padding: '14px 0', background: 'transparent',
+                  border: '1.5px solid rgba(139,92,246,0.5)', borderRadius: 12,
+                  textAlign: 'center' as const, fontSize: 15, fontWeight: 700, color: '#a78bfa',
+                  cursor: 'pointer', transition: 'all 0.2s', letterSpacing: '-0.01em',
+                  marginTop: 'auto', fontFamily: 'inherit',
+                }}
+                onMouseOver={e => { const el = e.currentTarget as HTMLElement; el.style.background = 'rgba(139,92,246,0.15)'; el.style.borderColor = '#8B5CF6'; el.style.color = 'white'; }}
+                onMouseOut={e => { const el = e.currentTarget as HTMLElement; el.style.background = 'transparent'; el.style.borderColor = 'rgba(139,92,246,0.5)'; el.style.color = '#a78bfa'; }}
+              >Start Creator Plan →</button>
 
               <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', textAlign: 'center', marginTop: 10, marginBottom: 0 }}>
                 Cancel anytime · No contracts · Instant access
