@@ -22,9 +22,11 @@ export async function POST(req: NextRequest) {
       commenter_ig_id = '12345678',
       post_id = null,
       comment_id = null,
+      test_public_reply = false,
+      reply_text = 'Sent you a DM! Check your inbox 📩',
     } = body;
 
-    console.log('Test webhook fired:', { ig_user_id, comment_text, commenter_username, comment_id });
+    console.log('Test webhook fired:', { ig_user_id, comment_text, commenter_username, comment_id, test_public_reply });
 
     // Strategy 1: direct ig_user_id match
     let { data: igAccount } = await supabaseAdmin
@@ -80,6 +82,27 @@ export async function POST(req: NextRequest) {
     }
 
     console.log('Found IG account:', igAccount.username, igAccount.ig_user_id);
+
+    // Direct public reply test — bypasses automation logic entirely
+    if (test_public_reply) {
+      if (!comment_id) return NextResponse.json({ error: 'comment_id required for test_public_reply' }, { status: 400 });
+      const replyResp = await fetch(`https://graph.instagram.com/v21.0/${comment_id}/replies`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${igAccount.access_token}`,
+        },
+        body: JSON.stringify({ message: reply_text }),
+      });
+      const replyData = await replyResp.json();
+      return NextResponse.json({
+        account: igAccount.username,
+        comment_id,
+        reply_text,
+        api_response: replyData,
+        success: !replyData.error,
+      });
+    }
 
     const { data: automations } = await supabaseAdmin
       .from('automations')

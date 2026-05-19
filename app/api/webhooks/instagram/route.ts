@@ -219,16 +219,19 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
           if (validVariations.length > 0) {
             const replyText = validVariations[Math.floor(Math.random() * validVariations.length)];
             try {
-              const replyResp = await fetch(`https://graph.facebook.com/v21.0/${commentId}/replies`, {
+              const replyResp = await fetch(`https://graph.instagram.com/v21.0/${commentId}/replies`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({ message: replyText, access_token: igAccount.access_token as string }).toString(),
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${igAccount.access_token}`,
+                },
+                body: JSON.stringify({ message: replyText }),
               });
               const replyData = await replyResp.json();
               if (replyData.error) {
-                console.error('Public reply failed:', replyData.error.message);
+                console.error('Public reply failed — full error:', JSON.stringify(replyData.error));
               } else {
-                console.log(`✅ Public reply posted: "${replyText}"`);
+                console.log(`✅ Public reply posted: "${replyText}"`, JSON.stringify(replyData));
               }
             } catch (replyErr) {
               console.error('Public reply error:', replyErr);
