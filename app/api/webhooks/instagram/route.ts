@@ -192,6 +192,32 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
         test_mode: automation.test_mode,
       });
 
+      // Public reply fires on keyword match regardless of DM outcome
+      if (automation.reply_to_comment_publicly && automation.public_reply_variations?.length > 0) {
+        const validVariations = (automation.public_reply_variations as string[]).filter((v: string) => v.trim().length > 0);
+        if (validVariations.length > 0) {
+          const replyText = validVariations[Math.floor(Math.random() * validVariations.length)];
+          try {
+            const replyResp = await fetch(`https://graph.instagram.com/v21.0/${commentId}/replies`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${igAccount.access_token}`,
+              },
+              body: JSON.stringify({ message: replyText }),
+            });
+            const replyData = await replyResp.json();
+            if (replyData.error) {
+              console.error('Public reply failed — full error:', JSON.stringify(replyData.error));
+            } else {
+              console.log(`✅ Public reply posted: "${replyText}"`, JSON.stringify(replyData));
+            }
+          } catch (replyErr) {
+            console.error('Public reply error:', replyErr);
+          }
+        }
+      }
+
       if (dmResult.success) {
         await supabaseAdmin
           .from('automations')
@@ -213,31 +239,6 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
             onConflict: 'user_id,ig_user_id',
             ignoreDuplicates: false,
           });
-
-        if (automation.reply_to_comment_publicly && automation.public_reply_variations?.length > 0) {
-          const validVariations = (automation.public_reply_variations as string[]).filter((v: string) => v.trim().length > 0);
-          if (validVariations.length > 0) {
-            const replyText = validVariations[Math.floor(Math.random() * validVariations.length)];
-            try {
-              const replyResp = await fetch(`https://graph.instagram.com/v21.0/${commentId}/replies`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${igAccount.access_token}`,
-                },
-                body: JSON.stringify({ message: replyText }),
-              });
-              const replyData = await replyResp.json();
-              if (replyData.error) {
-                console.error('Public reply failed — full error:', JSON.stringify(replyData.error));
-              } else {
-                console.log(`✅ Public reply posted: "${replyText}"`, JSON.stringify(replyData));
-              }
-            } catch (replyErr) {
-              console.error('Public reply error:', replyErr);
-            }
-          }
-        }
 
         console.log(`✅ DM sent successfully to ${automation.test_mode ? 'creator (test mode)' : commenterUsername}`);
       } else {
