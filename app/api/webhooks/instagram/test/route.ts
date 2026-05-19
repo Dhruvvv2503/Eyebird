@@ -85,8 +85,32 @@ export async function POST(req: NextRequest) {
 
     // Direct public reply test — bypasses automation logic entirely
     if (test_public_reply) {
-      if (!comment_id) return NextResponse.json({ error: 'comment_id required for test_public_reply' }, { status: 400 });
-      const replyResp = await fetch(`https://graph.instagram.com/v21.0/${comment_id}/replies`, {
+      let resolvedCommentId = comment_id;
+
+      // Auto-fetch most recent comment if no comment_id provided
+      if (!resolvedCommentId) {
+        // Get most recent media
+        const mediaRes = await fetch(
+          `https://graph.instagram.com/v21.0/${igAccount.ig_user_id}/media?fields=id&limit=1&access_token=${igAccount.access_token}`
+        );
+        const mediaData = await mediaRes.json();
+        const latestMediaId = mediaData?.data?.[0]?.id;
+        if (!latestMediaId) {
+          return NextResponse.json({ error: 'No media found on account' }, { status: 404 });
+        }
+        // Get most recent comment on that media
+        const commentsRes = await fetch(
+          `https://graph.instagram.com/v21.0/${latestMediaId}/comments?fields=id,text,username&limit=1&access_token=${igAccount.access_token}`
+        );
+        const commentsData = await commentsRes.json();
+        resolvedCommentId = commentsData?.data?.[0]?.id;
+        if (!resolvedCommentId) {
+          return NextResponse.json({ error: 'No comments found on most recent post — comment on your post first then retry', media_id: latestMediaId }, { status: 404 });
+        }
+        console.log('Auto-resolved comment_id:', resolvedCommentId, commentsData?.data?.[0]);
+      }
+
+      const replyResp = await fetch(`https://graph.instagram.com/v21.0/${resolvedCommentId}/replies`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,7 +121,7 @@ export async function POST(req: NextRequest) {
       const replyData = await replyResp.json();
       return NextResponse.json({
         account: igAccount.username,
-        comment_id,
+        comment_id: resolvedCommentId,
         reply_text,
         api_response: replyData,
         success: !replyData.error,
