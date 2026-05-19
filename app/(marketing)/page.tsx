@@ -193,22 +193,6 @@ export default function LandingPage() {
           `,
         }} />
 
-        {/* Eyebrow */}
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8,
-          padding: '7px 18px',
-          border: '1px solid rgba(139,92,246,0.3)', borderRadius: 20,
-          background: 'rgba(139,92,246,0.08)', marginBottom: 36,
-          fontSize: 12, fontWeight: 600, color: '#a78bfa',
-          letterSpacing: '0.06em', textTransform: 'uppercase',
-        }}>
-          <span style={{
-            width: 6, height: 6, borderRadius: '50%', background: '#8B5CF6',
-            animation: 'pulse-dot 2s ease-in-out infinite', flexShrink: 0,
-          }} />
-          India's AI Instagram Manager
-        </div>
-
         {/* Headline */}
         <h1 className="text-hero" style={{ marginBottom: 28, maxWidth: 840 }}>
           Your Instagram{' '}
