@@ -213,10 +213,10 @@ async function sendInstagramDM(
       });
       const templateData = await templateResp.json();
       console.log('Button template response:', JSON.stringify(templateData));
-      if (!templateData.error) {
+      if (templateData.message_id) {
         return { success: true, messageId: templateData.message_id };
       }
-      console.log('Button template failed:', templateData.error.message, '— falling back to text+link');
+      console.log('Button template failed:', templateData.error?.message, '— falling back to text+link');
     }
 
     // Attempt 2: Combined text + link as plain text in a single Private Reply
@@ -236,10 +236,10 @@ async function sendInstagramDM(
       });
       const prData = await prResp.json();
       console.log('Private Reply response:', JSON.stringify(prData));
-      if (!prData.error) {
+      if (prData.message_id) {
         return { success: true, messageId: prData.message_id };
       }
-      console.log('Private Reply failed:', prData.error.message, '— falling back to id');
+      console.log('Private Reply failed:', prData.error?.message, '— falling back to id');
     }
 
     // Attempt 3: Direct id fallback (requires 24h window)
