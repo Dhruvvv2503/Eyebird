@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
         trigger_keywords: body.trigger_keywords || [],
         trigger_any_word: body.trigger_any_word || false,
         reply_to_comment_publicly: body.reply_to_comment_publicly || false,
+        public_reply_variations: body.public_reply_variations || [],
         opening_dm_enabled: body.opening_dm_enabled || false,
         opening_dm_text: body.opening_dm_text || null,
         follow_gate_enabled: body.follow_gate_enabled || false,

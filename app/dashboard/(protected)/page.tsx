@@ -45,7 +45,7 @@ export default async function DashboardPage({
   try {
     const result = await supabaseAdmin
       .from('user_profiles')
-      .select('plan, full_name, avatar_url')
+      .select('plan, full_name, avatar_url, terms_accepted')
       .eq('id', userId)
       .single()
     userProfile = result.data
@@ -65,6 +65,7 @@ export default async function DashboardPage({
       userId={userId}
       userEmail={session.user.email ?? ''}
       autoUpgrade={autoUpgrade}
+      termsAccepted={userProfile?.terms_accepted ?? null}
     />
   )
 }

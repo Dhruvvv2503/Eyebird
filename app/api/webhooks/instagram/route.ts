@@ -189,6 +189,28 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
             ignoreDuplicates: false,
           });
 
+        if (automation.reply_to_comment_publicly && automation.public_reply_variations?.length > 0) {
+          const validVariations = (automation.public_reply_variations as string[]).filter((v: string) => v.trim().length > 0);
+          if (validVariations.length > 0) {
+            const replyText = validVariations[Math.floor(Math.random() * validVariations.length)];
+            try {
+              const replyResp = await fetch(`https://graph.instagram.com/v21.0/${commentId}/replies`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${igAccount.access_token}` },
+                body: JSON.stringify({ message: replyText }),
+              });
+              const replyData = await replyResp.json();
+              if (replyData.error) {
+                console.error('Public reply failed:', replyData.error.message);
+              } else {
+                console.log(`✅ Public reply posted: "${replyText}"`);
+              }
+            } catch (replyErr) {
+              console.error('Public reply error:', replyErr);
+            }
+          }
+        }
+
         console.log(`✅ DM sent successfully to ${automation.test_mode ? 'creator (test mode)' : commenterUsername}`);
       } else {
         console.error(`❌ DM failed:`, dmResult.error);

@@ -11,6 +11,8 @@ function DashboardAuditInner() {
 
   const [igAccount, setIgAccount] = useState<any>(null);
   const [audits, setAudits] = useState<any[]>([]);
+  const [hasPaidPlan, setHasPaidPlan] = useState(false);
+  const [userPlan, setUserPlan] = useState('free');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,6 +21,8 @@ function DashboardAuditInner() {
       .then(d => {
         setIgAccount(d.igAccount || null);
         setAudits(d.audits || []);
+        setHasPaidPlan(d.hasPaidPlan || false);
+        setUserPlan(d.userPlan || 'free');
       })
       .finally(() => setLoading(false));
   }, []);
@@ -36,6 +40,8 @@ function DashboardAuditInner() {
       igAccount={igAccount}
       audits={audits}
       autoStart={autoStart}
+      hasPaidPlan={hasPaidPlan}
+      userPlan={userPlan}
     />
   );
 }

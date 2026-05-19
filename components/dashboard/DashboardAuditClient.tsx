@@ -14,6 +14,8 @@ interface Props {
   igAccount: { ig_user_id: string; username: string; followers_count?: number; profile_picture_url?: string } | null;
   audits: any[];
   autoStart: boolean;
+  hasPaidPlan: boolean;
+  userPlan: string;
 }
 
 const LOADING_STEPS = [
@@ -102,7 +104,7 @@ function ScoringRing({ value, max, color, displayText, subText, textSize }: {
   );
 }
 
-export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
+export function DashboardAuditClient({ igAccount, audits, autoStart, hasPaidPlan, userPlan }: Props) {
   const router = useRouter();
   const [state, setState] = useState<'empty' | 'loading' | 'report' | 'history'>('empty');
   const [currentAudit, setCurrentAudit] = useState<any>(null);
@@ -117,7 +119,7 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
   useEffect(() => {
     if (audits.length > 0) {
       setCurrentAudit(audits[0]);
-      setIsPaid(audits[0]?.is_paid ?? false);
+      setIsPaid((audits[0]?.is_paid ?? false) || hasPaidPlan);
       setState('report');
     } else if (autoStart && igAccount) {
       startAudit();
@@ -164,7 +166,7 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
           .single();
 
         setCurrentAudit(audit);
-        setIsPaid(audit?.is_paid ?? false);
+        setIsPaid((audit?.is_paid ?? false) || hasPaidPlan);
         setState('report');
         router.replace('/dashboard/audit');
       } else {
@@ -317,6 +319,11 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
+              {hasPaidPlan && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 100, padding: '4px 12px', fontSize: 11, fontWeight: 700, color: '#a78bfa', marginBottom: 10 }}>
+                  ⚡ {userPlan === 'pro' ? 'Pro Plan' : 'Creator Plan'} — Full access included
+                </div>
+              )}
               <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: 8 }}>
                 Instagram Audit
               </div>
@@ -520,7 +527,7 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
               or
               CHAPTER 14 — PAYWALL GATE
           ═══════════════════════════════════════ */}
-          {isPaid ? (
+          {isPaid || hasPaidPlan ? (
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -731,7 +738,7 @@ export function DashboardAuditClient({ igAccount, audits, autoStart }: Props) {
               <div
                 key={audit.id}
                 style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${scoreDiff !== null && scoreDiff > 0 ? 'rgba(34,197,94,0.15)' : scoreDiff !== null && scoreDiff < 0 ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 14, padding: '20px 24px', cursor: 'pointer', transition: 'border-color 0.2s, transform 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}
-                onClick={() => { setCurrentAudit(audit); setIsPaid(audit?.is_paid ?? false); setState('report'); }}
+                onClick={() => { setCurrentAudit(audit); setIsPaid((audit?.is_paid ?? false) || hasPaidPlan); setState('report'); }}
                 onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(139,92,246,0.3)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                 onMouseOut={e => { e.currentTarget.style.borderColor = scoreDiff !== null && scoreDiff > 0 ? 'rgba(34,197,94,0.15)' : scoreDiff !== null && scoreDiff < 0 ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.07)'; e.currentTarget.style.transform = 'translateY(0)'; }}
               >

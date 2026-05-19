@@ -296,6 +296,24 @@ Respond ONLY with valid JSON (no markdown, no explanation outside JSON):
       return NextResponse.json({ error: 'AI returned incomplete data. Please try again.' }, { status: 500 });
     }
 
+    // Check if the account owner has an active paid plan
+    let hasPaidPlan = false;
+    const { data: igAccountData } = await supabaseAdmin
+      .from('instagram_accounts')
+      .select('user_id')
+      .eq('ig_user_id', igUserId)
+      .single();
+    if (igAccountData?.user_id) {
+      const { data: userProfile } = await supabaseAdmin
+        .from('user_profiles')
+        .select('plan, plan_expires_at')
+        .eq('id', igAccountData.user_id)
+        .single();
+      hasPaidPlan =
+        (userProfile?.plan === 'creator' || userProfile?.plan === 'pro') &&
+        (!userProfile?.plan_expires_at || new Date(userProfile.plan_expires_at) > new Date());
+    }
+
     // Store as NEW audit row
     const { data: audit, error: auditError } = await supabaseAdmin
       .from('audits')
@@ -305,7 +323,7 @@ Respond ONLY with valid JSON (no markdown, no explanation outside JSON):
         computed_metrics: metrics,
         ai_analysis: aiAnalysis,
         overall_score: aiAnalysis.overall_score || 0,
-        is_paid: false,
+        is_paid: hasPaidPlan,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })

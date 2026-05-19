@@ -28,6 +28,7 @@ const DEFAULT_FORM: AutomationFormState = {
   trigger_keywords: [],
   trigger_any_word: false,
   reply_to_comment_publicly: false,
+  public_reply_variations: [''],
   opening_dm_enabled: false,
   opening_dm_text: '',
   follow_gate_enabled: false,
@@ -47,6 +48,7 @@ function getInitialForm(existing: Record<string, unknown> | null): AutomationFor
     trigger_keywords: (existing.trigger_keywords as string[]) || [],
     trigger_any_word: (existing.trigger_any_word as boolean) || false,
     reply_to_comment_publicly: (existing.reply_to_comment_publicly as boolean) || false,
+    public_reply_variations: (existing.public_reply_variations as string[])?.length ? (existing.public_reply_variations as string[]) : [''],
     opening_dm_enabled: (existing.opening_dm_enabled as boolean) || false,
     opening_dm_text: (existing.opening_dm_text as string) || '',
     follow_gate_enabled: (existing.follow_gate_enabled as boolean) || false,
@@ -195,6 +197,7 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
         main_dm_link_text: form.main_dm_link_text || null,
         main_dm_link_url: form.main_dm_link_url || null,
         opening_dm_text: form.opening_dm_enabled ? form.opening_dm_text : null,
+        public_reply_variations: form.public_reply_variations.filter(v => v.trim().length > 0),
       };
       const url = existingAutomation ? `/api/automations/${existingAutomation.id}` : '/api/automations';
       const method = existingAutomation ? 'PATCH' : 'POST';
@@ -400,7 +403,7 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
               </div>
               <div>
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>@{igAccount?.username || 'you'} </span>
-                <span style={{ fontSize: 11, color: '#999' }}>Sent you a DM! 📩</span>
+                <span style={{ fontSize: 11, color: '#999' }}>{form.public_reply_variations.find(v => v.trim()) || 'Sent you a DM! 📩'}</span>
                 <div style={{ fontSize: 10, color: '#444', marginTop: 2 }}>Just now · <span style={{ color: '#8B5CF6' }}>Automated</span></div>
               </div>
             </div>
@@ -783,12 +786,51 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
                   </>
                 )}
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, padding: '10px 12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 9 }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>Reply to comment publicly</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>Optional: reply on post before DMing</div>
+                <div style={{ marginTop: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 9, overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px' }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>Reply to comment publicly</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>Optional: reply on post before DMing</div>
+                    </div>
+                    <Toggle value={form.reply_to_comment_publicly} onChange={() => setForm(f => ({ ...f, reply_to_comment_publicly: !f.reply_to_comment_publicly }))} />
                   </div>
-                  <Toggle value={form.reply_to_comment_publicly} onChange={() => setForm(f => ({ ...f, reply_to_comment_publicly: !f.reply_to_comment_publicly }))} />
+                  {form.reply_to_comment_publicly && (
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '12px 12px 14px' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>
+                        Reply variations — one will be picked at random
+                      </div>
+                      {form.public_reply_variations.map((variation, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                          <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#c4b5fd', flexShrink: 0, marginTop: 9 }}>{idx + 1}</div>
+                          <input
+                            value={variation}
+                            onChange={e => setForm(f => {
+                              const updated = [...f.public_reply_variations];
+                              updated[idx] = e.target.value;
+                              return { ...f, public_reply_variations: updated };
+                            })}
+                            placeholder={idx === 0 ? 'Sent you a DM! 📩' : `Variation ${idx + 1}...`}
+                            maxLength={200}
+                            style={{ ...fieldStyle, flex: 1, width: 'auto' }}
+                            onFocus={e => { e.target.style.borderColor = 'rgba(139,92,246,0.4)'; }}
+                            onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                          />
+                          {form.public_reply_variations.length > 1 && (
+                            <button
+                              onClick={() => setForm(f => ({ ...f, public_reply_variations: f.public_reply_variations.filter((_, i) => i !== idx) }))}
+                              style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', fontSize: 14, cursor: 'pointer', flexShrink: 0, marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >×</button>
+                          )}
+                        </div>
+                      ))}
+                      {form.public_reply_variations.length < 5 && (
+                        <button
+                          onClick={() => setForm(f => ({ ...f, public_reply_variations: [...f.public_reply_variations, ''] }))}
+                          style={{ marginTop: 4, padding: '5px 10px', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 7, color: '#c4b5fd', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                        >+ Add variation</button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

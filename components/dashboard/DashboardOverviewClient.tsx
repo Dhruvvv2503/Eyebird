@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Activity, PlaySquare, Image as ImageIcon, Lock, CheckCircle2, ArrowRight, Zap, TrendingUp, Clock, Hash, IndianRupee, PenLine, Sparkles, BarChart3, AlertCircle } from 'lucide-react'
 import UpgradeModal from './UpgradeModal'
+import TermsPopup from './TermsPopup'
 
 interface Props {
   igAccount: any
@@ -12,6 +13,7 @@ interface Props {
   userId: string
   userEmail: string
   autoUpgrade?: boolean
+  termsAccepted?: boolean | null
 }
 
 function safeGet(obj: any, path: string, fallback: any = null) {
@@ -54,12 +56,13 @@ const LOADING_FACTS = [
   'Generating your action plan...',
 ]
 
-export function DashboardOverviewClient({ igAccount, audit, userProfile, autoStart, userId, userEmail, autoUpgrade }: Props) {
+export function DashboardOverviewClient({ igAccount, audit, userProfile, autoStart, userId, userEmail, autoUpgrade, termsAccepted }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [factIndex, setFactIndex] = useState(0)
   const [currentAudit, setCurrentAudit] = useState(audit)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [showTerms, setShowTerms] = useState(termsAccepted === false)
 
   useEffect(() => {
     if (autoUpgrade) setShowUpgradeModal(true)
@@ -122,6 +125,11 @@ export function DashboardOverviewClient({ igAccount, audit, userProfile, autoSta
       runAudit()
     }
   }, [autoStart, igAccount, currentAudit, runAudit])
+
+  // ─── TERMS POPUP ───────────────────────────────────────────────
+  if (showTerms) {
+    return <TermsPopup userEmail={userEmail} onAccepted={() => setShowTerms(false)} />
+  }
 
   // ─── STATE 1: NO INSTAGRAM CONNECTED ───────────────────────────
   if (!igAccount) {

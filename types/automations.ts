@@ -13,6 +13,7 @@ export interface Automation {
   trigger_keywords: string[]
   trigger_any_word: boolean
   reply_to_comment_publicly: boolean
+  public_reply_variations: string[]
   opening_dm_enabled: boolean
   opening_dm_text: string | null
   follow_gate_enabled: boolean
@@ -58,6 +59,7 @@ export interface AutomationFormState {
   trigger_keywords: string[]
   trigger_any_word: boolean
   reply_to_comment_publicly: boolean
+  public_reply_variations: string[]
   opening_dm_enabled: boolean
   opening_dm_text: string
   follow_gate_enabled: boolean

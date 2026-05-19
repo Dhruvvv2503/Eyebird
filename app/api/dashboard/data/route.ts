@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const [profileResult, igResult] = await Promise.allSettled([
       supabaseAdmin
         .from('user_profiles')
-        .select('full_name, avatar_url, plan, onboarding_completed')
+        .select('full_name, avatar_url, plan, plan_expires_at, onboarding_completed')
         .eq('id', userId)
         .single(),
       supabaseAdmin
@@ -58,10 +58,18 @@ export async function GET(request: NextRequest) {
       audits = data || [];
     }
 
+    const userPlan = profile?.plan || 'free';
+    const planExpired = profile?.plan_expires_at
+      ? new Date(profile.plan_expires_at) < new Date()
+      : false;
+    const hasPaidPlan = (userPlan === 'creator' || userPlan === 'pro') && !planExpired;
+
     return NextResponse.json({
       profile,
       igAccount,
       audits,
+      hasPaidPlan,
+      userPlan,
       user: {
         id: session.user.id,
         email: session.user.email,
