@@ -21,9 +21,10 @@ export async function POST(req: NextRequest) {
       commenter_username = 'test_user',
       commenter_ig_id = '12345678',
       post_id = null,
+      comment_id = null,
     } = body;
 
-    console.log('Test webhook fired:', { ig_user_id, comment_text, commenter_username });
+    console.log('Test webhook fired:', { ig_user_id, comment_text, commenter_username, comment_id });
 
     // Strategy 1: direct ig_user_id match
     let { data: igAccount } = await supabaseAdmin
@@ -115,14 +116,16 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Always send to creator in test route (test_mode forced true)
       const firstName = commenter_username.split('_')[0] || 'there';
       const dmText = (automation.main_dm_text || '').replace(/\{first_name\}/gi, firstName);
 
+      // Send to commenter_ig_id (same as production)
+      // If comment_id provided, Private Reply is used (bypasses 24h window)
       const dmResult = await sendInstagramDM(
         igAccount.ig_user_id,
         igAccount.access_token,
-        igAccount.ig_user_id,
+        commenter_ig_id,
+        comment_id || '',
         dmText,
         automation.main_dm_link_text,
         automation.main_dm_link_url
@@ -155,7 +158,7 @@ export async function POST(req: NextRequest) {
         automation: automation.name,
         dm_sent: dmResult.success,
         dm_text: dmText,
-        recipient: igAccount.username,
+        recipient_ig_id: commenter_ig_id,
         api_response: dmResult,
       });
     }
@@ -176,43 +179,65 @@ async function sendInstagramDM(
   senderIgUserId: string,
   accessToken: string,
   recipientIgId: string,
+  commentId: string,
   text: string,
   linkText?: string | null,
   linkUrl?: string | null
-) {
+): Promise<{ success: boolean; error?: string; messageId?: string }> {
   try {
-    const results = []
+    let textData: Record<string, unknown> = {};
 
-    const textResponse = await fetch(
-      `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          recipient: { id: recipientIgId },
-          message: { text },
-        }),
-      }
-    )
-
-    const textData = await textResponse.json()
-    console.log('Text DM response:', JSON.stringify(textData))
-
-    if (textData.error) {
-      console.error('Text DM failed:', textData.error)
-      return { success: false, error: textData.error.message }
+    // If we have a real comment_id, try Private Reply first (bypasses 24h window)
+    if (commentId) {
+      console.log('Attempting Private Reply with comment_id:', commentId);
+      const primaryResponse = await fetch(
+        `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            recipient: { comment_id: commentId },
+            message: { text },
+          }),
+        }
+      );
+      textData = await primaryResponse.json();
+      console.log('Private Reply response:', JSON.stringify(textData));
     }
 
-    results.push(textData)
+    // Fallback to id if no comment_id or Private Reply failed
+    if (!commentId || (textData as { error?: unknown }).error) {
+      console.log('Falling back to recipient id:', recipientIgId);
+      const fallbackResponse = await fetch(
+        `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            recipient: { id: recipientIgId },
+            message: { text },
+          }),
+        }
+      );
+      textData = await fallbackResponse.json();
+      console.log('Fallback DM response:', JSON.stringify(textData));
+    }
 
+    if ((textData as { error?: { message: string } }).error) {
+      const err = (textData as { error: { message: string } }).error;
+      console.error('DM failed:', err);
+      return { success: false, error: err.message };
+    }
+
+    // Follow-up: send link as plain text (Instagram does not support button templates)
     if (linkText && linkUrl) {
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      const linkMessage = `${linkText}: ${linkUrl}`
-
+      await new Promise(resolve => setTimeout(resolve, 500));
       const linkResponse = await fetch(
         `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
         {
@@ -223,24 +248,20 @@ async function sendInstagramDM(
           },
           body: JSON.stringify({
             recipient: { id: recipientIgId },
-            message: { text: linkMessage },
+            message: { text: `${linkText}: ${linkUrl}` },
           }),
         }
-      )
-
-      const linkData = await linkResponse.json()
-      console.log('Link DM response:', JSON.stringify(linkData))
-
+      );
+      const linkData = await linkResponse.json();
+      console.log('Link DM response:', JSON.stringify(linkData));
       if (linkData.error) {
-        console.error('Link DM failed:', linkData.error)
-      } else {
-        results.push(linkData)
+        console.error('Link DM failed (main text already sent):', linkData.error);
       }
     }
 
-    return { success: true, results }
+    return { success: true, messageId: (textData as { message_id?: string }).message_id };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return { success: false, error: message }
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return { success: false, error: message };
   }
 }

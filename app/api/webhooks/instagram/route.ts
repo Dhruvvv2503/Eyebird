@@ -147,6 +147,7 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
         igAccount.ig_user_id,
         igAccount.access_token,
         commenterIgId,
+        commentId,
         dmText,
         automation.main_dm_link_text,
         automation.main_dm_link_url
@@ -203,15 +204,15 @@ async function sendInstagramDM(
   senderIgUserId: string,
   accessToken: string,
   recipientIgId: string,
+  commentId: string,
   text: string,
   linkText?: string | null,
   linkUrl?: string | null
-) {
+): Promise<{ success: boolean; error?: string; messageId?: string }> {
   try {
-    const results = []
-
-    // Message 1: Send the main text DM
-    const textResponse = await fetch(
+    // Primary: Private Reply using comment_id — bypasses the 24h messaging window
+    console.log('Attempting Private Reply with comment_id:', commentId);
+    const primaryResponse = await fetch(
       `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
       {
         method: 'POST',
@@ -220,31 +221,44 @@ async function sendInstagramDM(
           'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          recipient: { id: recipientIgId },
+          recipient: { comment_id: commentId },
           message: { text },
         }),
       }
-    )
+    );
 
-    const textData = await textResponse.json()
-    console.log('Text DM response:', JSON.stringify(textData))
+    let textData = await primaryResponse.json();
+    console.log('Private Reply response:', JSON.stringify(textData));
 
+    // Fallback: if comment_id fails, try direct id
     if (textData.error) {
-      console.error('Text DM failed:', textData.error)
-      return { success: false, error: textData.error.message }
+      console.log('Private Reply failed, falling back to recipient id:', recipientIgId);
+      const fallbackResponse = await fetch(
+        `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            recipient: { id: recipientIgId },
+            message: { text },
+          }),
+        }
+      );
+      textData = await fallbackResponse.json();
+      console.log('Fallback DM response:', JSON.stringify(textData));
     }
 
-    results.push(textData)
+    if (textData.error) {
+      console.error('DM failed:', textData.error);
+      return { success: false, error: textData.error.message };
+    }
 
-    // Message 2: If link exists, send it as a separate text message
-    // Instagram does not support button templates for DMs
-    // Send the link as plain text in a follow-up message
+    // Follow-up: send link as plain text (Instagram does not support button templates)
     if (linkText && linkUrl) {
-      // Wait 500ms between messages to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      const linkMessage = `${linkText}: ${linkUrl}`
-
+      await new Promise(resolve => setTimeout(resolve, 500));
       const linkResponse = await fetch(
         `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
         {
@@ -255,26 +269,20 @@ async function sendInstagramDM(
           },
           body: JSON.stringify({
             recipient: { id: recipientIgId },
-            message: { text: linkMessage },
+            message: { text: `${linkText}: ${linkUrl}` },
           }),
         }
-      )
-
-      const linkData = await linkResponse.json()
-      console.log('Link DM response:', JSON.stringify(linkData))
-
+      );
+      const linkData = await linkResponse.json();
+      console.log('Link DM response:', JSON.stringify(linkData));
       if (linkData.error) {
-        console.error('Link DM failed:', linkData.error)
-        // Don't fail the whole thing if just the link fails
-        // Main text already sent successfully
-      } else {
-        results.push(linkData)
+        console.error('Link DM failed (main text already sent):', linkData.error);
       }
     }
 
-    return { success: true, results }
+    return { success: true, messageId: textData.message_id };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return { success: false, error: message }
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return { success: false, error: message };
   }
 }
