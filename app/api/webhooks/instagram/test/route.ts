@@ -185,81 +185,81 @@ async function sendInstagramDM(
   linkUrl?: string | null
 ): Promise<{ success: boolean; error?: string; messageId?: string }> {
   try {
-    let textData: Record<string, unknown> = {};
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    };
+    const endpoint = `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`;
 
-    // If we have a real comment_id, try Private Reply first (bypasses 24h window)
-    if (commentId) {
-      console.log('Attempting Private Reply with comment_id:', commentId);
-      const primaryResponse = await fetch(
-        `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
+    // Attempt 1: Button template via Private Reply (text + tappable link button in one message)
+    if (commentId && linkText && linkUrl) {
+      console.log('Attempting button template via Private Reply');
+      const templateResp = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          recipient: { comment_id: commentId },
+          message: {
+            attachment: {
+              type: 'template',
+              payload: {
+                template_type: 'button',
+                text,
+                buttons: [{ type: 'web_url', url: linkUrl, title: linkText }],
+              },
+            },
           },
-          body: JSON.stringify({
-            recipient: { comment_id: commentId },
-            message: { text },
-          }),
-        }
-      );
-      textData = await primaryResponse.json();
-      console.log('Private Reply response:', JSON.stringify(textData));
-    }
-
-    // Fallback to id if no comment_id or Private Reply failed
-    if (!commentId || (textData as { error?: unknown }).error) {
-      console.log('Falling back to recipient id:', recipientIgId);
-      const fallbackResponse = await fetch(
-        `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            recipient: { id: recipientIgId },
-            message: { text },
-          }),
-        }
-      );
-      textData = await fallbackResponse.json();
-      console.log('Fallback DM response:', JSON.stringify(textData));
-    }
-
-    if ((textData as { error?: { message: string } }).error) {
-      const err = (textData as { error: { message: string } }).error;
-      console.error('DM failed:', err);
-      return { success: false, error: err.message };
-    }
-
-    // Follow-up: send link as plain text (Instagram does not support button templates)
-    if (linkText && linkUrl) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const linkResponse = await fetch(
-        `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            recipient: { id: recipientIgId },
-            message: { text: `${linkText}: ${linkUrl}` },
-          }),
-        }
-      );
-      const linkData = await linkResponse.json();
-      console.log('Link DM response:', JSON.stringify(linkData));
-      if (linkData.error) {
-        console.error('Link DM failed (main text already sent):', linkData.error);
+        }),
+      });
+      const templateData = await templateResp.json();
+      console.log('Button template response:', JSON.stringify(templateData));
+      if (!templateData.error) {
+        return { success: true, messageId: templateData.message_id };
       }
+      console.log('Button template failed:', templateData.error.message, '— falling back to text+link');
     }
 
-    return { success: true, messageId: (textData as { message_id?: string }).message_id };
+    // Attempt 2: Combined text + link as plain text in a single Private Reply
+    const fullText = (linkText && linkUrl)
+      ? `${text}\n\n${linkText}: ${linkUrl}`
+      : text;
+
+    if (commentId) {
+      console.log('Attempting Private Reply (text+link combined)');
+      const prResp = await fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          recipient: { comment_id: commentId },
+          message: { text: fullText },
+        }),
+      });
+      const prData = await prResp.json();
+      console.log('Private Reply response:', JSON.stringify(prData));
+      if (!prData.error) {
+        return { success: true, messageId: prData.message_id };
+      }
+      console.log('Private Reply failed:', prData.error.message, '— falling back to id');
+    }
+
+    // Attempt 3: Direct id fallback (requires 24h window)
+    console.log('Attempting direct id fallback');
+    const idResp = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        recipient: { id: recipientIgId },
+        message: { text: fullText ?? text },
+      }),
+    });
+    const idData = await idResp.json();
+    console.log('ID fallback response:', JSON.stringify(idData));
+
+    if (idData.error) {
+      console.error('All DM strategies failed:', idData.error);
+      return { success: false, error: idData.error.message };
+    }
+    return { success: true, messageId: idData.message_id };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return { success: false, error: message };
