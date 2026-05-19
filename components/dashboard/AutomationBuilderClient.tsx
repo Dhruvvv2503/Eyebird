@@ -105,9 +105,11 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
   const [rewriting, setRewriting] = useState(false);
   const [activePreviewTab, setActivePreviewTab] = useState<'post' | 'comments' | 'dm'>('dm');
   const [showPostPicker, setShowPostPicker] = useState(false);
-  const [nameError, setNameError] = useState('');
   const [dmError, setDmError] = useState('');
   const [dmUsage, setDmUsage] = useState<{ used: number; limit: number } | null>(null);
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [modalNameInput, setModalNameInput] = useState('');
+  const [pendingSaveStatus, setPendingSaveStatus] = useState<'draft' | 'active'>('active');
 
   const loadPosts = useCallback(async (cursor?: string) => {
     setLoadingPosts(true);
@@ -173,26 +175,31 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
     }
   }
 
-  function validate(): boolean {
+  async function handleSave(status: 'draft' | 'active', nameOverride?: string) {
+    const effectiveName = nameOverride !== undefined ? nameOverride : form.name;
+
+    if (!effectiveName.trim()) {
+      setModalNameInput('');
+      setPendingSaveStatus(status);
+      setShowNameModal(true);
+      return;
+    }
+
     let valid = true;
-    if (!form.name.trim()) { setNameError('Give your automation a name'); valid = false; }
-    else setNameError('');
     if (!form.main_dm_text.trim()) { setDmError('Add your DM message'); valid = false; }
     else setDmError('');
     if (!form.trigger_any_word && form.trigger_keywords.length === 0) {
       alert('Add at least one keyword or enable "Any word"');
       valid = false;
     }
-    return valid;
-  }
+    if (!valid) return;
 
-  async function handleSave(status: 'draft' | 'active') {
-    if (!validate()) return;
     setSaving(true);
     setSaveStatus('saving');
     try {
       const payload = {
         ...form,
+        name: effectiveName,
         status,
         main_dm_link_text: form.main_dm_link_text || null,
         main_dm_link_url: form.main_dm_link_url || null,
@@ -215,7 +222,10 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
         }
       }
       setSaveStatus('saved');
-      setTimeout(() => router.push('/dashboard/automations'), 800);
+      setTimeout(() => {
+        router.push('/dashboard/automations');
+        router.refresh();
+      }, 800);
     } catch (err: unknown) {
       setSaveStatus('error');
       const message = err instanceof Error ? err.message : 'Failed to save';
@@ -223,6 +233,14 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleNameModalConfirm() {
+    const name = modalNameInput.trim();
+    if (!name) return;
+    setForm(f => ({ ...f, name }));
+    setShowNameModal(false);
+    handleSave(pendingSaveStatus, name);
   }
 
   function getPreviewDmText() {
@@ -444,13 +462,13 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
           placeholder="Name your automation..."
           style={{
             flex: 1, background: 'transparent',
-            border: nameError ? '1px solid rgba(239,68,68,0.4)' : '1px solid transparent',
+            border: '1px solid transparent',
             borderRadius: 8, padding: '6px 10px',
             fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700,
             color: '#fff', outline: 'none', transition: 'border-color 0.15s',
           }}
-          onFocus={e => { if (!nameError) e.target.style.borderColor = 'rgba(139,92,246,0.4)'; }}
-          onBlur={e => { if (!nameError) e.target.style.borderColor = 'transparent'; }}
+          onFocus={e => { e.target.style.borderColor = 'rgba(139,92,246,0.4)'; }}
+          onBlur={e => { e.target.style.borderColor = 'transparent'; }}
         />
 
         <button
@@ -1037,6 +1055,80 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
           </div>
         </div>
       </div>
+
+      {/* ── NAME MODAL ── */}
+      {showNameModal && (
+        <div
+          onClick={() => setShowNameModal(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#0F0E20', border: '1px solid rgba(139,92,246,0.3)',
+              borderRadius: 20, padding: '32px 28px', width: '100%', maxWidth: 400,
+              boxShadow: '0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(139,92,246,0.1)',
+            }}
+          >
+            <div style={{ fontSize: 28, textAlign: 'center', marginBottom: 12 }}>✏️</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: '#fff', textAlign: 'center', marginBottom: 6 }}>
+              Name your automation
+            </div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginBottom: 24 }}>
+              Give it a name so you can find it later
+            </div>
+            <input
+              autoFocus
+              value={modalNameInput}
+              onChange={e => setModalNameInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleNameModalConfirm(); if (e.key === 'Escape') setShowNameModal(false); }}
+              placeholder="e.g. Summer Sale DM, Free Guide Bot..."
+              maxLength={80}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(139,92,246,0.4)',
+                borderRadius: 10, padding: '12px 14px',
+                fontFamily: 'var(--font-body)', fontSize: 14, color: '#fff',
+                outline: 'none', marginBottom: 16,
+              }}
+            />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setShowNameModal(false)}
+                style={{
+                  flex: 1, padding: '12px',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 10, fontFamily: 'var(--font-display)',
+                  fontSize: 13, fontWeight: 700,
+                  color: 'rgba(255,255,255,0.4)', cursor: 'pointer',
+                }}
+              >Cancel</button>
+              <button
+                onClick={handleNameModalConfirm}
+                disabled={!modalNameInput.trim()}
+                style={{
+                  flex: 2, padding: '12px',
+                  background: modalNameInput.trim() ? 'linear-gradient(135deg, #8B5CF6, #EC4899)' : 'rgba(139,92,246,0.2)',
+                  border: 'none', borderRadius: 10,
+                  fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700,
+                  color: '#fff', cursor: modalNameInput.trim() ? 'pointer' : 'not-allowed',
+                  boxShadow: modalNameInput.trim() ? '0 4px 16px rgba(139,92,246,0.35)' : 'none',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {pendingSaveStatus === 'active' ? '⚡ Activate' : 'Save Draft'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
