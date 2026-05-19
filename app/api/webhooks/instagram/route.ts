@@ -139,10 +139,35 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
       const firstName = commenterUsername?.split('_')[0] || commenterUsername || 'there';
       const dmText = (automation.main_dm_text || '').replace(/\{first_name\}/gi, firstName);
 
-      console.log(`Sending DM via Private Reply to comment ${commentId} (@${commenterUsername})`);
+      // Send opening DM first if enabled — uses comment_id (Private Reply) to open the thread.
+      // This consumes the comment_id, so the main DM below falls back to { id }, which works
+      // because the conversation window is now open from the opening Private Reply.
+      if (automation.opening_dm_enabled && automation.opening_dm_text) {
+        const openingText = (automation.opening_dm_text as string).replace(/\{first_name\}/gi, firstName);
+        try {
+          const openingResp = await fetch(`https://graph.instagram.com/v21.0/${igAccount.ig_user_id}/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${igAccount.access_token}` },
+            body: JSON.stringify({
+              recipient: { comment_id: commentId },
+              message: { text: openingText },
+            }),
+          });
+          const openingData = await openingResp.json();
+          if (openingData.error) {
+            console.error('Opening DM failed:', openingData.error.message);
+          } else {
+            console.log('Opening DM sent via Private Reply:', openingData.message_id);
+          }
+        } catch (openingErr) {
+          console.error('Opening DM error:', openingErr);
+        }
+      }
 
-      // Use comment_id as recipient — Instagram Private Reply API for comment-to-DM flows
-      // This bypasses the 24-hour messaging window and works without prior contact
+      console.log(`Sending main DM to @${commenterUsername}`);
+
+      // If opening DM was sent above, comment_id is consumed — sendInstagramDM will fall through
+      // attempts 1+2 (comment_id already used) and reach the { id } fallback automatically.
       const dmResult = await sendInstagramDM(
         igAccount.ig_user_id,
         igAccount.access_token,
