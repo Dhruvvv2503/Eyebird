@@ -116,27 +116,17 @@ export async function POST(req: NextRequest) {
       }
 
       // Always send to creator in test route (test_mode forced true)
-      const recipientIgId = igAccount.ig_user_id;
       const firstName = commenter_username.split('_')[0] || 'there';
       const dmText = (automation.main_dm_text || '').replace(/\{first_name\}/gi, firstName);
 
-      const dmResponse = await fetch(
-        `https://graph.instagram.com/v21.0/${igAccount.ig_user_id}/messages`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${igAccount.access_token}`,
-          },
-          body: JSON.stringify({
-            recipient: { id: recipientIgId },
-            message: { text: dmText },
-          }),
-        }
+      const dmResult = await sendInstagramDM(
+        igAccount.ig_user_id,
+        igAccount.access_token,
+        igAccount.ig_user_id,
+        dmText,
+        automation.main_dm_link_text,
+        automation.main_dm_link_url
       );
-
-      const dmData = await dmResponse.json();
-      const dmSuccess = !dmData.error;
 
       await supabaseAdmin.from('automation_logs').insert({
         automation_id: automation.id,
@@ -145,13 +135,13 @@ export async function POST(req: NextRequest) {
         commenter_ig_id,
         comment_text,
         post_id,
-        dm_sent: dmSuccess,
-        dm_sent_at: dmSuccess ? new Date().toISOString() : null,
-        error_message: dmData.error?.message || null,
+        dm_sent: dmResult.success,
+        dm_sent_at: dmResult.success ? new Date().toISOString() : null,
+        error_message: dmResult.error || null,
         test_mode: true,
       });
 
-      if (dmSuccess) {
+      if (dmResult.success) {
         await supabaseAdmin
           .from('automations')
           .update({
@@ -163,10 +153,10 @@ export async function POST(req: NextRequest) {
 
       results.push({
         automation: automation.name,
-        dm_sent: dmSuccess,
+        dm_sent: dmResult.success,
         dm_text: dmText,
         recipient: igAccount.username,
-        api_response: dmData,
+        api_response: dmResult,
       });
     }
 
@@ -179,5 +169,78 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+async function sendInstagramDM(
+  senderIgUserId: string,
+  accessToken: string,
+  recipientIgId: string,
+  text: string,
+  linkText?: string | null,
+  linkUrl?: string | null
+) {
+  try {
+    const results = []
+
+    const textResponse = await fetch(
+      `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { id: recipientIgId },
+          message: { text },
+        }),
+      }
+    )
+
+    const textData = await textResponse.json()
+    console.log('Text DM response:', JSON.stringify(textData))
+
+    if (textData.error) {
+      console.error('Text DM failed:', textData.error)
+      return { success: false, error: textData.error.message }
+    }
+
+    results.push(textData)
+
+    if (linkText && linkUrl) {
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      const linkMessage = `${linkText}: ${linkUrl}`
+
+      const linkResponse = await fetch(
+        `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            recipient: { id: recipientIgId },
+            message: { text: linkMessage },
+          }),
+        }
+      )
+
+      const linkData = await linkResponse.json()
+      console.log('Link DM response:', JSON.stringify(linkData))
+
+      if (linkData.error) {
+        console.error('Link DM failed:', linkData.error)
+      } else {
+        results.push(linkData)
+      }
+    }
+
+    return { success: true, results }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return { success: false, error: message }
   }
 }

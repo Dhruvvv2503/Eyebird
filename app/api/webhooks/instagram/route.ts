@@ -136,22 +136,6 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
 
       console.log(`Automation "${automation.name}" matched! Sending DM...`);
 
-      // Duplicate guard — skip if we already sent a DM to this person for this automation in last 24h
-      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { data: recentLog } = await supabaseAdmin
-        .from('automation_logs')
-        .select('id')
-        .eq('automation_id', automation.id)
-        .eq('commenter_ig_id', commenterIgId)
-        .eq('dm_sent', true)
-        .gte('created_at', oneDayAgo)
-        .limit(1);
-
-      if (recentLog && recentLog.length > 0) {
-        console.log(`Already sent DM to ${commenterUsername} in last 24h, skipping`);
-        continue;
-      }
-
       const firstName = commenterUsername?.split('_')[0] || commenterUsername || 'there';
       const dmText = (automation.main_dm_text || '').replace(/\{first_name\}/gi, firstName);
 
@@ -163,7 +147,6 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
         igAccount.ig_user_id,
         igAccount.access_token,
         commenterIgId,
-        commentId,
         dmText,
         automation.main_dm_link_text,
         automation.main_dm_link_url
@@ -220,20 +203,15 @@ async function sendInstagramDM(
   senderIgUserId: string,
   accessToken: string,
   recipientIgId: string,
-  commentId: string,
   text: string,
   linkText?: string | null,
   linkUrl?: string | null
-): Promise<{ success: boolean; error?: string; messageId?: string }> {
+) {
   try {
-    // Primary: use comment_id as recipient (Private Reply — works without 24h window)
-    const primaryPayload = {
-      recipient: { comment_id: commentId },
-      message: { text },
-    };
+    const results = []
 
-    console.log('Attempting Private Reply with comment_id:', commentId);
-    const response = await fetch(
+    // Message 1: Send the main text DM
+    const textResponse = await fetch(
       `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
       {
         method: 'POST',
@@ -241,40 +219,33 @@ async function sendInstagramDM(
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
         },
-        body: JSON.stringify(primaryPayload),
+        body: JSON.stringify({
+          recipient: { id: recipientIgId },
+          message: { text },
+        }),
       }
-    );
+    )
 
-    let data = await response.json();
+    const textData = await textResponse.json()
+    console.log('Text DM response:', JSON.stringify(textData))
 
-    // Fallback: if comment_id fails, try with user IGSID directly
-    if (data.error) {
-      console.log('Private Reply failed, trying with user IGSID:', recipientIgId);
-      const fallbackResponse = await fetch(
-        `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            recipient: { id: recipientIgId },
-            message: { text },
-          }),
-        }
-      );
-      data = await fallbackResponse.json();
+    if (textData.error) {
+      console.error('Text DM failed:', textData.error)
+      return { success: false, error: textData.error.message }
     }
 
-    if (data.error) {
-      console.error('Instagram DM API error:', data.error);
-      return { success: false, error: data.error.message };
-    }
+    results.push(textData)
 
-    // Send link button as follow-up message if provided
+    // Message 2: If link exists, send it as a separate text message
+    // Instagram does not support button templates for DMs
+    // Send the link as plain text in a follow-up message
     if (linkText && linkUrl) {
-      await fetch(
+      // Wait 500ms between messages to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      const linkMessage = `${linkText}: ${linkUrl}`
+
+      const linkResponse = await fetch(
         `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
         {
           method: 'POST',
@@ -284,24 +255,26 @@ async function sendInstagramDM(
           },
           body: JSON.stringify({
             recipient: { id: recipientIgId },
-            message: {
-              attachment: {
-                type: 'template',
-                payload: {
-                  template_type: 'button',
-                  text: linkText,
-                  buttons: [{ type: 'web_url', url: linkUrl, title: linkText }],
-                },
-              },
-            },
+            message: { text: linkMessage },
           }),
         }
-      );
+      )
+
+      const linkData = await linkResponse.json()
+      console.log('Link DM response:', JSON.stringify(linkData))
+
+      if (linkData.error) {
+        console.error('Link DM failed:', linkData.error)
+        // Don't fail the whole thing if just the link fails
+        // Main text already sent successfully
+      } else {
+        results.push(linkData)
+      }
     }
 
-    return { success: true, messageId: data.message_id };
+    return { success: true, results }
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return { success: false, error: message };
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return { success: false, error: message }
   }
 }
