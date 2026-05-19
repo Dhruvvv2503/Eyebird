@@ -219,10 +219,10 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
           if (validVariations.length > 0) {
             const replyText = validVariations[Math.floor(Math.random() * validVariations.length)];
             try {
-              const replyResp = await fetch(`https://graph.instagram.com/v21.0/${commentId}/replies`, {
+              const replyResp = await fetch(`https://graph.facebook.com/v21.0/${commentId}/replies`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${igAccount.access_token}` },
-                body: JSON.stringify({ message: replyText }),
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ message: replyText, access_token: igAccount.access_token as string }).toString(),
               });
               const replyData = await replyResp.json();
               if (replyData.error) {
