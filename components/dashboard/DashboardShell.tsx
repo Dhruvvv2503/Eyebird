@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import {
-  LayoutDashboard, BarChart2, Zap, Sparkles, Users, TrendingUp, Settings,
+  LayoutDashboard, BarChart2, Zap, TrendingUp, Settings,
   LogOut, Menu, X,
 } from 'lucide-react';
 import UpgradeModal from './UpgradeModal';
@@ -25,8 +25,6 @@ const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Overview',     href: '/dashboard',               soon: false },
   { icon: BarChart2,       label: 'Audit',        href: '/dashboard/audit',         soon: false },
   { icon: Zap,             label: 'Automations',  href: '/dashboard/automations',   soon: true  },
-  { icon: Sparkles,        label: 'Smart Reply',  href: '/dashboard/smart-reply',   soon: true  },
-  { icon: Users,           label: 'Contacts',     href: '/dashboard/contacts',      soon: true  },
   { icon: TrendingUp,      label: 'Analytics',    href: '/dashboard/analytics',     soon: true  },
   { icon: Settings,        label: 'Settings',     href: '/dashboard/settings',      soon: false },
 ];
@@ -315,8 +313,6 @@ export default function DashboardShell({
             ]},
             { label: 'Growth', items: [
               { href: '/dashboard/automations',  icon: 'zap',     name: 'Automations', locked: false },
-              { href: '/dashboard/smart-reply',  icon: 'message', name: 'Smart Reply', locked: false },
-              { href: '/dashboard/contacts',     icon: 'users',   name: 'Contacts',    locked: plan !== 'creator' },
             ]},
             { label: 'Account', items: [
               { href: '/dashboard/settings', icon: 'settings', name: 'Settings', locked: false },
