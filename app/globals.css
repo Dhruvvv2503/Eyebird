@@ -1000,7 +1000,7 @@ body { font-family: var(--font-body); }
 
 
 :root {
-  --font-display: 'Bricolage Grotesque', sans-serif;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
   --font-body: 'Inter', sans-serif;
   --bg: #07060F;
   --s1: #0D0C1E;
@@ -1042,7 +1042,7 @@ body { font-family: var(--font-body); }
 .ov-fadein-3 { animation: fadeSlideUp 0.5s ease 0.24s both; }
 
 :root {
-  --font-display: 'Bricolage Grotesque', sans-serif;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
   --font-body: 'Inter', sans-serif;
   --bg: #07060F;
   --s1: #0D0C1E;
