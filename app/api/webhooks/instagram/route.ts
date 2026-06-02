@@ -147,9 +147,21 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
         continue;
       }
 
-      // ── FIX 6: Skip if the creator is commenting on their own post ──
-      if (commenterIgId === igAccount.ig_user_id) {
-        console.log(`⚠️ Creator @${commenterUsername} commented on their own post — skipping automation`);
+      // ── Skip if the commenter is the account owner ──
+      // The webhook from.id (IGSID: e.g. 17841437971915155) is a different number than
+      // the Business Account ID stored in ig_user_id (e.g. 26964059936539103) — they are
+      // two different ID spaces for the same person. ID comparison always fails, so we
+      // compare by username instead. This also stops the bot-reply loop: when the automation
+      // posts a public reply, Meta fires a new webhook with commenterUsername = igAccount.username,
+      // which is caught here before processing starts again.
+      const isAccountOwner =
+        commenterIgId === igAccount.ig_user_id ||
+        (commenterUsername != null &&
+          igAccount.username != null &&
+          commenterUsername.toLowerCase() === igAccount.username.toLowerCase());
+
+      if (isAccountOwner) {
+        console.log(`⚠️ Skipping — commenter @${commenterUsername} is the account owner (bot reply loop or self-comment)`);
         continue;
       }
 
