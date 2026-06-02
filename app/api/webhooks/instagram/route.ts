@@ -229,28 +229,48 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
           .eq('id', logEntry.id);
       }
 
-      // Public reply fires on keyword match regardless of DM outcome
-      if (automation.reply_to_comment_publicly && automation.public_reply_variations?.length > 0) {
-        const validVariations = (automation.public_reply_variations as string[]).filter((v: string) => v.trim().length > 0);
+      // PUBLIC COMMENT REPLY — send exactly ONE random variation
+      if (
+        automation.reply_to_comment_publicly === true &&
+        automation.public_reply_variations &&
+        Array.isArray(automation.public_reply_variations) &&
+        automation.public_reply_variations.length > 0
+      ) {
+        const validVariations = (automation.public_reply_variations as string[])
+          .filter((v: string) => typeof v === 'string' && v.trim().length > 0);
+
         if (validVariations.length > 0) {
-          const replyText = validVariations[Math.floor(Math.random() * validVariations.length)];
+          // Pick ONE random variation — nothing else
+          const randomIndex = Math.floor(Math.random() * validVariations.length);
+          const chosenReply = validVariations[randomIndex];
+
+          console.log(`📝 Posting public reply (${randomIndex + 1}/${validVariations.length}): "${chosenReply}"`);
+
           try {
-            const replyResp = await fetch(`https://graph.instagram.com/v21.0/${commentId}/replies`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${igAccount.access_token}`,
-              },
-              body: JSON.stringify({ message: replyText }),
-            });
-            const replyData = await replyResp.json();
+            const replyResponse = await fetch(
+              `https://graph.instagram.com/v21.0/${commentId}/replies`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${igAccount.access_token}`,
+                },
+                body: JSON.stringify({
+                  message: chosenReply,
+                }),
+              }
+            );
+
+            const replyData = await replyResponse.json();
+
             if (replyData.error) {
-              console.error('Public reply failed — full error:', JSON.stringify(replyData.error));
+              console.error('❌ Public reply failed:', replyData.error);
             } else {
-              console.log(`✅ Public reply posted: "${replyText}"`, JSON.stringify(replyData));
+              console.log('✅ Public reply posted successfully');
             }
           } catch (replyErr) {
-            console.error('Public reply error:', replyErr);
+            console.error('❌ Public reply error:', replyErr);
+            // Never block DM flow for public reply failure
           }
         }
       }
