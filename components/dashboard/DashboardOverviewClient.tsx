@@ -86,6 +86,20 @@ export function DashboardOverviewClient({ igAccount, audit, userProfile, autoSta
     }
   }, [autoStart])
 
+  // Silently refresh Instagram profile data in the background if stale (>1 hour old)
+  useEffect(() => {
+    if (!igAccount?.ig_user_id) return;
+    const lastUpdated = (igAccount as any).updated_at;
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    if (!lastUpdated || new Date(lastUpdated) < oneHourAgo) {
+      fetch('/api/instagram/fetch-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ igUserId: igAccount.ig_user_id }),
+      }).catch(() => {});
+    }
+  }, [igAccount?.ig_user_id])
+
   useEffect(() => {
     if (!loading) return
     const timer = setInterval(() => {
@@ -445,6 +459,18 @@ export function DashboardOverviewClient({ igAccount, audit, userProfile, autoSta
                     src={igAccount.profile_picture_url}
                     alt={igAccount?.username}
                     style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }}
+                    onError={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      img.style.display = 'none';
+                      const parent = img.parentElement;
+                      if (parent && !parent.querySelector('[data-initials]')) {
+                        const fallback = document.createElement('div');
+                        fallback.setAttribute('data-initials', '1');
+                        fallback.style.cssText = 'width:100%;height:100%;border-radius:50%;background:linear-gradient(135deg,#8B5CF6,#EC4899);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff';
+                        fallback.textContent = igAccount?.username?.[0]?.toUpperCase() || 'U';
+                        parent.appendChild(fallback);
+                      }
+                    }}
                   />
                 ) : (
                   <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'linear-gradient(135deg, #1a1535, #0C0B1A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 800, color: '#c4b5fd' }}>

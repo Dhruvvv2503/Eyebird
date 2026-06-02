@@ -25,6 +25,44 @@ export async function POST(request: NextRequest) {
 
     const token = account.access_token;
 
+    // Always fetch fresh profile from Instagram API — cached URLs expire in ~2 weeks
+    const freshProfileRes = await fetch(
+      `https://graph.instagram.com/v21.0/${igUserId}?fields=id,username,biography,followers_count,media_count,profile_picture_url&access_token=${token}`
+    );
+    const freshProfile = await freshProfileRes.json();
+
+    let profileData = {
+      username: account.username,
+      followers_count: account.followers_count,
+      biography: account.biography,
+      profile_picture_url: account.profile_picture_url,
+      media_count: account.media_count,
+    };
+
+    if (!freshProfile.error) {
+      profileData = {
+        username: freshProfile.username ?? account.username,
+        followers_count: freshProfile.followers_count ?? account.followers_count,
+        biography: freshProfile.biography ?? account.biography,
+        profile_picture_url: freshProfile.profile_picture_url ?? account.profile_picture_url,
+        media_count: freshProfile.media_count ?? account.media_count,
+      };
+      // Persist fresh data back so dashboard shows current follower count + working profile pic
+      await supabaseAdmin
+        .from('instagram_accounts')
+        .update({
+          username: profileData.username,
+          followers_count: profileData.followers_count,
+          profile_picture_url: profileData.profile_picture_url,
+          biography: profileData.biography,
+          media_count: profileData.media_count,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('ig_user_id', igUserId);
+    } else {
+      console.warn('[fetch-data] Fresh profile fetch failed:', freshProfile.error?.message);
+    }
+
     // Fetch last 20 posts with engagement data
     const mediaResponse = await fetch(
       `https://graph.instagram.com/v21.0/${igUserId}/media?fields=id,media_type,timestamp,like_count,comments_count,caption,thumbnail_url,media_url&limit=20&access_token=${token}`
@@ -92,19 +130,13 @@ export async function POST(request: NextRequest) {
       audienceData = null;
     }
 
-    // Upsert raw data cache
+    // Upsert raw data cache — use fresh profile data, not stale cached values
     const { error: upsertError } = await supabaseAdmin
       .from('ig_raw_data')
       .upsert(
         {
           ig_user_id: igUserId,
-          profile_data: {
-            username: account.username,
-            followers_count: account.followers_count,
-            biography: account.biography,
-            profile_picture_url: account.profile_picture_url,
-            media_count: account.media_count,
-          },
+          profile_data: profileData,
           media_data: mediaWithInsights,
           insights_data: insightsData,
           audience_data: audienceData,
@@ -120,7 +152,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       postCount: mediaWithInsights.length,
-      username: account.username,
+      username: profileData.username,
     });
   } catch (err) {
     console.error('[fetch-data] Unexpected error:', err);

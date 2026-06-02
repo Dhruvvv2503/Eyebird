@@ -268,7 +268,7 @@ Respond ONLY with valid JSON (no markdown, no explanation outside JSON):
 }`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-opus-4-5',
+      model: 'claude-sonnet-4-6',
       max_tokens: 8000,
       messages: [{ role: 'user', content: prompt }],
     });

@@ -134,7 +134,46 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
         continue;
       }
 
-      console.log(`Automation "${automation.name}" matched! Sending DM...`);
+      // ── FIX 6: Skip if the creator is commenting on their own post ──
+      if (commenterIgId === igAccount.ig_user_id) {
+        console.log(`⚠️ Creator @${commenterUsername} commented on their own post — skipping automation`);
+        continue;
+      }
+
+      // ── FIX 1: Dedup guard — skip if this comment was already processed ──
+      // Prevents duplicate DMs from Meta backlog delivery or race conditions.
+      // NOTE: also add DB-level guard: ALTER TABLE automation_logs ADD CONSTRAINT
+      // unique_comment_automation UNIQUE (automation_id, comment_id);
+      const { data: existingLog } = await supabaseAdmin
+        .from('automation_logs')
+        .select('id')
+        .eq('automation_id', automation.id)
+        .eq('comment_id', commentId)
+        .maybeSingle();
+
+      if (existingLog) {
+        console.log(`⚠️ Already processed comment ${commentId} for automation ${automation.id} — skipping`);
+        continue;
+      }
+
+      console.log(`Automation "${automation.name}" matched! Processing comment ${commentId}...`);
+
+      // ── Insert log entry BEFORE sending DM to prevent race conditions ──
+      const { data: logEntry } = await supabaseAdmin
+        .from('automation_logs')
+        .insert({
+          automation_id: automation.id,
+          user_id: igAccount.user_id,
+          commenter_username: commenterUsername,
+          commenter_ig_id: commenterIgId,
+          comment_text: commentData.text,
+          comment_id: commentId,
+          post_id: postId,
+          dm_sent: false,
+          test_mode: automation.test_mode,
+        })
+        .select('id')
+        .single();
 
       const firstName = commenterUsername?.split('_')[0] || commenterUsername || 'there';
       const dmText = (automation.main_dm_text || '').replace(/\{first_name\}/gi, firstName);
@@ -178,19 +217,17 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
         automation.main_dm_link_url
       );
 
-      await supabaseAdmin.from('automation_logs').insert({
-        automation_id: automation.id,
-        user_id: igAccount.user_id,
-        commenter_username: commenterUsername,
-        commenter_ig_id: commenterIgId,
-        comment_text: commentData.text,
-        comment_id: commentId,
-        post_id: postId,
-        dm_sent: dmResult.success,
-        dm_sent_at: dmResult.success ? new Date().toISOString() : null,
-        error_message: dmResult.error || null,
-        test_mode: automation.test_mode,
-      });
+      // Update log entry with DM result
+      if (logEntry?.id) {
+        await supabaseAdmin
+          .from('automation_logs')
+          .update({
+            dm_sent: dmResult.success,
+            dm_sent_at: dmResult.success ? new Date().toISOString() : null,
+            error_message: dmResult.error || null,
+          })
+          .eq('id', logEntry.id);
+      }
 
       // Public reply fires on keyword match regardless of DM outcome
       if (automation.reply_to_comment_publicly && automation.public_reply_variations?.length > 0) {
@@ -240,7 +277,7 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
             ignoreDuplicates: false,
           });
 
-        console.log(`✅ DM sent successfully to ${automation.test_mode ? 'creator (test mode)' : commenterUsername}`);
+        console.log(`✅ DM sent successfully to ${commenterUsername}`);
       } else {
         console.error(`❌ DM failed:`, dmResult.error);
       }
