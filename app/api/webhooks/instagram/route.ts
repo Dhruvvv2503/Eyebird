@@ -67,6 +67,19 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
     const commenterIgId = (commentData.from as Record<string, string>)?.id;
     const commenterUsername = (commentData.from as Record<string, string>)?.username;
 
+    // ── Stale-comment guard — reject Meta backlog delivery ──
+    // Meta replays all recent historical comments whenever a webhook subscription
+    // is created or renewed. Each replay has a unique comment_id so the dedup
+    // guard cannot catch it. We skip any comment older than 5 minutes.
+    const commentTimestamp = commentData.timestamp as number | undefined;
+    if (commentTimestamp) {
+      const ageSeconds = Math.floor(Date.now() / 1000) - commentTimestamp;
+      if (ageSeconds > 300) {
+        console.log(`⚠️ Skipping stale comment ${commentId} (${Math.round(ageSeconds / 60)} min old) — backlog delivery, not a real new comment`);
+        return;
+      }
+    }
+
     console.log(`Comment received: "${commentText}" from @${commenterUsername} on post ${postId}`);
 
     // Strategy 1: direct ig_user_id match
