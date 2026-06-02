@@ -67,19 +67,6 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
     const commenterIgId = (commentData.from as Record<string, string>)?.id;
     const commenterUsername = (commentData.from as Record<string, string>)?.username;
 
-    // ── Stale-comment guard — reject Meta backlog delivery ──
-    // Meta replays all recent historical comments whenever a webhook subscription
-    // is created or renewed. Each replay has a unique comment_id so the dedup
-    // guard cannot catch it. We skip any comment older than 5 minutes.
-    const commentTimestamp = commentData.timestamp as number | undefined;
-    if (commentTimestamp) {
-      const ageSeconds = Math.floor(Date.now() / 1000) - commentTimestamp;
-      if (ageSeconds > 300) {
-        console.log(`⚠️ Skipping stale comment ${commentId} (${Math.round(ageSeconds / 60)} min old) — backlog delivery, not a real new comment`);
-        return;
-      }
-    }
-
     console.log(`Comment received: "${commentText}" from @${commenterUsername} on post ${postId}`);
 
     // Strategy 1: direct ig_user_id match
@@ -118,6 +105,43 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
       return;
     }
 
+    // ── Owner guard — runs ONCE, exits the entire function if triggered ──
+    // Must use return (not continue) so no automation in the loop below fires.
+    // Username comparison is required because webhook from.id (IGSID) and
+    // instagram_accounts.ig_user_id (Business Account ID) are different number spaces.
+    const isAccountOwner =
+      commenterIgId === igAccount.ig_user_id ||
+      (commenterUsername != null &&
+        igAccount.username != null &&
+        commenterUsername.toLowerCase() === igAccount.username.toLowerCase());
+
+    if (isAccountOwner) {
+      console.log(`⚠️ Commenter @${commenterUsername} is the account owner — skipping all automations`);
+      return;
+    }
+
+    // ── Stale-comment guard — fetch the comment's actual creation time from Instagram ──
+    // Meta does NOT include a timestamp in the comment webhook payload (commentData.timestamp
+    // is always undefined). We must fetch it from the API. This catches Meta's backlog replay:
+    // when a webhook subscription is created/renewed, Meta resends all recent historical
+    // comments. Those are hours or days old and must be rejected.
+    try {
+      const commentInfoRes = await fetch(
+        `https://graph.instagram.com/v21.0/${commentId}?fields=timestamp&access_token=${igAccount.access_token}`
+      );
+      const commentInfo = await commentInfoRes.json();
+      if (commentInfo.timestamp) {
+        const ageMs = Date.now() - new Date(commentInfo.timestamp).getTime();
+        if (ageMs > 5 * 60 * 1000) {
+          console.log(`⚠️ Stale comment ${commentId} (${Math.round(ageMs / 60000)} min old) — backlog delivery, skipping`);
+          return;
+        }
+        console.log(`Comment age: ${Math.round(ageMs / 1000)}s — fresh, proceeding`);
+      }
+    } catch (tsErr) {
+      console.warn('Could not fetch comment timestamp, proceeding anyway:', tsErr);
+    }
+
     const { data: automations, error: automationsError } = await supabaseAdmin
       .from('automations')
       .select('*')
@@ -147,28 +171,7 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
         continue;
       }
 
-      // ── Skip if the commenter is the account owner ──
-      // The webhook from.id (IGSID: e.g. 17841437971915155) is a different number than
-      // the Business Account ID stored in ig_user_id (e.g. 26964059936539103) — they are
-      // two different ID spaces for the same person. ID comparison always fails, so we
-      // compare by username instead. This also stops the bot-reply loop: when the automation
-      // posts a public reply, Meta fires a new webhook with commenterUsername = igAccount.username,
-      // which is caught here before processing starts again.
-      const isAccountOwner =
-        commenterIgId === igAccount.ig_user_id ||
-        (commenterUsername != null &&
-          igAccount.username != null &&
-          commenterUsername.toLowerCase() === igAccount.username.toLowerCase());
-
-      if (isAccountOwner) {
-        console.log(`⚠️ Skipping — commenter @${commenterUsername} is the account owner (bot reply loop or self-comment)`);
-        continue;
-      }
-
-      // ── FIX 1: Dedup guard — skip if this comment was already processed ──
-      // Prevents duplicate DMs from Meta backlog delivery or race conditions.
-      // NOTE: also add DB-level guard: ALTER TABLE automation_logs ADD CONSTRAINT
-      // unique_comment_automation UNIQUE (automation_id, comment_id);
+      // ── Dedup guard — fast-path check before inserting ──
       const { data: existingLog } = await supabaseAdmin
         .from('automation_logs')
         .select('id')
@@ -183,8 +186,13 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
 
       console.log(`Automation "${automation.name}" matched! Processing comment ${commentId}...`);
 
-      // ── Insert log entry BEFORE sending DM to prevent race conditions ──
-      const { data: logEntry } = await supabaseAdmin
+      // ── Insert log entry BEFORE sending — with error handling for constraint violation ──
+      // If a unique constraint (automation_id, comment_id) exists on the table, a parallel
+      // webhook invocation that slipped through the check above will fail here with code 23505.
+      // Run in Supabase SQL editor to add it:
+      //   ALTER TABLE public.automation_logs
+      //   ADD CONSTRAINT unique_comment_automation UNIQUE (automation_id, comment_id);
+      const { data: logEntry, error: logInsertError } = await supabaseAdmin
         .from('automation_logs')
         .insert({
           automation_id: automation.id,
@@ -199,6 +207,14 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
         })
         .select('id')
         .single();
+
+      if (logInsertError) {
+        if (logInsertError.code === '23505') {
+          console.log(`⚠️ Race condition: comment ${commentId} already claimed by parallel webhook — skipping`);
+          continue;
+        }
+        console.error('Log insert error (non-fatal):', logInsertError.message);
+      }
 
       const firstName = commenterUsername?.split('_')[0] || commenterUsername || 'there';
       const dmText = (automation.main_dm_text || '').replace(/\{first_name\}/gi, firstName);
