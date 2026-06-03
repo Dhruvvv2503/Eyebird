@@ -550,14 +550,15 @@ async function sendInstagramDM(
       ? `${text}\n\n${linkText}: ${linkUrl}`
       : text;
 
-    if (commentId && linkText && linkUrl) {
-      // Attempt 1: Button template via Private Reply
-      console.log('Attempting button template via Private Reply');
+    if (linkText && linkUrl) {
+      // Button template — use comment_id (Private Reply) if available, otherwise direct { id }
+      const recipient = commentId ? { comment_id: commentId } : { id: recipientIgId };
+      console.log('Attempting button template via', commentId ? 'Private Reply' : 'direct id');
       const templateResp = await fetch(endpoint, {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          recipient: { comment_id: commentId },
+          recipient,
           message: {
             attachment: {
               type: 'template',
@@ -573,20 +574,17 @@ async function sendInstagramDM(
       const templateData = await templateResp.json();
       console.log('Button template response:', JSON.stringify(templateData));
 
-      // Any positive identifier means delivered — Instagram template endpoint may omit message_id
       if (templateData.message_id || templateData.id || templateData.recipient_id) {
         return { success: true, messageId: templateData.message_id || templateData.id };
       }
 
       if (!templateData.error) {
-        // No error and no identifier — assume delivered to avoid duplicate
         console.log('Button template: no error, assuming delivered');
         return { success: true };
       }
 
-      // Button template truly failed — fall straight to { id }, skip plain-text Private Reply
-      // (retrying comment_id would duplicate if template silently delivered)
-      console.log('Button template failed:', templateData.error?.message, '— falling back to id');
+      // Template failed — fall back to plain text via direct { id }
+      console.log('Button template failed:', templateData.error?.message, '— falling back to plain text');
       const idResp = await fetch(endpoint, {
         method: 'POST',
         headers,
