@@ -3,6 +3,7 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { randomUUID } from 'crypto';
 
 const VERIFY_TOKEN = process.env.META_WEBHOOK_VERIFY_TOKEN || 'eyebird_webhook_2024_secure';
 
@@ -47,6 +48,10 @@ export async function POST(req: NextRequest) {
         } else {
           console.log(`Unhandled change field: ${change.field}`);
         }
+      }
+
+      if (messaging.length > 0) {
+        await processMessageEvents(messaging);
       }
     }
 
@@ -219,58 +224,68 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
       const firstName = commenterUsername?.split('_')[0] || commenterUsername || 'there';
       const dmText = (automation.main_dm_text || '').replace(/\{first_name\}/gi, firstName);
 
-      // Send opening DM first if enabled — uses comment_id (Private Reply) to open the thread.
-      // This consumes the comment_id, so the main DM below falls back to { id }, which works
-      // because the conversation window is now open from the opening Private Reply.
+      // ── OPENING DM / QUICK REPLY ──
+      let quickReplySent = false;
       if (automation.opening_dm_enabled && automation.opening_dm_text) {
         const openingText = (automation.opening_dm_text as string).replace(/\{first_name\}/gi, firstName);
-        try {
-          const openingResp = await fetch(`https://graph.instagram.com/v21.0/${igAccount.ig_user_id}/messages`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${igAccount.access_token}` },
-            body: JSON.stringify({
-              recipient: { comment_id: commentId },
-              message: { text: openingText },
-            }),
-          });
-          const openingData = await openingResp.json();
-          if (openingData.error) {
-            console.error('Opening DM failed:', openingData.error.message);
+
+        if (automation.quick_reply_enabled && automation.quick_reply_button_text) {
+          // Quick reply mode: send opening DM with button — main DM deferred until tap
+          const qrPayload = randomUUID();
+          const qrResult = await sendInstagramDMWithQuickReply(
+            igAccount.ig_user_id,
+            igAccount.access_token,
+            commentId,
+            openingText,
+            automation.quick_reply_button_text as string,
+            qrPayload
+          );
+          if (qrResult.success) {
+            await supabaseAdmin.from('pending_dm_replies').insert({
+              automation_id: automation.id,
+              ig_account_id: igAccount.id,
+              user_id: igAccount.user_id,
+              log_entry_id: logEntry?.id || null,
+              commenter_ig_id: commenterIgId,
+              commenter_username: commenterUsername,
+              comment_id: commentId,
+              post_id: postId,
+              dm_text: dmText,
+              link_text: automation.main_dm_link_text || null,
+              link_url: automation.main_dm_link_url || null,
+              payload: qrPayload,
+            });
+            quickReplySent = true;
+            console.log(`⏳ Quick reply DM sent to @${commenterUsername} — main DM pending button tap`);
           } else {
-            console.log('Opening DM sent via Private Reply:', openingData.message_id);
+            console.warn('Quick reply DM failed, falling back to normal opening DM');
           }
-        } catch (openingErr) {
-          console.error('Opening DM error:', openingErr);
+        }
+
+        if (!quickReplySent) {
+          // Normal opening DM (Private Reply, no button)
+          try {
+            const openingResp = await fetch(`https://graph.instagram.com/v21.0/${igAccount.ig_user_id}/messages`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${igAccount.access_token}` },
+              body: JSON.stringify({
+                recipient: { comment_id: commentId },
+                message: { text: openingText },
+              }),
+            });
+            const openingData = await openingResp.json();
+            if (openingData.error) {
+              console.error('Opening DM failed:', openingData.error.message);
+            } else {
+              console.log('Opening DM sent via Private Reply:', openingData.message_id);
+            }
+          } catch (openingErr) {
+            console.error('Opening DM error:', openingErr);
+          }
         }
       }
 
-      console.log(`Sending main DM to @${commenterUsername}`);
-
-      // If opening DM was sent above, comment_id is consumed — sendInstagramDM will fall through
-      // attempts 1+2 (comment_id already used) and reach the { id } fallback automatically.
-      const dmResult = await sendInstagramDM(
-        igAccount.ig_user_id,
-        igAccount.access_token,
-        commenterIgId,
-        commentId,
-        dmText,
-        automation.main_dm_link_text,
-        automation.main_dm_link_url
-      );
-
-      // Update log entry with DM result
-      if (logEntry?.id) {
-        await supabaseAdmin
-          .from('automation_logs')
-          .update({
-            dm_sent: dmResult.success,
-            dm_sent_at: dmResult.success ? new Date().toISOString() : null,
-            error_message: dmResult.error || null,
-          })
-          .eq('id', logEntry.id);
-      }
-
-      // PUBLIC COMMENT REPLY — send exactly ONE random variation
+      // ── PUBLIC COMMENT REPLY — always fires regardless of DM mode ──
       if (
         automation.reply_to_comment_publicly === true &&
         automation.public_reply_variations &&
@@ -281,29 +296,19 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
           .filter((v: string) => typeof v === 'string' && v.trim().length > 0);
 
         if (validVariations.length > 0) {
-          // Pick ONE random variation — nothing else
           const randomIndex = Math.floor(Math.random() * validVariations.length);
           const chosenReply = validVariations[randomIndex];
-
           console.log(`📝 Posting public reply (${randomIndex + 1}/${validVariations.length}): "${chosenReply}"`);
-
           try {
             const replyResponse = await fetch(
               `https://graph.instagram.com/v21.0/${commentId}/replies`,
               {
                 method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${igAccount.access_token}`,
-                },
-                body: JSON.stringify({
-                  message: chosenReply,
-                }),
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${igAccount.access_token}` },
+                body: JSON.stringify({ message: chosenReply }),
               }
             );
-
             const replyData = await replyResponse.json();
-
             if (replyData.error) {
               console.error('❌ Public reply failed:', replyData.error);
             } else {
@@ -311,9 +316,40 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
             }
           } catch (replyErr) {
             console.error('❌ Public reply error:', replyErr);
-            // Never block DM flow for public reply failure
           }
         }
+      }
+
+      // ── QUICK REPLY MODE: only count triggered, skip main DM ──
+      if (quickReplySent) {
+        await supabaseAdmin
+          .from('automations')
+          .update({ total_comments_triggered: automation.total_comments_triggered + 1 })
+          .eq('id', automation.id);
+        continue;
+      }
+
+      // ── NORMAL MODE: send main DM ──
+      console.log(`Sending main DM to @${commenterUsername}`);
+      const dmResult = await sendInstagramDM(
+        igAccount.ig_user_id,
+        igAccount.access_token,
+        commenterIgId,
+        commentId,
+        dmText,
+        automation.main_dm_link_text,
+        automation.main_dm_link_url
+      );
+
+      if (logEntry?.id) {
+        await supabaseAdmin
+          .from('automation_logs')
+          .update({
+            dm_sent: dmResult.success,
+            dm_sent_at: dmResult.success ? new Date().toISOString() : null,
+            error_message: dmResult.error || null,
+          })
+          .eq('id', logEntry.id);
       }
 
       if (dmResult.success) {
@@ -345,6 +381,151 @@ async function processCommentEvent(igBusinessAccountId: string, commentData: Rec
     }
   } catch (err: unknown) {
     console.error('processCommentEvent error:', err);
+  }
+}
+
+// ── SEND INSTAGRAM DM WITH QUICK REPLY BUTTON ──
+async function sendInstagramDMWithQuickReply(
+  senderIgUserId: string,
+  accessToken: string,
+  commentId: string,
+  text: string,
+  buttonTitle: string,
+  payload: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const resp = await fetch(
+      `https://graph.instagram.com/v21.0/${senderIgUserId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          recipient: { comment_id: commentId },
+          message: {
+            text,
+            quick_replies: [{ content_type: 'text', title: buttonTitle, payload }],
+          },
+        }),
+      }
+    );
+    const data = await resp.json();
+    if (data.error) {
+      console.error('Quick reply DM error:', data.error.message);
+      return { success: false, error: data.error.message };
+    }
+    console.log('Quick reply DM sent:', data.message_id || data.id);
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return { success: false, error: message };
+  }
+}
+
+// ── PROCESS MESSAGING EVENTS (quick reply button taps) ──
+async function processMessageEvents(messagingEvents: Record<string, unknown>[]) {
+  for (const event of messagingEvents) {
+    try {
+      const message = event.message as Record<string, unknown> | undefined;
+      if (!message) continue;
+      if (message.is_echo) continue; // ignore echoes of our own outbound messages
+
+      const quickReply = message.quick_reply as Record<string, string> | undefined;
+      if (!quickReply?.payload) continue;
+
+      const payload = quickReply.payload;
+
+      const { data: pending } = await supabaseAdmin
+        .from('pending_dm_replies')
+        .select('*')
+        .eq('payload', payload)
+        .eq('status', 'pending')
+        .gt('expires_at', new Date().toISOString())
+        .maybeSingle();
+
+      if (!pending) {
+        console.log(`No active pending reply for payload (expired or already sent)`);
+        continue;
+      }
+
+      // Claim atomically before sending to prevent duplicate sends
+      const { error: claimError } = await supabaseAdmin
+        .from('pending_dm_replies')
+        .update({ status: 'sent' })
+        .eq('id', pending.id)
+        .eq('status', 'pending');
+
+      if (claimError) {
+        console.warn('Could not claim pending reply (race condition or already processed)');
+        continue;
+      }
+
+      const { data: igAccount } = await supabaseAdmin
+        .from('instagram_accounts')
+        .select('*')
+        .eq('id', pending.ig_account_id)
+        .maybeSingle();
+
+      if (!igAccount) {
+        console.error('Account not found for pending reply:', pending.ig_account_id);
+        continue;
+      }
+
+      const { data: automation } = await supabaseAdmin
+        .from('automations')
+        .select('total_dms_sent')
+        .eq('id', pending.automation_id)
+        .maybeSingle();
+
+      // Conversation is already open — send main DM via direct id (no comment_id needed)
+      const dmResult = await sendInstagramDM(
+        igAccount.ig_user_id,
+        igAccount.access_token,
+        pending.commenter_ig_id,
+        '',
+        pending.dm_text,
+        pending.link_text,
+        pending.link_url
+      );
+
+      if (pending.log_entry_id) {
+        await supabaseAdmin
+          .from('automation_logs')
+          .update({
+            dm_sent: dmResult.success,
+            dm_sent_at: dmResult.success ? new Date().toISOString() : null,
+            error_message: dmResult.error || null,
+          })
+          .eq('id', pending.log_entry_id);
+      }
+
+      if (dmResult.success) {
+        if (automation) {
+          await supabaseAdmin
+            .from('automations')
+            .update({ total_dms_sent: automation.total_dms_sent + 1 })
+            .eq('id', pending.automation_id);
+        }
+
+        await supabaseAdmin
+          .from('contacts')
+          .upsert({
+            user_id: igAccount.user_id,
+            ig_user_id: pending.commenter_ig_id,
+            username: pending.commenter_username,
+            last_interaction_at: new Date().toISOString(),
+            source_automation_id: pending.automation_id,
+          }, { onConflict: 'user_id,ig_user_id', ignoreDuplicates: false });
+
+        console.log(`✅ Quick reply main DM sent to @${pending.commenter_username}`);
+      } else {
+        console.error(`❌ Quick reply main DM failed:`, dmResult.error);
+      }
+    } catch (err) {
+      console.error('processMessageEvents error:', err);
+    }
   }
 }
 

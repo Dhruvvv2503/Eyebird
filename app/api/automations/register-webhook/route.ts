@@ -52,7 +52,7 @@ export async function POST() {
           'Authorization': `Bearer ${igAccount.access_token}`,
         },
         body: JSON.stringify({
-          subscribed_fields: 'comments',
+          subscribed_fields: 'comments,messages',
         }),
       }
     );

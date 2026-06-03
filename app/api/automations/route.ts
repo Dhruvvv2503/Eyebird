@@ -86,6 +86,8 @@ export async function POST(req: NextRequest) {
         main_dm_text: body.main_dm_text || '',
         main_dm_link_text: body.main_dm_link_text || null,
         main_dm_link_url: body.main_dm_link_url || null,
+        quick_reply_enabled: body.quick_reply_enabled || false,
+        quick_reply_button_text: body.quick_reply_button_text || null,
         test_mode: true,
         test_instagram_username: 'dhruvv.bhaii',
       })

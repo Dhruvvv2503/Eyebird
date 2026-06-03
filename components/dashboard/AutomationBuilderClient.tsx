@@ -35,6 +35,8 @@ const DEFAULT_FORM: AutomationFormState = {
   main_dm_text: '',
   main_dm_link_text: '',
   main_dm_link_url: '',
+  quick_reply_enabled: false,
+  quick_reply_button_text: '',
   test_mode: true,
 };
 
@@ -55,6 +57,8 @@ function getInitialForm(existing: Record<string, unknown> | null): AutomationFor
     main_dm_text: (existing.main_dm_text as string) || '',
     main_dm_link_text: (existing.main_dm_link_text as string) || '',
     main_dm_link_url: (existing.main_dm_link_url as string) || '',
+    quick_reply_enabled: (existing.quick_reply_enabled as boolean) || false,
+    quick_reply_button_text: (existing.quick_reply_button_text as string) || '',
     test_mode: (existing.test_mode as boolean) ?? true,
   };
 }
@@ -110,6 +114,7 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
   const [showNameModal, setShowNameModal] = useState(false);
   const [modalNameInput, setModalNameInput] = useState('');
   const [pendingSaveStatus, setPendingSaveStatus] = useState<'draft' | 'active'>('active');
+  const [nameError, setNameError] = useState('');
 
   const loadPosts = useCallback(async (cursor?: string) => {
     setLoadingPosts(true);
@@ -204,6 +209,7 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
         main_dm_link_text: form.main_dm_link_text || null,
         main_dm_link_url: form.main_dm_link_url || null,
         opening_dm_text: form.opening_dm_enabled ? form.opening_dm_text : null,
+        quick_reply_button_text: form.quick_reply_enabled ? (form.quick_reply_button_text || null) : null,
         public_reply_variations: form.public_reply_variations.filter(v => v.trim().length > 0),
       };
       const url = existingAutomation ? `/api/automations/${existingAutomation.id}` : '/api/automations';
@@ -286,10 +292,25 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
                 <div style={{ background: '#1a1a1a', borderRadius: '18px 18px 18px 4px', padding: '10px 14px', fontSize: 12, color: '#fff', lineHeight: 1.5 }}>
                   {form.opening_dm_text.replace('{first_name}', 'there')}
                 </div>
+                {form.quick_reply_enabled && form.quick_reply_button_text && (
+                  <div style={{ marginTop: 6 }}>
+                    <div style={{ display: 'inline-block', borderRadius: 100, border: '1px solid #0A84FF', padding: '5px 12px', fontSize: 11, fontWeight: 600, color: '#0A84FF' }}>
+                      {form.quick_reply_button_text}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Separator shown between opening DM + button tap and the main DM */}
+            {form.quick_reply_enabled && form.opening_dm_enabled && form.main_dm_text && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
+                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                <div style={{ fontSize: 9, color: '#444', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' as const }}>after tap</div>
+                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
               </div>
             )}
             {form.main_dm_text ? (
-              <div style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
+              <div style={{ alignSelf: 'flex-start', maxWidth: '85%', opacity: form.quick_reply_enabled && form.opening_dm_enabled ? 0.45 : 1, transition: 'opacity 0.2s' }}>
                 <div style={{ background: '#1a1a1a', borderRadius: '18px 18px 18px 4px', padding: '10px 14px', fontSize: 12, color: '#fff', lineHeight: 1.5 }}>
                   {getPreviewDmText()}
                 </div>
@@ -879,6 +900,39 @@ export default function AutomationBuilderClient({ igAccount, niche, existingAuto
                       onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
                     />
                   )}
+                </div>
+
+                {/* ── QUICK REPLY BUTTON — always visible, dimmed when opening DM is off ── */}
+                <div style={{ marginBottom: 10, opacity: form.opening_dm_enabled ? 1 : 0.4, transition: 'opacity 0.2s' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${form.quick_reply_enabled && form.opening_dm_enabled ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 10, overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px' }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Quick reply button</div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+                          {form.opening_dm_enabled ? 'User taps to unlock the main DM' : 'Enable Opening DM above first'}
+                        </div>
+                      </div>
+                      <Toggle
+                        value={form.quick_reply_enabled && form.opening_dm_enabled}
+                        onChange={() => { if (form.opening_dm_enabled) setForm(f => ({ ...f, quick_reply_enabled: !f.quick_reply_enabled })); }}
+                      />
+                    </div>
+                    {form.quick_reply_enabled && form.opening_dm_enabled && (
+                      <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '10px 14px 12px' }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>Button label (max 20 chars)</div>
+                        <input
+                          value={form.quick_reply_button_text}
+                          onChange={e => setForm(f => ({ ...f, quick_reply_button_text: e.target.value }))}
+                          placeholder="Yes! Send it to me 👍"
+                          maxLength={20}
+                          style={{ ...fieldStyle }}
+                          onFocus={e => { e.target.style.borderColor = 'rgba(139,92,246,0.4)'; }}
+                          onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                        />
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', marginTop: 4, textAlign: 'right' as const }}>{form.quick_reply_button_text.length}/20</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10 }}>

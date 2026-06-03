@@ -20,6 +20,8 @@ export interface Automation {
   main_dm_text: string
   main_dm_link_text: string | null
   main_dm_link_url: string | null
+  quick_reply_enabled: boolean
+  quick_reply_button_text: string | null
   test_mode: boolean
   test_instagram_username: string
   total_dms_sent: number
@@ -66,5 +68,7 @@ export interface AutomationFormState {
   main_dm_text: string
   main_dm_link_text: string
   main_dm_link_url: string
+  quick_reply_enabled: boolean
+  quick_reply_button_text: string
   test_mode: boolean
 }
