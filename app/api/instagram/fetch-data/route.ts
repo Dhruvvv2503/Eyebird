@@ -80,14 +80,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Account needs at least 3 posts for an audit.' }, { status: 400 });
     }
 
-    // Fetch per-post insights (reach, impressions, saved) in parallel
+    // Fetch per-post insights (reach, saved) in parallel
     const mediaWithInsights = await Promise.all(
       posts.map(async (post: any) => {
         try {
           const metricList =
             post.media_type === 'VIDEO' || post.media_type === 'REELS'
-              ? 'reach,impressions,saved,video_views,total_interactions'
-              : 'reach,impressions,saved,total_interactions';
+              ? 'reach,saved,video_views,total_interactions'
+              : 'reach,saved,total_interactions';
 
           const insightResponse = await fetch(
             `https://graph.instagram.com/v21.0/${post.id}/insights?metric=${metricList}&access_token=${token}`
@@ -106,13 +106,13 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    // Fetch account-level insights (last 90 days reach/impressions)
+    // Fetch account-level insights (last 90 days reach/views)
     const since = Math.floor((Date.now() - 90 * 24 * 60 * 60 * 1000) / 1000);
     const until = Math.floor(Date.now() / 1000);
     let insightsData = null;
     try {
       const insightsResponse = await fetch(
-        `https://graph.instagram.com/v21.0/${igUserId}/insights?metric=reach,impressions,profile_views&period=day&since=${since}&until=${until}&access_token=${token}`
+        `https://graph.instagram.com/v21.0/${igUserId}/insights?metric=reach,views,profile_views&period=day&since=${since}&until=${until}&access_token=${token}`
       );
       insightsData = await insightsResponse.json();
     } catch {
